@@ -50,10 +50,10 @@ export function HomeSidebar({ active, onNavigate }: { active: string; onNavigate
             <BookOpen size={17} />
             Library of curiosities
           </button>
-          <button className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-studio-nav hover:bg-studio-sidebar-hover">
+          <p className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-studio-nav">
             <Timer size={17} />
-            Focus timer <span className="ml-auto font-mono text-[10px]">25:00</span>
-          </button>
+            Focus timer
+          </p>
         </div>
       </div>
       <div className="hidden items-center gap-3 rounded-2xl bg-studio-cream p-3 lg:flex">

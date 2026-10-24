@@ -52,17 +52,13 @@ export function CuriosityShelf({ ideas, onAdd }: { ideas: Idea[]; onAdd: (value:
       )}
       <div className="flex flex-col gap-3">
         {ideas.map((idea) => (
-          <button
-            key={idea.title}
-            onClick={() => onAdd(idea.title)}
-            className="group flex min-h-8 items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral"
-          >
+          <div key={idea.id} className="group flex min-h-8 items-center gap-3 text-left">
             <span className={`size-2.5 shrink-0 rounded-full ${dotClass[idea.color]}`} />
             <span className="min-w-0 flex-1 text-sm text-studio-body">{idea.title}</span>
             <span className="font-mono text-[9px] uppercase tracking-wider text-studio-tag group-hover:text-studio-coral">
               {idea.tag}
             </span>
-          </button>
+          </div>
         ))}
       </div>
       <button className="mt-5 flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-studio-coral">

@@ -1,10 +1,18 @@
-import { Check, Grid2X2 } from 'lucide-react'
 import { ActiveThread } from '@/components/home/active-thread'
 import { CuriosityShelf } from '@/components/home/curiosity-shelf'
 import { HomeSidebar } from '@/components/home/home-sidebar'
 import { NextUp } from '@/components/home/next-up'
 import { QpmGauge } from '@/components/home/qpm-gauge'
 import type { Idea } from '@/components/home/types'
+
+function studioDateLabel(date: Date) {
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(date)
+  return `${formatted} · Studio 01`
+}
 
 export function HomeDashboard({
   active,
@@ -31,7 +39,7 @@ export function HomeDashboard({
             <div>
               <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-studio-date">
                 <span className="size-2 rounded-full bg-studio-coral" />
-                Tuesday, October 24 · Studio 01
+                {studioDateLabel(new Date())}
               </div>
               <h2 className="max-w-xl font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">
                 Follow the thread.
@@ -52,9 +60,6 @@ export function HomeDashboard({
             <span className="font-mono uppercase tracking-widest">A gentle reminder</span>
             <span className="size-1 rounded-full bg-studio-coral" />
             <span>You don&apos;t have to know the answer to begin.</span>
-            <span className="ml-auto hidden items-center gap-2 sm:flex">
-              <Grid2X2 size={14} /> 4 paths in motion <Check size={14} className="text-studio-check" />
-            </span>
           </footer>
         </section>
       </div>
