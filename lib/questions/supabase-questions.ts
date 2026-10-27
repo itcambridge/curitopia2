@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Disposition, QuestionRecord } from '@/lib/questions/types'
-import type { ImportItem } from '@/lib/questions/import-plan'
 
 const dispositions: Disposition[] = ['gathered', 'retained', 'parked', 'discarded']
 
@@ -9,12 +8,6 @@ export type QuestionPatch = {
   consideredText?: string | null
   disposition?: Disposition
   mergedIntoId?: string | null
-}
-
-export type ImportFailure = {
-  id: string
-  text: string
-  reason: string
 }
 
 function isDisposition(value: string): value is Disposition {
@@ -102,39 +95,4 @@ export async function updateQuestion(id: string, patch: QuestionPatch) {
   if (Object.keys(row).length === 0) return
   const { error } = await supabase.from('questions').update(row).eq('id', id)
   if (error) throw new Error(questionSaveMessage(error))
-}
-
-function insertOrder(items: ImportItem[]) {
-  const pending = [...items]
-  const ordered: ImportItem[] = []
-  const ready = new Set<string>()
-  while (pending.length) {
-    const nextIndex = pending.findIndex((item) => {
-      const target = item.question.mergedIntoId
-      return !target || ready.has(target) || !pending.some((other) => other.question.id === target)
-    })
-    const index = nextIndex === -1 ? 0 : nextIndex
-    const [item] = pending.splice(index, 1)
-    ordered.push(item)
-    ready.add(item.question.id)
-  }
-  return ordered
-}
-
-export async function importQuestions(items: ImportItem[]) {
-  const failed: ImportFailure[] = []
-  let imported = 0
-  for (const item of insertOrder(items)) {
-    try {
-      await insertQuestion(item.question)
-      imported += 1
-    } catch (error) {
-      failed.push({
-        id: item.question.id,
-        text: item.question.originalText,
-        reason: error instanceof Error ? error.message : 'The question could not be saved to the account.',
-      })
-    }
-  }
-  return { imported, failed }
 }

@@ -80,9 +80,6 @@ export function StudioShell({
         <section className="relative min-w-0 flex-1 overflow-x-clip px-5 py-7 sm:px-8 lg:px-12 lg:py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-studio-mint-wash opacity-70 blur-3xl" />
           <div className="relative">
-            <p className="mb-6 max-w-3xl rounded-2xl border border-studio-line bg-studio-ivory px-4 py-3 text-sm text-studio-body">
-              Questions are saved to this account. Images and concepts stay in this browser until a later step. Any stage can be opened again.
-            </p>
             {children}
           </div>
         </section>
