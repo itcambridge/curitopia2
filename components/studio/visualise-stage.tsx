@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Eyebrow, Notice, coralButton, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import type { ConsiderResult } from '@/lib/providers/types'
 import type { ImageSetResult } from '@/lib/providers/types'
-import { acceptConsidered, applyImageResult, conceptForAnchor, draftFor, draftIsCurrent, questionPlace, rejectCandidate, restoreCandidate, selectCandidate } from '@/lib/questions/workspace'
+import { acceptConsidered, applyImageResult, draftFor, draftIsCurrent, questionPlace, rejectCandidate, restoreCandidate, selectCandidate } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
 
 export function VisualiseStage({ workspace, onChange }: { workspace: Workspace; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
@@ -161,7 +161,8 @@ function QuestionImages({
       </section>
       <section className={panelClass}>
         <Eyebrow>Images</Eyebrow>
-        <p className="mt-3 max-w-2xl text-sm text-studio-body">Four interpretations are requested only when you ask. Candidates stay with this comparison until you keep one concept.</p>
+        <p className="mt-3 max-w-2xl text-sm text-studio-body">Four interpretations are requested only when you ask. They stay in this browser until you save a concept in Distil.</p>
+        <p className="mt-2 max-w-2xl text-sm text-studio-body">Use this image only chooses the current draft. It is not saved to your account yet.</p>
         <button type="button" onClick={askForImages} disabled={!question.consideredText || !wordingSaved || busy === 'images'} className={`${inkButton} mt-4`}>
           {busy === 'images' ? 'Preparing four views…' : 'Make four images'}
         </button>
@@ -186,8 +187,17 @@ function QuestionImages({
                       <span className="mt-1 block text-sm text-studio-body">{candidate.metaphor}</span>
                     </span>
                   </button>
-                  <div className="px-4 pb-4">
-                    <button type="button" className={quietButton} onClick={() => onChange(rejectCandidate(workspace, question.id, candidate.id))}>Set this image aside</button>
+                  <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
+                    <button
+                      type="button"
+                      className={chosen ? coralButton : quietButton}
+                      aria-pressed={chosen}
+                      disabled={!current}
+                      onClick={() => onChange(selectCandidate(workspace, question.id, candidate.id))}
+                    >
+                      {chosen ? 'Using this image' : 'Use this image'}
+                    </button>
+                    <button type="button" className="text-sm font-semibold text-studio-muted underline-offset-2 hover:underline" onClick={() => onChange(rejectCandidate(workspace, question.id, candidate.id))}>Hide from this comparison</button>
                   </div>
                 </li>
               )
@@ -196,7 +206,7 @@ function QuestionImages({
         )}
         {hidden.length > 0 && (
           <div className="mt-4">
-            <p className="text-sm text-studio-body">{hidden.length} set aside in this comparison.</p>
+            <p className="text-sm text-studio-body">{hidden.length} hidden from this comparison. Hidden images are not saved.</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {hidden.map((candidate) => (
                 <button key={candidate.id} type="button" className={quietButton} onClick={() => onChange(restoreCandidate(workspace, question.id, candidate.id))}>
@@ -206,7 +216,12 @@ function QuestionImages({
             </div>
           </div>
         )}
-        <div className="mt-5">
+        <div className="mt-5 flex flex-col items-start gap-3">
+          <p className="max-w-xl text-sm text-studio-body">
+            {selected
+              ? 'This image is the current draft. It is not saved yet. Next, name it in Distil, then save the concept to your library.'
+              : 'Choose Use this image, then continue to Distil. Changing or hiding a candidate does not save it.'}
+          </p>
           <button
             type="button"
             className={coralButton}
@@ -215,7 +230,7 @@ function QuestionImages({
               ...workspace,
               stage: 'distil',
               focusQuestionId: question.id,
-              focusConceptId: conceptForAnchor(workspace, question.id)?.id ?? null,
+              focusConceptId: null,
             })}
           >
             Name this image

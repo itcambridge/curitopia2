@@ -1,17 +1,17 @@
 # Curitopia Entity-Relationship Model
 
-**Status:** Proposed schema. The migration has not been applied and must not be executed from this document.  
+**Status:** Deployed first-release model, plus later sketches that are not tables. This file is not permission to add tables or run SQL.  
 **Migration:** `supabase/migrations/20261026000000_initial_v2_schema.sql`  
 **Explanation:** `docs/schema-inventory/proposals/v2-initial-schema-proposal.md`  
 **Experience:** `Curitopia_Garden_Experience_Framework.md` and `PRODUCT_VISION.md`.
 
-V1 tables are untouched. V2 does not import them. This file describes the proposed first release. It is not permission to create a Supabase project.
+V1 tables are untouched. V2 does not import them. The first-release tables below are the account model. The Lab sketch and the concept-to-concept note are not in that model.
 
 ## 1. Model goals
 
 - The person owns questions, themes, and concepts directly. There is no exploration container.
 - A question keeps its original text and its optional considered text.
-- The Library of Curiosities archives visual concepts. A concept is one selected image, a one- or two-word title, the wording that image was made for, and any number of source questions. A question may inform any number of concepts. A concept is never a completed status.
+- The Library of Curiosities is a collection of concepts. A concept is one selected image, a title of one or two words, the wording that image was made for, and any number of source questions. The title is part of the concept, not a caption stored elsewhere. A question may inform any number of concepts. A concept is never a completed status. There is no relationship between two concepts in this model.
 - A question can belong to zero or more themes. A theme can contain zero or more questions. Themes are optional in the journey and included in this schema.
 - The Lab, meaning investigations, is a later release. It is not a stage of the four-stage cycle and it is not in this migration.
 - Stories, vision boards, candidate images, focus backdrops, and item thumbnails are not entities.
@@ -98,9 +98,9 @@ A theme is a name and a position. It has no description. Names are unique per ow
 
 ### Concept
 
-A concept does not require a surviving question. It has no anchor column and no completed flag. The prototype still stores one concept per `anchorQuestionId`. The schema does not. That is a prototype limit, not a database rule.
+A concept does not require a surviving question. It has no anchor column and no completed flag. Saving another image creates another concept, so one question can inform many. The schema does not collapse those into one row.
 
-`title` is one word, or two words joined by exactly one ordinary space, at most 40 characters. `for_considered_text` is the considered wording the selected image was made for. `image_model` and `prompt_version` are required. Demo fixtures in the browser can have a data URL and a null model. Those fixtures are not rows in this schema.
+`title` is one word, or two words joined by exactly one ordinary space, at most 40 characters. One word is valid. The application and this check both enforce the limit. A title suggestion that fails it is not stored by another path. `for_considered_text` is the considered wording the selected image was made for. `image_model` and `prompt_version` are required. Demo fixtures in the browser can have a data URL and a null model. Those fixtures are not rows in this schema. There is no column for a temporary title suggestion. Retitling updates `title` on the existing row.
 
 ### Concept link
 
@@ -108,7 +108,13 @@ A concept does not require a surviving question. It has no anchor column and no 
 
 Editing or parking a live question does not change the snapshots or `concepts.for_considered_text`.
 
-## 3. Later release — the Lab
+## 3. Later, and not designed — a relationship between two concepts
+
+Connect, described in `USER_JOURNEYS.md`, would let a person choose two existing concepts and explore what joins them. The deployed model cannot store that. `concept_questions` is provenance from questions to a concept. It is not a concept-to-concept link, and it must not be overloaded into one.
+
+No table, foreign key, or list of relationship types is specified here. Whether a connection is a pair, a note, a new question, or something else is an open decision, taken when that experience is scheduled. Until then, two concepts can be viewed together without a stored link.
+
+## 4. Later release — the Lab
 
 Not in this migration. Specified here so the Lab is not confused with the Library.
 
@@ -153,7 +159,7 @@ Each item belongs to one investigation. Kinds are `concept`, `note`, `hypothesis
 
 Items do not copy question text. A visual concept is not an investigation item.
 
-## 4. Earlier drafts
+## 5. Earlier drafts
 
 `v2-initial-schema-draft.sql` and the related-item validation SQL proposed explorations, Quickfire/Focus, focus images, and investigation thumbnails. They are history. Do not apply them.
 
@@ -163,9 +169,9 @@ Items do not copy question text. A visual concept is not an investigation item.
 
 `hosted-catalog.sql` is a historical inventory. It is not a V2 setup step.
 
-## 5. Integrity and security
+## 6. Integrity and security
 
-These rules are the ones written in the proposed migration. Applying that file still needs an explicit approval.
+These rules are the ones in the deployed migration. This section is not approval to change them.
 
 - Every question, theme, and concept has one owner. `user_id` cannot change.
 - Theme membership uses composite foreign keys, so both parents share that owner.
@@ -178,14 +184,16 @@ These rules are the ones written in the proposed migration. Applying that file s
 - Deleting an auth user can remove their questions, themes, concepts, and memberships in one cascade because the merge foreign key is deferred. The application removes their image files through the Storage API first. If file removal fails, the account deletion does not proceed. That sequence is not in the migration.
 - There is one private image bucket, `concept-images`, at `{user_id}/{concept_id}/{filename}`, with an 8 MiB limit and PNG, JPEG, or WebP only. There is no thumbnail bucket, no focus-image bucket, and no story bucket. The schema requires PostgreSQL 15 or later.
 
-## 6. Standing of this model
+## 7. Standing of this model
 
-- [x] V2 is a separate Supabase project, when one is created. V1 is not modified and is not imported.
+- [x] V2 is a separate Supabase project. V1 is not modified and is not imported.
 - [x] A question may inform many concepts, and a concept may be informed by many questions. The concept remains when a source is edited, parked, or removed.
-- [x] The proposed columns, keys, private path, and removal mechanics are written in the migration named above. They have not been executed.
+- [x] The columns, keys, private path, and removal mechanics for this first release are the deployed migration named above.
 - [x] Original text and considered text are both stored. Merge is a pointer, not a fifth disposition.
 - [x] Optional themes are `themes` and `theme_questions`. One name per owner, ignoring case and surrounding spaces. They are not a required step in the cycle.
+- [x] A title is one or two words. Suggestions are not a stored entity.
 - [x] Investigations are not in this release. The item kind `concept` is not a Library visual concept.
 - [x] A visual concept has no completed state.
+- [ ] A relationship between two concepts. Not designed. Section 3 records the requirement and forbids inventing the table early.
 
-Confirmations still required are listed in `PRODUCT_VISION.md` section 10. The 8 MiB ceiling and the private path are the schema defaults. Applying the migration still needs an explicit yes.
+Confirmations still required are listed in `PRODUCT_VISION.md` section 10. The 8 MiB ceiling and the private path are the schema defaults.

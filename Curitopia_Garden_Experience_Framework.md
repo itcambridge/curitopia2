@@ -6,7 +6,7 @@
 
 ## 1. Product idea
 
-Curitopia is a personal place to nurture curiosity. It helps people move from an unfinished thought to a considered question, explore meaningful visual interpretations, and give an idea a memorable name.
+Curitopia is a personal place to nurture curiosity. It helps people move from an unfinished thought to a considered question, then to a concept: a compelling image and a title of one or two words that makes the idea easy to remember and to connect.
 
 The intended journey is:
 
@@ -21,7 +21,7 @@ The garden is the emotional centre of Curitopia. It represents a person's evolvi
 - **Seeds:** freshly captured questions, kept in their original wording.
 - **Shoots:** questions the user chooses to retain for further attention.
 - **Branches:** relationships between connected questions, including questions grouped or merged by the user.
-- **Blossoms:** visual concepts the user chooses to keep—an image paired with a short title and linked to the question or questions that inspired it.
+- **Blossoms:** concepts the user chooses to keep. Each blossom is a meaningful image, a title of one or two words, and the question or questions that informed it. The title is how the idea stays memorable. The blossom is never finished.
 - **Field notes:** the user's personal record of thoughts and discoveries.
 - **Curiosity Shelf:** a lightweight place for ideas the user wants to keep close at hand.
 - **Open the Lab:** an optional space for deeper investigation, testing a hunch, and developing an idea. The Lab supports the garden; it is not a required gateway to visualising a question.
@@ -95,21 +95,30 @@ Experience principles:
 Purpose: bring a compelling image and the idea behind it together as a memorable visual concept.
 
 Experience principles:
-- Pair the chosen image with a memorable one- or two-word title.
-- The title should name the metaphor or core idea, not merely shorten the question or act as a caption.
+- The person arrives with the image they chose, the considered wording it was made for, and the source questions.
+- Pair that image with a title of one or two words. One word is valid. Two is the maximum.
+- The title should catch the essence of the idea and still mean something later, without the conversation that produced it. A generic, literal, or interchangeable title fails the image it sits under.
+- “Spacetime Fusion” and “Russian Blackholes” are examples of concise, memorable handles. They are not a pattern the product should impose.
+- Brevity is not the whole aim. The title should stay faithful to the question and the image, and be easy to say beside other concepts.
+- If the person asks, the product may suggest three distinct titles. Suggestions are recommendations. The person selects, edits, asks again, or writes their own. The field is never filled or saved for them. Asking again does not make a new image. This help is proposed and not built. See `PRODUCT_VISION.md`.
+- A missing or failed suggestion must not block a manually entered valid title.
 - Preserve links to the source question or questions. A concept may emerge from more than one related question and, in the future, may draw on an investigation.
-- Let users edit a title, revisit the source, and refine the concept later.
-- Saving a concept records something worth returning to; it does not certify that the idea is finished.
+- Let users edit a title, revisit the source, and refine the concept later. Retitling updates the concept they already saved.
+- Saving a concept records something worth returning to. It does not certify that the idea is finished.
 
-**Output:** a named visual concept that can be revisited, reconsidered, and developed over time.
+**Output:** a named concept that can be revisited, retitled, reinterpreted, and connected over time.
 
 ## 4. The Library of Curiosities
 
-**The Library of Curiosities is an archive of visual concepts. They are never completed.**
+**The Library of Curiosities is a collection of concepts. They are never completed.**
 
-The library is not a final-results page, a checklist of achievements, or a collection of work that has been declared done. It is a living archive of things the user has chosen to keep: compelling images, short titles, their source questions, and the relationships that give them meaning.
+The concept is the central unit. It is not merely a saved image or a saved question. It is a visual expression of an idea, with a concise title and provenance to one or more questions. The library is a place to revisit, compare, and connect those mental objects.
 
-A concept may be revisited, retitled, connected to more questions, reconsidered, or developed into a deeper investigation. Its presence in the library means “worth keeping and returning to,” not “finished.”
+The library is not a final-results page, a checklist of achievements, a productivity system, or a rigid map of everything the person knows. It is a living collection of things the user has chosen to keep.
+
+A concept may be revisited, retitled, reinterpreted, connected to more questions, or developed into a deeper investigation. Its presence in the library means “worth keeping and returning to,” not “finished.”
+
+A future Connect activity lets the person choose two concepts and explore what joins them: a shared question, a similarity, a tension, or a new question. “Spacetime Fusion” and “Russian Blackholes”, placed side by side, could prompt that kind of looking. The example is about exploration. It does not claim a scientific link. Suggestions, if a model offers any, stay optional. The person can accept, edit, reject, or record a thought, and can plant a new question. Connect is not part of the current library and has no stored relationship yet. The journey is in `USER_JOURNEYS.md`.
 
 Avoid labels such as “completed concepts,” “finished work,” or progress indicators that imply the library is the end of a required pipeline. Prefer language such as “kept concepts,” “in your library,” “return to this,” or “still unfolding.” The archive should feel cared for and enduring, while remaining open-ended.
 
@@ -128,7 +137,7 @@ Each stage should have a distinct interaction rhythm while retaining the same vi
 - **Gather:** expansive, immediate, low-friction; the input and growing list are central.
 - **Curate:** calm and selective; compare, group, keep, park, merge, or restore.
 - **Visualise:** spacious and image-led; large candidates and clear selection controls.
-- **Distil:** contemplative and compositional; image, short title, and source-question context form one visual artefact.
+- **Distil:** contemplative and compositional; image, a one- or two-word title, and source-question context form one concept. The person names it. A suggestion may help, and never decides.
 
 Navigation should allow stages to be reopened in any order. Do not require all stages to be completed before the user can continue elsewhere. New questions can be captured at any time.
 
@@ -152,15 +161,15 @@ The tone should be warm, human, curious, and inspirational. Avoid a childish gar
 
 ## 7. Product and data-model implications
 
-The primary retained artefact is a **visual concept**, not an image field on one question. Questions and concepts are many-to-many: one question may inform many concepts, and one concept may be informed by many questions. A concept remains in the Library if a source question is edited, parked, or removed. It keeps the wording its image was made for. It is never completed.
+The primary retained artefact is a **concept**, not an image field on one question. Questions and concepts are many-to-many: one question may inform many concepts, and one concept may be informed by many questions. A concept remains in the Library if a source question is edited, parked, or removed. It keeps the wording its image was made for, and its title, until the person changes the title. It is never completed.
 
-The model is a `concepts` record plus a `concept_questions` link that also remembers the source wording at the time of the link. The proposed migration is `supabase/migrations/20261026000000_initial_v2_schema.sql`. It has not been applied. Candidate images stay temporary until a concept is kept. Optional themes are in that proposed schema, through `themes` and `theme_questions`, and they are not a required stage. Investigations can be introduced later without becoming a prerequisite.
+The model is a `concepts` record plus a `concept_questions` link that also remembers the source wording at the time of the link. That shape is deployed in `supabase/migrations/20261026000000_initial_v2_schema.sql`. Candidate images stay temporary until a concept is kept. Title suggestions, when they exist, stay temporary too. Optional themes are in that schema, through `themes` and `theme_questions`, and they are not a required stage. Investigations can be introduced later without becoming a prerequisite. A stored relationship between two concepts is not in the schema. Designing it waits until Connect is scheduled.
 
 ## 8. Principles to protect
 
 1. **Quantity before quality in Gather.** Do not make the user polish a thought before capturing it.
-2. **User judgement over automated judgement.** AI may suggest; the user decides what matters.
-3. **Compelling imagery is the payoff.** Avoid generic thumbnails and literal, stock-style illustration.
+2. **User judgement over automated judgement.** AI may suggest a question, a title, or a connection. The user decides what matters, and nothing is saved until they say so.
+3. **The concept is the payoff.** A compelling image and a memorable one- or two-word title, kept together. Avoid generic thumbnails, literal stock-style illustration, and titles that could belong to any image.
 4. **One garden, multiple ways of working.** The stages are views over an evolving workspace, not a forced wizard.
 5. **Saved does not mean completed.** Concepts in the Library of Curiosities remain open to reconsideration.
 6. **No shame-based growth mechanics.** No dead plants, missed-day penalties, or productivity scores.
@@ -174,11 +183,12 @@ The model is a `concepts` record plus a `concept_questions` link that also remem
 2. Make Gather genuinely fast for many questions.
 3. Make Curate reversible and provenance-preserving.
 4. Validate image quality and conceptual variety in Visualise.
-5. Make Distil create and reopen named visual concepts linked to one or more questions.
-6. Establish a reliable Library of Curiosities that is explicitly an archive, never a “completed work” screen.
-7. Finalise the clean V2 database schema around the proven concept/question relationship and private image-storage lifecycle.
-8. Add Themes and deeper Investigations UI when they provide clear value, without interrupting the primary creative loop.
+5. Make Distil create and reopen named concepts linked to one or more questions. Title suggestions come only after the text model is understood, and only when the person asks.
+6. Keep the Library of Curiosities as an open collection of concepts, never a “completed work” screen.
+7. Leave the deployed concept and question tables in place. Do not add a concept-to-concept table until Connect is designed.
+8. Add Themes, title suggestions, and deeper Investigations UI when they provide clear value, without interrupting the primary creative loop.
+9. Add Connect as an exploratory way to hold two concepts together, after its relationship model is chosen.
 
 ## 10. Explicit correction
 
-Everywhere the product documents or UI imply that visual concepts are completed, finished, or final, replace that framing. **The Library of Curiosities is an archive of visual concepts; they are never completed.**
+Everywhere the product documents or UI imply that concepts are completed, finished, or final, replace that framing. **The Library of Curiosities is a collection of concepts; they are never completed.** A concept is an image, a one- or two-word title, and its question provenance, kept open for another look.

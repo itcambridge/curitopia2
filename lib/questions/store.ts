@@ -69,7 +69,7 @@ function readWorkspace(value: unknown): Workspace | null {
   const questions = record.questions.filter(isQuestion)
   const known = new Set(questions.map((item) => item.id))
   const drafts = record.drafts.filter(isDraft).filter((draft) => known.has(draft.questionId))
-  const concepts = record.concepts.filter(isConcept).filter((concept) => known.has(concept.anchorQuestionId))
+  const concepts = record.concepts.filter(isConcept).filter((concept) => concept.anchorQuestionId !== null && known.has(concept.anchorQuestionId))
   return {
     stage: isStageId(record.stage) ? record.stage : 'gather',
     focusQuestionId: typeof record.focusQuestionId === 'string' && known.has(record.focusQuestionId) ? record.focusQuestionId : null,

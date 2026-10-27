@@ -1,5 +1,5 @@
-// Questions are stored in the signed-in account. Drafts and concepts stay in this
-// browser until a later phase. A concept can name one question or several.
+// Questions and saved concepts belong to the signed-in account. Candidate images
+// stay in this browser until one is kept. A concept can name one question or several.
 
 export type StageId = 'gather' | 'curate' | 'visualise' | 'distil' | 'library'
 
@@ -37,17 +37,26 @@ export type CandidateDraft = {
   rejectedIds: string[]
 }
 
+export type ConceptSource = {
+  linkId: string
+  questionId: string | null
+  originalText: string
+  consideredText: string | null
+}
+
 export type ConceptRecord = {
   id: string
   title: string
   imageSrc: string
+  imagePath: string | null
   imageLabel: string
   imageSource: ImageSource
   model: string | null
   promptVersion: string | null
   forConsideredText: string
-  anchorQuestionId: string
+  anchorQuestionId: string | null
   questionIds: string[]
+  sources: ConceptSource[]
   createdAt: string
   updatedAt: string
 }

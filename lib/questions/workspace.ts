@@ -200,24 +200,23 @@ export function saveConcept(workspace: Workspace, anchorId: string, title: strin
   const draft = draftFor(workspace, anchorId)
   if (!item?.consideredText || !chosen || !draft) return workspace
   const stamp = now()
-  const existing = conceptForAnchor(workspace, anchorId)
   const concept: ConceptRecord = {
-    id: existing?.id ?? crypto.randomUUID(),
+    id: crypto.randomUUID(),
     title: cleanTitle(title),
     imageSrc: chosen.src,
+    imagePath: null,
     imageLabel: chosen.label,
     imageSource: chosen.source,
     model: draft.model,
     promptVersion: draft.promptVersion,
-    forConsideredText: item.consideredText,
+    forConsideredText: draft.forConsideredText.trim(),
     anchorQuestionId: anchorId,
     questionIds: relatedIds(workspace, anchorId, extraIds),
-    createdAt: existing?.createdAt ?? stamp,
+    sources: [],
+    createdAt: stamp,
     updatedAt: stamp,
   }
-  const concepts = existing
-    ? workspace.concepts.map((itemConcept) => itemConcept.id === existing.id ? concept : itemConcept)
-    : [concept, ...workspace.concepts]
+  const concepts = [concept, ...workspace.concepts]
   return {
     ...workspace,
     concepts,
@@ -239,7 +238,9 @@ export function updateConcept(workspace: Workspace, conceptId: string, title: st
       ? {
           ...concept,
           title: cleanTitle(title),
-          questionIds: relatedIds(workspace, concept.anchorQuestionId, extraIds),
+          questionIds: concept.anchorQuestionId
+            ? relatedIds(workspace, concept.anchorQuestionId, extraIds)
+            : concept.questionIds,
           updatedAt: now(),
         }
       : concept),
@@ -328,8 +329,10 @@ export function migrateLegacyQuestions(records: unknown[]): Workspace {
         model: null,
         promptVersion: null,
         forConsideredText: consideredText,
+        imagePath: null,
         anchorQuestionId: record.id,
         questionIds: [record.id],
+        sources: [],
         createdAt: updatedAt,
         updatedAt,
       })

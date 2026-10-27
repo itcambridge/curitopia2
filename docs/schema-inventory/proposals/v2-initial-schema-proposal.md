@@ -1,13 +1,13 @@
 # V2 initial schema proposal
 
-**Status:** Proposed migration. It has not been applied. Do not run it against a hosted project, a local stack, or V1.  
+**Status:** Explanation of the deployed first-release migration. Do not run it again, and do not run it against V1. A relationship between two concepts is not part of this schema. That design is open in `PRODUCT_VISION.md`.  
 **Migration:** `supabase/migrations/20261026000000_initial_v2_schema.sql`  
 **Product:** `Curitopia_Garden_Experience_Framework.md`, `PRODUCT_VISION.md`  
 **Entities:** `ENTITY_RELATIONSHIP_MODEL.md`  
 **This file replaces** the exploration-centred text that previously used this name. That older shape remains only in `v2-initial-schema-draft.sql` and `v2-initial-schema-related-item-validation.sql`. Those files are history. Do not apply them.  
 **Withdrawn:** `v2-revised-schema-proposal.md` stored one image on `questions`. Do not apply that sketch.
 
-No SQL in this proposal has been executed. PostgreSQL has not parsed the migration.
+This file contains no SQL to execute. The migration it explains is the deployed account schema. Do not re-apply it from here.
 
 ## 1. What the first release stores
 
@@ -23,7 +23,7 @@ V2 starts empty, in its own Supabase project. V1 is not a source and not a targe
 
 There is no `completed` column, no `explorations` table, no investigation tables, no story table, no thumbnail bucket, and no questions-per-minute storage. Candidate images are not rows.
 
-The browser prototype still keeps workspace stage, focus ids, and candidate drafts in `localStorage`. Those are not tables. Connecting this schema does not, by itself, change that prototype.
+Workspace stage, focus, and candidate drafts can still sit in the browser. Those are not tables. Saved concepts are rows in `concepts`. Title suggestions, which are proposed and not built, are not rows either.
 
 ## 2. Questions and merges
 
@@ -67,7 +67,7 @@ Both foreign keys include `user_id`, so a membership cannot join a theme and a q
 
 | Column | Rule |
 |---|---|
-| `title` | Required. One or two words, at most 40 characters. Two words are separated by exactly one ordinary space, U+0020. A tab, a newline, or a second space does not match. This is the stored form from `cleanTitle` in `lib/questions/title.ts`, which trims and collapses internal whitespace to one ordinary space before save. JavaScript counts UTF-16 code units and `char_length` counts characters, so a title made of characters outside the basic plane can pass the database and still be rejected by the application. |
+| `title` | Required. One or two words, at most 40 characters. One word is valid. Two words are separated by exactly one ordinary space, U+0020. A tab, a newline, or a second space does not match. This is the stored form from `cleanTitle` in `lib/questions/title.ts`, which trims and collapses internal whitespace to one ordinary space before save. JavaScript counts UTF-16 code units and `char_length` counts characters, so a title made of characters outside the basic plane can pass the database and still be rejected by the application. A future title suggestion must pass this check before it can be saved. An invalid suggestion is discarded. It does not get another column. |
 | `for_considered_text` | Required snapshot of the considered wording the selected image was made for. Maps to `ConceptRecord.forConsideredText`. Editing the live question does not update it. |
 | `image_path` | Required. `{user_id}/{concept_id}/{filename}` with a `png`, `jpeg`, `jpg`, or `webp` suffix. UUID text is lowercase, as `uuid::text` produces it. |
 | `image_model` | Required. Trimmed, 1–80 characters. |
@@ -75,11 +75,11 @@ Both foreign keys include `user_id`, so a membership cannot join a theme and a q
 
 **Prototype discrepancies, left in the application on purpose:**
 
-- The prototype stores one concept per `anchorQuestionId` and can replace that concept's image. The schema does not have an anchor column and does not limit how many concepts cite a question. One question informing many concepts is the adopted product rule. The prototype is narrower until a later code change.
+- The schema has no anchor column and does not limit how many concepts cite a question. The application can save another concept for the same question. It does not replace the image on an existing concept. Image replacement is described later in this section and is not the current save path. Whether replacement returns is open in `PRODUCT_VISION.md`.
 - The prototype keeps `imageLabel` and `imageSource` (`openai` or `demo`) and may leave `model` and `promptVersion` null on a demo fixture. The database requires a model and a prompt version, and it stores a storage path rather than a data URL. Demo fixtures are not rows in this schema.
 - Candidate drafts stay in the browser until one image is chosen. They are not inserted.
 
-Retitling updates `title` and `updated_at` only. Replacing an image updates `image_path`, and should update `image_model`, `prompt_version`, and `for_considered_text` together when the new image was made for a new wording.
+Retitling updates `title` and `updated_at` only. It does not insert another concept. If image replacement is built later, replacing an image updates `image_path`, and should update `image_model`, `prompt_version`, and `for_considered_text` together when the new image was made for a new wording. That sequence is not the current application path. There is no concept-to-concept table in this proposal. Do not add one here.
 
 ## 5. Concept provenance
 
@@ -105,7 +105,7 @@ A live link cannot name another person's question, because `(question_id, user_i
 
 ## 6. Image storage
 
-One private bucket, `concept-images`. There is no `exploration-images` bucket and no `investigation-thumbnails` bucket. The migration has not created a bucket.
+One private bucket, `concept-images`. There is no `exploration-images` bucket and no `investigation-thumbnails` bucket. The bucket is part of the deployed schema. Do not create a second one from this file.
 
 | Setting | Value |
 |---|---|
@@ -116,7 +116,7 @@ One private bucket, `concept-images`. There is no `exploration-images` bucket an
 
 The concept check and the storage path use the same shape. The filename ends in `.png`, `.jpeg`, `.jpg`, or `.webp`. `.jpg` and `.jpeg` are both JPEG names; the MIME type for either file is `image/jpeg`. UUID segments are lowercase.
 
-The prototype stores a selected image as a data URL in this browser. It has no Storage path. When the application is connected, the smallest correction is to save one object at `{user_id}/{concept_id}/{filename}` and store that path. Do not add a second path shape.
+A selected image is stored at `{user_id}/{concept_id}/{filename}`, and that path is what the concept row keeps. Candidate images can still be data URLs in the browser until that save. Do not add a second path shape.
 
 Storage policies allow `authenticated` to select, insert, update, and delete an object only when the first folder is `auth.uid()`. They do not require the concept row to exist. That is the same prefix, and it is what lets the owner remove an object through the Storage API after the row is gone. A path that will be stored on a concept must still match that concept's id, or the row check fails.
 
@@ -192,7 +192,7 @@ The file starts with `CREATE OR REPLACE FUNCTION` and then `CREATE TABLE`. On a 
 
 ## 9. What static review has and has not shown
 
-The SQL was read. PostgreSQL has not parsed it, and row-level security has not been tested. No V2 database exists.
+The SQL was read before it was deployed. This section does not record a completed hosted security exercise. Do not treat the deployment as a fresh licence to edit the schema from this file.
 
 Static review checked primary keys, foreign keys, the theme-name index, merge guards, title and curation checks, snapshot immutability, grants, the five row-level security policies, and the private bucket settings. It also checked that deleting a question nulls only `concept_questions.question_id`, and that the partial unique index allows more than one detached link on the same concept.
 

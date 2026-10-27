@@ -1,7 +1,7 @@
 # V2 revised schema proposal
 
 **Status:** Withdrawn sketch. This file contains no executable migration. It has not been applied. Do not copy it into `supabase/migrations/`. Do not run it against a hosted project or against V1.  
-**Use instead:** `v2-initial-schema-proposal.md` and `supabase/migrations/20261026000000_initial_v2_schema.sql`. That migration is proposed and has not been applied.  
+**Use instead:** `v2-initial-schema-proposal.md` and `supabase/migrations/20261026000000_initial_v2_schema.sql`. That migration is the deployed account schema. Do not re-apply it from this file.  
 **Why this file remains:** It records the earlier assumption that one image lived on `questions`. That assumption is withdrawn. Questions and visual concepts are many-to-many.  
 **Does not supersede** `v2-initial-schema-proposal.md`. The exploration draft SQL, the related-item validation SQL, and the phase-1 files in this folder are also history and are not deployable.
 

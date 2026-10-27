@@ -39,6 +39,8 @@ const local: Workspace = {
     id: 'concept-browser',
     title: 'Cached',
     imageSrc: 'data:image/svg+xml,cached',
+    imagePath: null,
+    sources: [],
     imageLabel: 'Cached',
     imageSource: 'demo',
     model: null,
@@ -51,7 +53,7 @@ const local: Workspace = {
   }],
 }
 
-const firstAccount = workspaceForAccount(local, [firstAccountQuestion])
+const firstAccount = workspaceForAccount(local, [firstAccountQuestion], [])
 assert.deepEqual(firstAccount.questions.map((item) => item.id), [firstAccountQuestion.id])
 assert.equal(firstAccount.drafts.length, 0)
 assert.equal(firstAccount.concepts.length, 0)
@@ -59,13 +61,14 @@ assert.equal(firstAccount.focusQuestionId, null)
 assert.equal(firstAccount.focusConceptId, null)
 assert.equal(firstAccount.stage, 'curate')
 
-const switched = workspaceForAccount(local, [secondAccountQuestion])
+const switched = workspaceForAccount(local, [secondAccountQuestion], [])
 assert.deepEqual(switched.questions.map((item) => item.originalText), [secondAccountQuestion.originalText])
 assert.equal(switched.questions.some((item) => item.id === browserQuestion.id), false)
 assert.equal(switched.questions.some((item) => item.id === firstAccountQuestion.id), false)
 
-const emptyAccount = workspaceForAccount(local, [])
-assert.deepEqual(emptyAccount.questions, [])
+const emptyAccount = workspaceForAccount({ ...local, questions: [firstAccountQuestion] }, [firstAccountQuestion], [])
+assert.deepEqual(emptyAccount.questions.map((item) => item.id), [firstAccountQuestion.id])
+assert.equal(emptyAccount.concepts.length, 0)
 
 const startup = readFileSync(new URL('../../components/studio/use-account-workspace.ts', import.meta.url), 'utf8')
 const screen = readFileSync(new URL('../../components/studio/curitopia-app.tsx', import.meta.url), 'utf8')

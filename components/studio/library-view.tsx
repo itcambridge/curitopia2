@@ -1,7 +1,7 @@
 import { Eyebrow, coralButton, panelClass } from '@/components/studio/studio-ui'
 import type { Workspace } from '@/lib/questions/types'
 
-export function LibraryView({ workspace, onChange }: { workspace: Workspace; onChange: (workspace: Workspace) => void }) {
+export function LibraryView({ workspace, onChange, conceptsLoaded }: { workspace: Workspace; onChange: (workspace: Workspace) => void; conceptsLoaded: boolean }) {
   const concepts = [...workspace.concepts].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
   return (
     <div>
@@ -13,18 +13,24 @@ export function LibraryView({ workspace, onChange }: { workspace: Workspace; onC
           <em className="text-studio-coral">looking at again.</em>
         </h2>
       </header>
-      {concepts.length === 0 ? (
+      {!conceptsLoaded ? (
         <div className={panelClass}>
-          <p className="max-w-xl text-studio-body">Nothing is kept yet. Gather a few questions, retain the ones you want to see, and name an image when one is worth keeping.</p>
+          <p className="max-w-xl text-studio-body">The library could not be loaded. Refresh the page to try again. Nothing was removed from the account.</p>
+        </div>
+      ) : concepts.length === 0 ? (
+        <div className={panelClass}>
+          <p className="max-w-xl text-studio-body">Nothing is saved yet. Gather a few questions, retain the ones you want to see, then save a concept from Distil.</p>
           <button type="button" className={`${coralButton} mt-4`} onClick={() => onChange({ ...workspace, stage: 'gather' })}>Gather questions</button>
         </div>
       ) : (
         <ul className="grid gap-5 md:grid-cols-2">
           {concepts.map((concept) => {
-            const questions = concept.questionIds.flatMap((id) => {
-              const item = workspace.questions.find((question) => question.id === id)
-              return item ? [item.originalText] : []
-            })
+            const questions = concept.sources.length > 0
+              ? concept.sources.map((source) => source.originalText)
+              : concept.questionIds.flatMap((id) => {
+                const item = workspace.questions.find((question) => question.id === id)
+                return item ? [item.originalText] : []
+              })
             return (
               <li key={concept.id}>
                 <button
@@ -35,7 +41,7 @@ export function LibraryView({ workspace, onChange }: { workspace: Workspace; onC
                   <img src={concept.imageSrc} alt="" className="aspect-square w-full bg-studio-ink object-contain" />
                   <span className="flex flex-col gap-2 p-5">
                     <Eyebrow>
-                      {concept.questionIds.length === 1 ? 'One question' : `${concept.questionIds.length} questions`}
+                      {(concept.sources.length || concept.questionIds.length) === 1 ? 'One question' : `${concept.sources.length || concept.questionIds.length} questions`}
                       {concept.imageSource === 'demo' ? ' · Demo fixture' : ''}
                     </Eyebrow>
                     <span className="font-serif text-3xl leading-tight">{concept.title}</span>
