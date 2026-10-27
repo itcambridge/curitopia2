@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Curitopia — Follow the thread',
-  description: 'A curious workspace for questions, experiments, and storyboards.',
+  title: 'Curitopia',
+  description: 'Gather questions, curate them, compare images, and keep a short title with the image.',
   generator: 'v0.app',
   icons: {
     icon: [

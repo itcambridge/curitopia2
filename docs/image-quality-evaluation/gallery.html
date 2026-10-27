@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Curitopia image evaluation — Q09 probe</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font: 16px/1.4 Georgia, serif; background: #f4f1ea; color: #1c1915; }
+    header { padding: 28px 32px 8px; max-width: 920px; }
+    h1 { font-size: 28px; font-weight: normal; margin: 0 0 8px; }
+    p { margin: 0 0 10px; }
+    .note { font-family: ui-sans-serif, sans-serif; font-size: 14px; }
+    section { padding: 12px 32px 28px; }
+    h2 { font-size: 20px; font-weight: normal; margin: 18px 0 10px; }
+    .row { display: grid; grid-template-columns: repeat(4, 420px); gap: 16px; width: max-content; }
+    figure { margin: 0; }
+    .cell {
+      width: 420px; height: 420px; background: #e7e1d6; display: grid; place-items: center;
+      text-align: center; font-family: ui-sans-serif, sans-serif; font-size: 14px; padding: 16px;
+    }
+    figcaption { font-family: ui-sans-serif, sans-serif; font-size: 13px; margin-top: 6px; }
+    label { display: block; margin-top: 6px; font-family: ui-sans-serif, sans-serif; font-size: 13px; }
+    input { width: 100%; box-sizing: border-box; margin-top: 4px; padding: 6px 8px; font: 14px/1.3 Georgia, serif; border: 1px solid #c9c0b2; background: #fff; }
+    img { width: 420px; height: 420px; object-fit: contain; background: #111; display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Comparison gallery</h1>
+    <p>How can someone be present among others and still be unreached?</p>
+    <p class="note">Q09 only. Four images from gpt-image-2.5-flare, 1024×1024, quality high. Directions: A tension, B trace, C scale, D relation. Title fields are blank on purpose. This page does not choose a winner.</p>
+    <p class="note">The other eleven questions were not generated. A missing file stays labelled “Not generated”.</p>
+  </header>
+  <section id="sheet"></section>
+  <script>
+    const cases = [
+      ["Q01", "After waking"],
+      ["Q02", "The same place"],
+      ["Q03", "Unchecked memory"],
+      ["Q04", "The other task"],
+      ["Q05", "A self that appears"],
+      ["Q06", "Wider doubt"],
+      ["Q07", "The street that stayed"],
+      ["Q08", "The missing person"],
+      ["Q09", "In the room"],
+      ["Q10", "The wish to finish"],
+      ["Q11", "Early repair"],
+      ["Q12", "Still looks alive"]
+    ]
+    const variants = ["A", "B", "C", "D"]
+    const sheet = document.getElementById("sheet")
+    for (const [id, name] of cases) {
+      const section = document.createElement("section")
+      const heading = document.createElement("h2")
+      heading.textContent = id + " — " + name
+      const row = document.createElement("div")
+      row.className = "row"
+      for (const variant of variants) {
+        const candidate = id + "-" + variant
+        const figure = document.createElement("figure")
+        const cell = document.createElement("div")
+        cell.className = "cell"
+        const image = document.createElement("img")
+        image.alt = candidate
+        image.src = "images/" + candidate + ".webp"
+        image.addEventListener("error", () => {
+          image.remove()
+          cell.textContent = candidate + " — Not generated"
+        })
+        cell.append(image)
+        const caption = document.createElement("figcaption")
+        caption.textContent = candidate
+        const label = document.createElement("label")
+        label.textContent = "Title (one or two words)"
+        const title = document.createElement("input")
+        title.type = "text"
+        title.name = candidate + "-title"
+        title.autocomplete = "off"
+        title.setAttribute("aria-label", candidate + " title")
+        label.append(title)
+        figure.append(cell, caption, label)
+        row.append(figure)
+      }
+      section.append(heading, row)
+      sheet.append(section)
+    }
+  </script>
+</body>
+</html>

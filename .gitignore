@@ -17,3 +17,9 @@ node_modules/
 .env.local
 .env.*
 !.env.example
+
+# Image-quality evaluation pictures. The written review stays in docs.
+docs/image-quality-evaluation/images/
+
+# Local Supabase CLI link data. Never commit project refs or pooler addresses.
+supabase/.temp/

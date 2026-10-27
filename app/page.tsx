@@ -1,47 +1,23 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { MissingSupabaseEnv } from '@/components/auth/missing-env'
+import { CuritopiaApp } from '@/components/studio/curitopia-app'
+import { readPublicSupabaseEnv } from '@/lib/supabase/env'
+import { createClient } from '@/lib/supabase/server'
 
-import { useEffect, useMemo, useState } from 'react'
-import { HomeDashboard } from '@/components/home/home-dashboard'
-import type { Idea } from '@/components/home/types'
-
-const starterIdeas: Idea[] = [
-  { id: 'starter-shadows', title: 'Why do shadows change shape?', tag: 'Physics', color: 'coral' },
-  { id: 'starter-sound', title: 'Can a story grow from one sound?', tag: 'Sound', color: 'violet' },
-  { id: 'starter-place', title: 'What makes a place feel like home?', tag: 'Place', color: 'mint' },
-]
-
-export default function Page() {
-  const [active, setActive] = useState('curiosity')
-  const [ideas, setIdeas] = useState<Idea[]>(starterIdeas)
-  const [questionTimes, setQuestionTimes] = useState<number[]>([])
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(interval)
-  }, [])
-
-  const qpm = useMemo(() => {
-    const cutoff = now - 60_000
-    return questionTimes.filter((time) => time > cutoff).length
-  }, [now, questionTimes])
-
-  const addQuestion = (question: string) => {
-    setQuestionTimes((times) => [...times, Date.now()])
-    setIdeas((current) => [
-      { id: crypto.randomUUID(), title: question, tag: 'New thread', color: 'coral' },
-      ...current,
-    ])
+export default async function Page() {
+  if (!readPublicSupabaseEnv()) return <MissingSupabaseEnv />
+  const supabase = await createClient()
+  let signedIn = false
+  try {
+    const { data, error } = await supabase.auth.getClaims()
+    signedIn = !error && Boolean(data?.claims)
+  } catch {
+    return (
+      <main className="min-h-screen bg-studio-cream px-6 py-16 text-studio-ink">
+        <p className="mx-auto max-w-lg text-sm">The account session could not be checked. Refresh the page and try again.</p>
+      </main>
+    )
   }
-
-  return (
-    <HomeDashboard
-      active={active}
-      ideas={ideas}
-      qpm={qpm}
-      onNavigate={setActive}
-      onAddQuestion={addQuestion}
-      onOpenExperiment={() => setActive('experiment')}
-    />
-  )
+  if (!signedIn) redirect('/sign-in')
+  return <CuritopiaApp />
 }

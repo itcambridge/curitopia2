@@ -1,192 +1,191 @@
 # Curitopia Entity-Relationship Model
 
-**Status:** Proposed target model for review. This document is not a database migration and must not be executed against hosted Supabase.  
-**Goal:** Allow related questions to share themes and investigations, reducing workspace sprawl while preserving question identity and existing data.
+**Status:** Proposed schema. The migration has not been applied and must not be executed from this document.  
+**Migration:** `supabase/migrations/20261026000000_initial_v2_schema.sql`  
+**Explanation:** `docs/schema-inventory/proposals/v2-initial-schema-proposal.md`  
+**Experience:** `Curitopia_Garden_Experience_Framework.md` and `PRODUCT_VISION.md`.
+
+V1 tables are untouched. V2 does not import them. This file describes the proposed first release. It is not permission to create a Supabase project.
 
 ## 1. Model goals
 
-- One exploration can contain many questions, themes and investigations.
-- A question can be in zero, one or several themes.
-- One theme can organise many questions.
-- An investigation can cover several questions; a question can be explored by several investigations.
-- An investigation can optionally be connected to one or more themes.
-- Experiment items belong to one investigation, not to a duplicated copy of a question.
-- Stories are browser-only compositions of selected content; they are not persisted entities in this release.
-- All persistent records and stored assets remain scoped to the authenticated owner through existing Supabase RLS and ownership checks.
+- The person owns questions, themes, and concepts directly. There is no exploration container.
+- A question keeps its original text and its optional considered text.
+- The Library of Curiosities archives visual concepts. A concept is one selected image, a one- or two-word title, the wording that image was made for, and any number of source questions. A question may inform any number of concepts. A concept is never a completed status.
+- A question can belong to zero or more themes. A theme can contain zero or more questions. Themes are optional in the journey and included in this schema.
+- The Lab, meaning investigations, is a later release. It is not a stage of the four-stage cycle and it is not in this migration.
+- Stories, vision boards, candidate images, focus backdrops, and item thumbnails are not entities.
+- `user_id` on each top-level record is the owner. Join rows repeat `user_id` so a link cannot cross owners.
 
-## 2. Proposed logical ER diagram
+## 2. First release
 
 ```mermaid
 erDiagram
-    AUTH_USER ||--o{ EXPLORATION : owns
-    EXPLORATION ||--o{ QUESTION : contains
-    EXPLORATION ||--o{ THEME : contains
-    EXPLORATION ||--o{ INVESTIGATION : contains
+    AUTH_USER ||--o{ QUESTION : owns
+    AUTH_USER ||--o{ THEME : owns
+    AUTH_USER ||--o{ CONCEPT : owns
 
     THEME ||--o{ THEME_QUESTION : groups
     QUESTION ||--o{ THEME_QUESTION : belongs_to
 
-    INVESTIGATION ||--o{ INVESTIGATION_QUESTION : investigates
-    QUESTION ||--o{ INVESTIGATION_QUESTION : is_investigated_by
+    CONCEPT ||--o{ CONCEPT_QUESTION : cites
+    QUESTION ||--o{ CONCEPT_QUESTION : informs
 
-    THEME ||--o{ THEME_INVESTIGATION : organises
-    INVESTIGATION ||--o{ THEME_INVESTIGATION : appears_in
+    QUESTION ||--o{ QUESTION : merged_into
 
-    INVESTIGATION ||--o{ EXPERIMENT_ITEM : contains
-    EXPERIMENT_ITEM o|--o{ EXPERIMENT_ITEM : relates_to
-
-    EXPLORATION {
+    QUESTION {
         uuid id PK
         uuid user_id FK
-        text central_question
-        text mode
+        text original_text
+        text considered_text
+        text disposition
+        uuid merged_into_id FK
         timestamptz created_at
         timestamptz updated_at
     }
-    QUESTION {
-        uuid id PK
-        uuid exploration_id FK
-        text body
-        boolean is_hidden
-        boolean is_prioritised
-        timestamptz created_at
-    }
     THEME {
         uuid id PK
-        uuid exploration_id FK
+        uuid user_id FK
         text name
-        text description
         integer position
         timestamptz created_at
         timestamptz updated_at
     }
     THEME_QUESTION {
-        uuid theme_id PK,FK
-        uuid question_id PK,FK
+        uuid theme_id PK_FK
+        uuid question_id PK_FK
+        uuid user_id FK
         integer position
         timestamptz created_at
     }
+    CONCEPT {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text for_considered_text
+        text image_path
+        text image_model
+        text prompt_version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    CONCEPT_QUESTION {
+        uuid id PK
+        uuid concept_id FK
+        uuid question_id FK
+        uuid user_id FK
+        text original_text_snapshot
+        text considered_text_snapshot
+        timestamptz created_at
+    }
+```
+
+The private bucket `concept-images` is not a table. `concepts.image_path` is `{user_id}/{concept_id}/{filename}`.
+
+### Question
+
+`original_text` is required and is not rewritten by a merge. `considered_text` is null until the person saves a considered question. `disposition` is `gathered`, `retained`, `parked`, or `discarded`. The application has no disposition value `merged`. A merge is `merged_into_id`. Restore clears that pointer. The application also sets disposition back to `gathered` when it restores; the database does not force that second write.
+
+`merged_into_id` cannot be the same row, cannot point at another person's question, cannot be retargeted without a restore, and cannot form a cycle. Deleting a survivor while other questions still point at it fails at commit and leaves those source wordings in place. Deleting a merged source removes that row. The prototype does not hard-delete questions; park and discard are the reversible actions.
+
+### Theme
+
+A theme is a name and a position. It has no description. Names are unique per owner, ignoring case and surrounding spaces. An empty theme, meaning a theme with no questions, is valid. Deleting a theme deletes memberships only.
+
+### Theme membership
+
+`theme_questions` uses `(theme_id, question_id)` as its primary key. Both foreign keys include `user_id` and cascade. Deleting a question removes its memberships and leaves the theme.
+
+### Concept
+
+A concept does not require a surviving question. It has no anchor column and no completed flag. The prototype still stores one concept per `anchorQuestionId`. The schema does not. That is a prototype limit, not a database rule.
+
+`title` is one word, or two words joined by exactly one ordinary space, at most 40 characters. `for_considered_text` is the considered wording the selected image was made for. `image_model` and `prompt_version` are required. Demo fixtures in the browser can have a data URL and a null model. Those fixtures are not rows in this schema.
+
+### Concept link
+
+`concept_questions.question_id` is nullable. The foreign key is `(question_id, user_id)` with `ON DELETE SET NULL (question_id)`, so only the live reference is cleared. `original_text_snapshot`, `considered_text_snapshot`, and `user_id` stay. The owner can still read a detached row. A live link cannot point at another person's question. Snapshots cannot be edited. A link can be detached. It cannot be retargeted.
+
+Editing or parking a live question does not change the snapshots or `concepts.for_considered_text`.
+
+## 3. Later release — the Lab
+
+Not in this migration. Specified here so the Lab is not confused with the Library.
+
+```mermaid
+erDiagram
+    AUTH_USER ||--o{ INVESTIGATION : owns
+    INVESTIGATION ||--o{ INVESTIGATION_QUESTION : covers
+    QUESTION ||--o{ INVESTIGATION_QUESTION : is_covered_by
+    INVESTIGATION ||--o{ INVESTIGATION_ITEM : contains
+    INVESTIGATION_ITEM o|--o{ INVESTIGATION_ITEM : relates_to
+
     INVESTIGATION {
         uuid id PK
         uuid user_id FK
-        uuid exploration_id FK
         text title
-        text status
         timestamptz created_at
         timestamptz updated_at
     }
     INVESTIGATION_QUESTION {
-        uuid investigation_id PK,FK
-        uuid question_id PK,FK
-        text relationship_note
+        uuid investigation_id PK_FK
+        uuid question_id PK_FK
+        uuid user_id FK
         timestamptz created_at
     }
-    THEME_INVESTIGATION {
-        uuid theme_id PK,FK
-        uuid investigation_id PK,FK
-        timestamptz created_at
-    }
-    EXPERIMENT_ITEM {
+    INVESTIGATION_ITEM {
         uuid id PK
-        uuid experiment_id FK
+        uuid investigation_id FK
         integer position
         text kind
         text body
         uuid related_item_id FK
-        text image_path
         timestamptz created_at
         timestamptz updated_at
     }
 ```
 
-> `INVESTIGATION` is the conceptual target for the current `experiments` table. `EXPERIMENT_ITEM` is the conceptual target for the current `experiment_items` table. Names in this diagram explain the desired model; they do not require renaming the existing tables.
+An investigation has a short title and no completed state. It may have zero linked questions at the database.
 
-## 3. Relationship semantics
+There is no `theme_investigations` table.
 
-### User → Exploration
+Each item belongs to one investigation. Kinds are `concept`, `note`, `hypothesis`, `test`, `observation`, and `discovery`. The kind `concept` is a written thought inside the Lab. It is not a visual concept and it is not a row in the Library. There is no `image_path`. Whether that kind is renamed is still open. An optional related item must be in the same investigation, must not cycle, and must not exceed a depth of 32. The foreign key from `related_item_id` should be `ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED`. That rule is for a later migration.
 
-One authenticated user owns zero or more explorations. Every exploration and all data reached through it must be owner-scoped. Existing authentication, Row Level Security and service-side ownership checks remain authoritative.
+Items do not copy question text. A visual concept is not an investigation item.
 
-### Exploration → Question
+## 4. Earlier drafts
 
-Each question belongs to exactly one exploration. A question's hidden/prioritised state remains properties of that question. Hiding or unprioritising it must not delete theme links or investigation links.
+`v2-initial-schema-draft.sql` and the related-item validation SQL proposed explorations, Quickfire/Focus, focus images, and investigation thumbnails. They are history. Do not apply them.
 
-### Exploration → Theme
+`v2-revised-schema-proposal.md` put one image on `questions` and used a `question-images` bucket. That image placement is withdrawn. Do not apply it.
 
-A theme belongs to one exploration. A theme is a grouping/label, not a container that owns or copies question text. Renaming or deleting a theme must not delete its questions.
+`v2-phase1-migration-proposal.md` proposed additive tables on the V1 database. It is withdrawn.
 
-### Theme ↔ Question (many-to-many)
+`hosted-catalog.sql` is a historical inventory. It is not a V2 setup step.
 
-`theme_questions` joins the two records. A question may have no theme or be associated with multiple themes. A theme may contain multiple questions. The composite key `(theme_id, question_id)` prevents duplicate links. The database must enforce that both records belong to the same exploration and owner, either with suitable constraints or trusted server-side checks plus RLS.
+## 5. Integrity and security
 
-### Investigation ↔ Question (many-to-many)
+These rules are the ones written in the proposed migration. Applying that file still needs an explicit approval.
 
-`investigation_questions` is the critical change that addresses experiment sprawl. One investigation can support several questions; a question can connect to several investigations. A link may optionally explain how the investigation relates to the question, but the relationship note should not duplicate canonical question content.
+- Every question, theme, and concept has one owner. `user_id` cannot change.
+- Theme membership uses composite foreign keys, so both parents share that owner.
+- A concept link's composite foreign key rejects a live question owned by someone else. The trigger keeps snapshots unchanged and allows a link to be detached rather than retargeted. Detached provenance remains readable by the concept owner.
+- Row level security is enabled on the five tables and is not forced. Forcing it does not decide whether `ON DELETE SET NULL` can run. Policies are `to authenticated` and use `(select auth.uid()) = user_id` for select, insert, update, and delete.
+- `authenticated` can select, insert, update, and delete its own rows. `anon` is not granted those privileges. The migration does not grant `service_role`. The browser does not use a service-role client.
+- Deleting a theme removes its memberships. Questions, concepts, and files stay.
+- Deleting a question removes its theme memberships, nulls live concept links, and leaves each concept with its image path, title, `for_considered_text`, and snapshots.
+- Deleting a concept removes its links. The image file is removed through the Storage API, not by SQL. If that removal fails, the failure is reported and can be retried.
+- Deleting an auth user can remove their questions, themes, concepts, and memberships in one cascade because the merge foreign key is deferred. The application removes their image files through the Storage API first. If file removal fails, the account deletion does not proceed. That sequence is not in the migration.
+- There is one private image bucket, `concept-images`, at `{user_id}/{concept_id}/{filename}`, with an 8 MiB limit and PNG, JPEG, or WebP only. There is no thumbnail bucket, no focus-image bucket, and no story bucket. The schema requires PostgreSQL 15 or later.
 
-Do not make question selection a hard requirement for every investigation unless that is an explicit product decision. The UI may start an investigation from a question and also allow the user to link additional questions later.
+## 6. Standing of this model
 
-### Theme ↔ Investigation (many-to-many, optional)
+- [x] V2 is a separate Supabase project, when one is created. V1 is not modified and is not imported.
+- [x] A question may inform many concepts, and a concept may be informed by many questions. The concept remains when a source is edited, parked, or removed.
+- [x] The proposed columns, keys, private path, and removal mechanics are written in the migration named above. They have not been executed.
+- [x] Original text and considered text are both stored. Merge is a pointer, not a fifth disposition.
+- [x] Optional themes are `themes` and `theme_questions`. One name per owner, ignoring case and surrounding spaces. They are not a required step in the cycle.
+- [x] Investigations are not in this release. The item kind `concept` is not a Library visual concept.
+- [x] A visual concept has no completed state.
 
-`theme_investigations` allows an investigation to appear within a theme without restricting it to a single theme. This relationship is optional; it must not be used to force a user through a theme before starting an investigation.
-
-If implementation evidence suggests this relationship is unnecessary for the first release, defer this join table rather than introducing it pre-emptively.
-
-### Investigation → Experiment Item
-
-Each item belongs to one investigation and retains its kind, body, order, optional image path and existing relationship/parent semantics. Existing supported kinds remain `concept`, `note`, `hypothesis`, `test`, `observation` and `discovery`.
-
-An item's optional related-item relationship must stay within the same investigation and preserve current cycle/depth constraints. Moving or removing an item must not silently change its content type or invent an outcome.
-
-### Story composition (transient, not in the ER diagram)
-
-A Story draft is a browser-side ordered list of selected question and experiment-item references, plus per-slide presentation state (subtitle, accepted temporary artwork, opening/closing configuration and export options). It exists only during the tab's editing session. It is not written to a Story table or storage bucket, and exporting a video creates a local download. This remains the current privacy boundary; saved drafts would require a separate decision.
-
-## 4. Mapping from the current schema
-
-The current implementation has `public.explorations`, `public.questions`, `public.experiments` and `public.experiment_items`. The current `experiments` table is tied to one `question_id`, and the question link is unique, so the schema currently constrains the one-question/one-experiment relationship.
-
-The target model should **not** be implemented by changing only the interface. It requires additive relationship records and a carefully staged compatibility migration.
-
-### Recommended migration strategy — additive first
-
-1. **Inventory and baseline:** inspect the real hosted schema, constraints, foreign keys, RLS policies, grants, triggers, actions and queries. Back up or otherwise follow the established database change procedure. Never assume the docs perfectly reflect hosted state.
-2. **Add themes and relationship tables:** create `themes`, `theme_questions` and `investigation_questions` with appropriate owner/exploration integrity, indexes, uniqueness and RLS. Add `theme_investigations` only if retained in the approved first slice.
-3. **Backfill existing links:** for every existing experiment, insert a link between its current `question_id` and `experiment_id` into `investigation_questions`. Do not rewrite or discard experiment items. Make the backfill idempotent.
-4. **Ship compatibility-aware application code:** read established links through the join table while supporting legacy records during rollout. New writes must avoid creating duplicate or contradictory relationships. Test old experiment routes and reopen flows.
-5. **Relax the legacy constraint only when safe:** after all application code no longer relies on the one-to-one `experiments.question_id` constraint, use a separately reviewed migration to remove the unique restriction and/or retire the old column as appropriate. Do not drop it in the initial additive migration.
-6. **Verify access and rollback:** test owner isolation for themes, links, investigations and items; test that cross-exploration links are rejected; test deletion behaviour; and record a rollback plan before applying changes to hosted Supabase.
-
-Do not run any SQL as part of drafting this model. Each migration must be separately inspected, approved and applied according to the project's established hosted-Supabase workflow.
-
-## 5. Integrity and security requirements
-
-- Every theme belongs to one exploration and one owner.
-- Every question in a theme belongs to the same exploration as that theme.
-- Every question linked to an investigation belongs to the same exploration as that investigation.
-- Every theme linked to an investigation belongs to the same exploration.
-- An investigation item is accessible only through its owner-scoped investigation.
-- The related-item parent, where present, must be in the same investigation; current cycle/depth checks continue to apply.
-- Enforce row-level security for every new persistent table; verify read/write policies and grants separately.
-- Reject cross-owner and cross-exploration relations in trusted server-side operations, not just in client-side validation.
-- Deleting a theme removes only its join links and the theme record, not questions, investigations or experiment items.
-- Deleting a question should not automatically delete a shared investigation. The application must define whether to remove its links, retain the investigation as unlinked, or request confirmation.
-- Deleting an investigation may delete its own items according to existing rules, but must not delete linked questions or themes.
-
-## 6. Questions-per-minute gauge data
-
-The gauge is a UI measurement, not a new persistent entity in the initial design.
-
-- Count only successfully saved new questions in a rolling 60-second window.
-- Do not count edits, failed saves or generated suggestions until the user explicitly adds them.
-- Default to current-tab state; clear the event window when it expires or the active session ends.
-- Do not store per-user rates, make public leaderboards or turn the rate into a quality score without a separate decision.
-
-## 7. Review decisions before any migration
-
-- [ ] Confirm the theme and investigation relationships.
-- [ ] Decide whether multiple themes per investigation are needed in the first release.
-- [ ] Agree deletion and unlinking semantics.
-- [ ] Define how the UI identifies an investigation's related questions.
-- [ ] Define and test the questions-per-minute experience.
-- [ ] Review the target model against the actual schema and RLS policies.
-- [ ] Prepare separate additive SQL and a rollback plan only after these decisions are approved.
+Confirmations still required are listed in `PRODUCT_VISION.md` section 10. The 8 MiB ceiling and the private path are the schema defaults. Applying the migration still needs an explicit yes.

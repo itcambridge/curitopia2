@@ -1,203 +1,186 @@
 # Curitopia Key User Journeys
 
-**Status:** Proposed target journeys for review. These describe desired product behaviour; they are not a claim that all steps are implemented.  
-**Product promise:** Ask. Experiment. Create.
+**Status:** Working journeys for V2. They describe intended behaviour.  
+**Experience framework:** `Curitopia_Garden_Experience_Framework.md`.  
+**Source of truth for scope and image quality:** `PRODUCT_VISION.md`.  
+**Entities:** `ENTITY_RELATIONSHIP_MODEL.md`. The database shape is provisional.
 
-## Shared principles
+The primary journey is the four-stage cycle. Themes and the Lab are optional. None of these journeys depends on a V1 account or on V1 data. Saving a visual concept does not complete it.
 
-- Asking a question is a complete, valid action; it does not obligate the user to investigate it.
-- Themes are optional. Users can organise after asking questions, not only before.
-- AI suggestions are advisory, visible and reversible. AI must not silently change the user's content or structure.
-- An investigation can relate to multiple questions; shared insights should not need to be duplicated.
-- Keep hypotheses, tests, observations and discoveries semantically distinct.
-- Stories can be created directly from selected exploration content. An experiment does not need to be completed first.
-- Existing content is unchanged by navigation, selection, Story editing or export.
-- Privacy is the default. Story drafts and Story images remain browser-only; exporting downloads a local file and does not publish it.
+## Shared rules
+
+- The original capture remains available after a considered question exists, and after a merge.
+- AI writes nothing until the person accepts, edits, or supplies the text themselves. Opening a page is not a request. Typing in Gather is not a request.
+- A person can leave any stage and open another. The cycle is not a wizard.
+- A theme is optional. The Lab is optional. A visual concept can be kept with neither.
+- A visual concept in the Library of Curiosities stays open. It can be renamed, reconnected, and developed. It is not finished work.
+- A Lab item does not receive a copy of that image. An investigation item of kind `concept` is a written note, not a Library concept.
+- Hidden questions, priority, Quickfire, Focus, and a questions-per-minute gauge are not part of these journeys. Gather still allows many questions.
+- The workspace, the Library, and the image are private to the owner.
+- Candidate images last for the comparison. The kept file is the one the person selects for a concept.
+- Counts are counts. The garden does not score the person or wither when they pause.
 
 ---
 
-## Journey 1 — Quick question burst
+## Journey 1 — From a raw question to a visual concept
 
-### User intent
+### Intent
 
-The user has a thought and wants to capture several questions without judging whether each is well-formed or committing to a project.
+The person wants to sow several unfinished thoughts, tend the ones that matter, see one of them as an image, and name that image. They can stop anywhere, and they can come back.
 
-### Entry point
+### Entry
 
-Home / Library of Curiosities → start or continue an exploration → Curiosity.
+Any stage of the workspace, or a concept already in the Library.
 
 ### Happy path
 
-1. The user opens an exploration or starts a new one.
-2. They type a question and add it. Curitopia normalises the terminal punctuation without rewriting the wording.
-3. They continue adding questions in Focus or Quickfire. No theme or experiment is required.
-4. The optional questions-per-minute gauge reflects new saved questions in the rolling 60-second window.
-5. The gauge stays encouraging and neutral. It does not show a failing state when the user pauses, set a mandatory target, compare the user to others or evaluate question quality.
-6. The user can star a question, hide one, or leave the exploration with the questions intact.
-7. Later, the user may group questions, start an investigation or create a Story—but none of these actions is required to finish this journey.
+1. **Gather.** They write thoughts in their own words. Enter keeps each wording and clears the field. Curitopia does not rewrite a capture into a tidier question, and it does not generate an image.
+2. **Curate.** They keep what deserves attention, and park, discard, or restore the rest. If two wordings look alike, the screen can say so and must say when that hint is only a text match. A merge keeps both original wordings. Nothing is deleted by the hint.
+3. **Visualise.** They choose one question. They write a considered question, or ask for one proposal, then edit, accept, or ask again. The original text stays. When they ask for images, Curitopia shows a small set of full-size interpretations. The considered wording stays on screen.
+4. They compare the set and choose one image. They can set a candidate aside. If none is worth keeping, they ask for another set. The set they are looking at remains until the new one is ready. Accepting the considered question does not start this step.
+5. **Distil.** They give the chosen image a one- or two-word title that names the metaphor. They can attach other questions that informed it. The title field stays empty until they type or, if they asked, accept a suggestion.
+6. They save. Curitopia keeps the image, the title, the model, the prompt version, and the links to the source questions. The concept appears in the Library of Curiosities as something to return to.
+7. Later they reopen it, rename it, connect another question, or leave it as it is. The Library does not mark it complete.
 
 ### Guardrails
 
-- Failed saves and edits do not increase the gauge.
-- Suggestions generated by AI are not counted until the user chooses to add them.
-- The gauge does not interrupt the input or auto-submit a question.
-- The rate is session-local by default and is not saved to a profile.
-- Empty or whitespace-only questions remain invalid.
+- An empty or whitespace-only capture is not saved.
+- Help for the question sends this question's text, not the rest of the workspace.
+- Image generation requires a considered question and a fresh explicit action.
+- The image is an interpretation, not evidence and not a verdict on the question.
+- A title is one or two words. The interface enforces that. A title is not saved without an image, and an image is not saved without a title and a considered question.
+- Rejected candidates are not written into the Library and are not stored in the private bucket.
+- If the considered question changes after a set was generated, the screen says the images were made for the earlier wording.
+- Editing a source after a concept is saved leaves the current image in place and offers a new interpretation. It does not delete the image silently.
+- Replacing the image asks for a title for the new image. After that save commits, the application removes the previous file through the Storage API.
+- Correcting the original wording is a separate action from editing the considered question.
+- One question may inform many concepts, and one concept may include many questions. Editing, parking, or removing a source leaves every concept it informed in the Library, with the wording each image was made for. Unmerging does not pretend the other sources were never linked.
 
-### Success criteria
+### What good looks like
 
-- The user can capture several questions quickly without extra organisation steps.
-- The gauge feels like a playful prompt to keep thinking, not a speed test.
-- All questions remain available afterward, whether or not the user takes further action.
+- The person can reach a concept without creating a theme or opening the Lab.
+- The original thought is still visible beside the considered question.
+- The image is recognizable in the Library and named by a title they can remember.
+- They can gather more questions after saving, without the concept being treated as finished.
+- On the review set in `PRODUCT_VISION.md`, the result meets the rubric for relevance, distinctiveness, stock avoidance, title, and time to a result they would keep.
 
-### Questions to test with users
+### Validate with the reviewer
 
-- Does the gauge make it easier to get into a flow?
-- Does it create pressure to type lower-value questions?
-- Is a rolling rate clearer than an optional timed burst?
-- Should the gauge be on by default or opt-in? Prototype and test before choosing.
+- Did the considered question become clearer without abandoning the original thought?
+- Did any image change how the question feels, or did the set look like stock illustration?
+- Was the title a handle on the image, or a shortened caption?
+- Did the Library feel like a place to return, or like a pile of finished work?
+- Where did the wait or an extra click make them want to stop?
 
 ---
 
-## Journey 2 — Organise questions into a theme and investigate it
+## Journey 2 — Group questions with a theme
 
-### User intent
+### Intent
 
-The user has collected many questions and notices a recurring idea. They want to make sense of the cluster and explore it without creating an experiment for every question.
+The person has several questions and wants a light way to see a cluster, without copying questions or blocking Journey 1.
 
-### Entry point
+### Entry
 
-An existing exploration containing several visible questions.
+The workspace, once theme screens are available. `themes` and `theme_questions` are already part of the initial schema. Using them is optional.
 
 ### Happy path
 
-1. The user creates a theme with a short name, such as **Dream memory**.
-2. They select several related questions and link them to the theme. Questions remain in the exploration and do not move into a separate copy.
-3. Curitopia may suggest other questions that could belong to the theme. Suggestions are clearly marked and require user acceptance.
-4. The user can leave a question ungrouped or associate it with more than one theme.
-5. The user starts one investigation from the theme or a selected question.
-6. Curitopia links the investigation to the relevant question set. The user can add or remove links later without changing the questions themselves.
-7. The user adds concepts, hypotheses, tests, observations and discoveries as needed. A formal test is optional; a note or concept can be sufficient.
-8. The theme provides a coherent entry point to related questions and the shared investigation.
+1. The person creates a theme with a short name.
+2. They link existing questions to it. Each question stays itself, including both texts and any concept that cites it.
+3. A question can remain ungrouped, or it can sit in more than one theme.
+4. They open a question from the theme and continue Journey 1 if it does not yet have an image.
+5. They rename or delete the theme later. Questions and concepts remain.
 
 ### Guardrails
 
-- Theme creation is optional and can happen after questions already exist.
-- AI never silently groups or moves questions.
-- Renaming or deleting a theme does not delete its questions or investigation.
-- Linking an investigation to a theme does not require every question in that theme to be investigated.
-- User edits and stored evidence remain distinguishable from AI suggestions.
+- Linking is manual until a later suggestion exists. If a suggestion exists, it is explicit and reversible.
+- Deleting a theme removes the memberships and the theme.
+- A theme does not own an image. The visual concept does.
+- An empty theme is allowed.
 
-### Success criteria
+### What good looks like
 
-- A cluster of questions can be understood as one theme without duplication.
-- The user can enter one investigation that supports the cluster.
-- The user can change the grouping later without losing underlying content.
+- A cluster is visible without a second copy of any question.
+- Grouping is reversible and optional.
+- Journey 1 still works for a question that has no theme.
 
-### Open design questions
+### Open, without blocking the experience
 
-- Should a theme show all linked questions and investigations on one screen?
-- Should themes support a short description or just a name?
-- Should theme suggestions be triggered explicitly or offered only when requested?
+- Whether a theme needs a description as well as a name. The working sketch stores a name.
+- Whether theme suggestions should exist later.
 
 ---
 
-## Journey 3 — One investigation spans several questions
+## Journey 3 — Open the Lab
 
-### User intent
+### Intent
 
-The user realises that multiple questions depend on the same underlying uncertainty and wants to investigate it once, with clear links back to each question.
+The person wants to think further about one uncertainty that several questions share, and to keep notes, hypotheses, tests, observations, and discoveries in one place.
+
+This journey is the optional Lab. It is not a stage of Gather, Curate, Visualise, or Distil. It is not required before an image. Its tables are not in any approved database release. The shape below is a sketch so the Lab does not have to be rediscovered, and so it is not mistaken for the Library.
 
 ### Example
 
-An exploration contains these questions:
+Questions already in the workspace, whether or not they inform a visual concept:
 
-- “Can dream memories be distorted after waking?”
-- “Why do familiar places recur in dreams?”
-- “How reliable is my memory of a dream?”
+- "Can dream memories be distorted after waking?"
+- "Why do familiar places recur in dreams?"
+- "How reliable is my memory of a dream?"
 
-The user decides these can be explored through one investigation into dream memory and recall.
-
-### Happy path
-
-1. From any of the questions, the user creates or opens an investigation.
-2. The investigation shows its current linked questions and offers an **Add related question** action.
-3. The user links the other relevant questions. The same investigation now supports all three.
-4. The user creates a hypothesis and a proposed test, then records observations and discoveries as they become available.
-5. Items are associated with the shared investigation, with optional links between related items where meaningful.
-6. The user can open the investigation from any linked question and see the same items—not duplicate copies.
-7. The user can unlink a question without deleting the investigation or its items. The UI explains if an investigation would become unlinked from every question.
-8. Existing experiments migrate into the new relationship structure with their original question link preserved.
-
-### Guardrails
-
-- The same question can be linked to more than one investigation when appropriate.
-- The same investigation can link to multiple questions.
-- Cross-exploration or cross-owner links are rejected.
-- Item text, type, image and ordering remain owned by the investigation and are not copied into each question.
-- Unlinking or deleting a question does not silently delete shared investigation content.
-- The current one-question experiment model must be migrated additively and tested before releasing this journey.
-
-### Success criteria
-
-- One investigation can address several related questions.
-- Shared concepts and observations are entered once.
-- Users can see why an investigation relates to each question.
-- Existing single-question experiments continue to work after migration.
-
-### Required implementation prerequisite
-
-Approve the proposed relationship model in `ENTITY_RELATIONSHIP_MODEL.md`, inspect the actual hosted Supabase schema and policies, then plan a separately reviewed additive migration. Do not implement this journey through UI-only changes.
-
----
-
-## Journey 4 — Create a Story directly from Curiosity
-
-### User intent
-
-The user has collected interesting questions and ideas and wants to make a visual artefact without having to turn every item into an experiment first.
-
-### Entry point
-
-An existing exploration → Create a Story.
+The person investigates dream memory once and links all three. Any blossom already in the Library stays a visual concept. The Lab does not absorb it.
 
 ### Happy path
 
-1. The user explicitly selects visible questions and any desired experiment items from that one exploration.
-2. Both starred and unstarred visible questions are available. Hidden questions are excluded and are not offered for selection.
-3. The user chooses the opening question, arranges the slides and edits short subtitles.
-4. The user may create original artwork for an individual slide only after an explicit confirmation. The request uses only that slide's selected content.
-5. The generated image is a preview until accepted. Rejected or unconfirmed artwork is not included in the final video.
-6. The user reviews the ordered sequence in the 9:16 portrait canvas. The full question remains available on question slides; experiment item types retain their meaning.
-7. The user exports a silent MP4 locally. The browser renders the slides and encodes the video without uploading the frames or completed video to Curitopia storage.
-8. The file is downloaded to the user's device. Nothing is automatically published to a network.
-9. The user can discard the temporary draft; the exploration, original questions, priorities, experiment items and Focus Image remain unchanged.
+1. From a question or a concept, the person opens the Lab and gives the investigation a short title. This is "Open the Lab" and "Test your hunch," not a fifth required stage.
+2. The investigation shows its linked questions and can link others that belong to the same person.
+3. They add items of the kinds they need, in any order. A note is enough. A test is not mandatory. A written item of kind `concept` is a thought in the Lab, not an image in the Library.
+4. They open the same investigation from any linked question and see the same items.
+5. They unlink a question without deleting the investigation or the items.
+6. Each linked question still has its own original text and considered text. A visual concept that cites those questions keeps its own image and title. The investigation does not take ownership of that image.
 
 ### Guardrails
 
-- A Story is not a required final stage. Users can create it at any time from selected content.
-- Story drafts remain browser-only and may be lost on refresh or tab close.
-- The Story feature creates no persistent Story table or Story bucket in the approved first release.
-- Story export does not trigger image-generation calls.
-- No music, narration, PDF or automatic social publishing in this release.
+- A question can belong to more than one investigation.
+- An investigation can link to more than one question. The database sketch allows an investigation with no linked questions; the interface starts from a question or a concept and creates the first link.
+- Links across owners are rejected.
+- Item kinds keep their meanings. A hypothesis is not shown as a discovery. An image is not an item kind.
+- Items have no thumbnail and no image file.
+- Unlinking a question does not delete shared items. Removing a source question does not delete a visual concept or its image file. The concept stays in the Library.
+- There is no direct link from a theme to an investigation. Starting from a theme means linking the questions the person selects.
 
-### Success criteria
+### What good looks like
 
-- A user can turn selected curiosity into a shareable image-led video without first organising or completing every thought.
-- The result feels like a personal vision board, not a text-heavy presentation.
-- Exporting and discarding do not mutate source exploration data.
+- Shared notes exist once.
+- Each question remains a question.
+- Each visual concept remains in the Library, still open.
+- The person can see which questions the investigation covers.
+
+### Not in this journey
+
+- A stored note explaining why a link exists. The linked question is the explanation until a screen needs more.
+- V1 experiments. They stay in the V1 project.
+- Any requirement to pass through the Lab before Visualise.
 
 ---
 
-## Cross-journey invariants
+## Journey removed from this release
 
-These rules apply to all four journeys:
+The previous journey "Create a Story directly from Curiosity" — selecting slides, generating per-slide artwork, and exporting a silent portrait MP4 — is not a V2 journey. Story drafts, a story table, and a story bucket are not part of the release.
 
-1. **No forced funnel:** questions → themes → investigations → Stories are related capabilities, not mandatory gates.
-2. **No silent data mutation:** organising, linking, navigating and exporting must not rewrite source content.
-3. **No duplication by default:** shared question relationships should be links, not copies; canonical experiment items live with their investigation.
-4. **Privacy by default:** owner and exploration boundaries are enforced server-side; hidden/unselected content is excluded from AI requests.
-5. **Truthfulness of evidence:** a hypothesis is tentative; a test is not a successful result; discoveries reflect recorded support.
-6. **Explicit AI action:** no image generation, grouping or creation call merely from opening a page or changing views.
-7. **Accessible controls:** icon-only navigation includes accessible names, keyboard access, visible focus and tooltips.
-8. **Graceful incompleteness:** an unanswered question, ungrouped question or unfinished investigation is a valid state.
+If storytelling returns, it should be designed against visual concepts and their titles, and accepted as a new journey. It should not be copied forward from the old workflow in order to have feature parity.
+
+---
+
+## Invariants
+
+1. **One primary cycle.** Gather, Curate, Visualise, Distil, and return through the Library. Themes and the Lab sit beside that cycle.
+2. **The Library is an archive, not a finish line.** Concepts are never completed.
+3. **No silent mutation.** Considering, grouping, linking, and regenerating do not overwrite the original capture. Replacing an image is an explicit save.
+4. **Provenance.** Merged questions keep their original wordings. A question may inform many concepts, and a concept may cite many questions. The concept keeps the wording its image was made for after a source is edited, parked, or removed. The exact columns are not settled.
+5. **Privacy.** Owner boundaries are enforced on the server for rows and for the image file, once an account exists. Model calls send only the text the action needs.
+6. **Distinct Lab meanings,** when that release exists. Image generation does not write those item kinds.
+7. **Explicit AI.** No generation from merely opening or leaving a view, or from capturing a question.
+8. **The garden is not a score.** No questions-per-minute gauge, no withering, no completed-concept progress.
+9. **Accessible controls.** Icon-only controls have accessible names, keyboard access, visible focus, and tooltips.
+10. **Stopping is allowed.** A capture with no considered question, a considered question with no image, a parked question, an ungrouped question, and an investigation with no test are all valid.
