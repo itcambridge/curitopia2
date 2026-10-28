@@ -19,7 +19,7 @@ export function questionsEqual(before: QuestionRecord[], after: QuestionRecord[]
   })
 }
 
-export async function syncQuestionChanges(before: QuestionRecord[], after: QuestionRecord[]) {
+export async function syncQuestionChanges(before: QuestionRecord[], after: QuestionRecord[], curiosityId: string) {
   const prior = new Map(before.map((item) => [item.id, item]))
   const afterIds = new Set(after.map((item) => item.id))
   if (before.some((item) => !afterIds.has(item.id))) {
@@ -31,13 +31,13 @@ export async function syncQuestionChanges(before: QuestionRecord[], after: Quest
   while (pending.length) {
     const index = pending.findIndex((item) => !item.mergedIntoId || saved.has(item.mergedIntoId))
     const [item] = pending.splice(index === -1 ? 0 : index, 1)
-    await insertQuestion(item)
+    await insertQuestion(item, curiosityId)
     saved.add(item.id)
   }
   for (const item of after) {
     const previous = prior.get(item.id)
     if (!previous) continue
     const patch = patchFor(previous, item)
-    if (patch) await updateQuestion(item.id, patch)
+    if (patch) await updateQuestion(item.id, patch, curiosityId)
   }
 }

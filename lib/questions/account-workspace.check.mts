@@ -87,5 +87,9 @@ for (const forbidden of [
 }
 assert.equal(startup.includes('workspaceForAccount'), true)
 assert.equal(startup.includes('listQuestions'), true)
+assert.equal(startup.includes('getCuriosity'), true)
+assert.equal(startup.includes('curiosityDraftRepository'), true)
+assert.equal(repository.includes(".eq('curiosity_id', curiosityId)"), true)
+assert.equal(repository.includes('curiosity_id: curiosityId'), true)
 
 console.log('account workspace checks passed')

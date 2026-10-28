@@ -1,10 +1,15 @@
 import { redirect } from 'next/navigation'
 import { MissingSupabaseEnv } from '@/components/auth/missing-env'
+import { CuriosityLanding } from '@/components/studio/curiosity-landing'
 import { CuritopiaApp } from '@/components/studio/curitopia-app'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ curiosity?: string }>
+}) {
   if (!readPublicSupabaseEnv()) return <MissingSupabaseEnv />
   const supabase = await createClient()
   let signedIn = false
@@ -19,5 +24,7 @@ export default async function Page() {
     )
   }
   if (!signedIn) redirect('/sign-in')
-  return <CuritopiaApp />
+  const { curiosity } = await searchParams
+  if (!curiosity) return <CuriosityLanding />
+  return <CuritopiaApp key={curiosity} curiosityId={curiosity} />
 }

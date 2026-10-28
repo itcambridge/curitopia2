@@ -30,18 +30,19 @@ The person wants to sow several unfinished thoughts, tend the ones that matter, 
 
 ### Entry
 
-Any stage of the workspace, or a concept already in the Library.
+The list of curiosities after sign-in, or a curiosity already open.
 
 ### Happy path
 
-1. **Gather.** They write thoughts in their own words. Enter keeps each wording and clears the field. Curitopia does not rewrite a capture into a tidier question, and it does not generate an image.
-2. **Curate.** They keep what deserves attention, and park, discard, or restore the rest. If two wordings look alike, the screen can say so and must say when that hint is only a text match. A merge keeps both original wordings. Nothing is deleted by the hint.
-3. **Visualise.** They choose one question. They write a considered question, or ask for one proposal, then edit, accept, or ask again. The original text stays. When they ask for images, Curitopia shows a small set of full-size interpretations. The considered wording stays on screen.
-4. They compare the set and choose one image. That choice is the current draft. It is not saved. Hiding a candidate, or choosing a different one, does not save it either. If none is worth keeping, they ask for another set. The set they are looking at remains until the new one is ready. Accepting the considered question does not start this step.
-5. **Distil.** They arrive with the selected image, the considered wording it was made for, and the source questions. They can attach other questions that informed it. They write a title of one or two words. One word is valid. The title should carry the idea, not caption the picture.
-6. If they ask, Curitopia proposes three distinct one- or two-word titles. That help is specified in `PRODUCT_VISION.md`. Suggestions stay temporary. They can select one, edit it, ask for another set, or ignore them and type their own. Asking again does not generate another image.
-7. They explicitly save the concept to the Library. Curitopia keeps the image, the title they confirmed, the model, the prompt version, and the links to the source questions. The concept appears in the Library of Curiosities as something to return to. A suggestion that was never chosen is not stored.
-8. Later they reopen it, retitle it, connect another question, or leave it as it is. Retitling updates this concept. The Library does not mark it complete.
+1. They choose an existing curiosity or name a new one. Opening it restores that curiosity's saved questions and concepts, and the stage last stored for it. Another curiosity's questions are not on this screen.
+2. **Gather.** They write thoughts in their own words. Enter keeps each wording and clears the field. Curitopia does not rewrite a capture into a tidier question, and it does not generate an image.
+3. **Curate.** They keep what deserves attention, and park, discard, or restore the rest. If two wordings look alike, the screen can say so and must say when that hint is only a text match. A merge keeps both original wordings. Nothing is deleted by the hint.
+4. **Visualise.** They choose one question. They write a considered question, or ask for one proposal, then edit, accept, or ask again. The original text stays. When they ask for images, Curitopia shows a small set of full-size interpretations. The considered wording stays on screen.
+5. They compare the set and choose one image. That choice is the current draft. It is not saved. Hiding a candidate, or choosing a different one, does not save it either. If none is worth keeping, they ask for another set. The set they are looking at remains until the new one is ready. Accepting the considered question does not start this step.
+6. **Distil.** They arrive with the selected image, the considered wording it was made for, and the source questions. They can attach other questions that informed it. They write a title of one or two words. One word is valid. The title should carry the idea, not caption the picture.
+7. If they ask, Curitopia proposes three distinct one- or two-word titles. That help is specified in `PRODUCT_VISION.md`. Suggestions stay temporary. They can select one, edit it, ask for another set, or ignore them and type their own. Asking again does not generate another image.
+8. They explicitly save the concept to the Library. Curitopia keeps the image, the title they confirmed, the model, the prompt version, and the links to the source questions. The concept appears in the Library of Curiosities as something to return to. A suggestion that was never chosen is not stored.
+9. Later they reopen it, retitle it, connect another question, return to the list of curiosities, or leave it as it is. Retitling updates this concept. The Library does not mark it complete.
 
 ### Guardrails
 

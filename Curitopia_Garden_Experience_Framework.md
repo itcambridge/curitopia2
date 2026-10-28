@@ -124,7 +124,7 @@ Avoid labels such as “completed concepts,” “finished work,” or progress 
 
 ## 5. Repeatable workspace framework
 
-The interface should use one persistent workspace with a consistent shell and stage-specific work areas.
+The interface should open on the person's curiosities. Each curiosity is one persistent workspace, with a consistent shell and stage-specific work areas. Switching curiosities leaves the previous curiosity's questions and concepts behind.
 
 Persistent elements may include:
 - The Curitopia identity and a compact stage navigation.

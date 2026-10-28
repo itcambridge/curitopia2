@@ -10,17 +10,19 @@ import { VisualiseStage } from '@/components/studio/visualise-stage'
 import type { StageId } from '@/lib/questions/types'
 import { workspaceCounts } from '@/lib/questions/workspace'
 
-export function CuritopiaApp() {
-  const account = useAccountWorkspace()
+export function CuritopiaApp({ curiosityId }: { curiosityId: string }) {
+  const account = useAccountWorkspace(curiosityId)
 
   function openStage(stage: StageId) {
     account.write({ ...account.workspace, stage })
   }
 
   return (
-    <StudioShell stage={account.workspace.stage} counts={workspaceCounts(account.workspace)} onStage={openStage} email={account.email} onSignOut={() => { void account.signOut() }}>
+    <StudioShell stage={account.workspace.stage} counts={workspaceCounts(account.workspace)} onStage={openStage} email={account.email} curiosityName={account.curiosityName} onSignOut={() => { void account.signOut() }}>
       {account.storeError && <p role="alert" className="mb-4 text-sm">{account.storeError}</p>}
-      {!account.ready ? <p className="text-sm text-studio-muted">Opening the workspace…</p> : (
+      {!account.ready ? <p className="text-sm text-studio-muted">Opening the workspace…</p> : account.missingCuriosity ? (
+        <p className="text-sm">This curiosity is not in your account. <a className="font-semibold underline-offset-2 hover:underline" href="/">Return to your curiosities</a></p>
+      ) : (
         <>
           {account.workspace.stage === 'gather' && <GatherStage workspace={account.workspace} onChange={account.write} saveIssue={account.storeError} />}
           {account.workspace.stage === 'curate' && <CurateStage workspace={account.workspace} onChange={account.write} />}

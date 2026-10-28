@@ -1,7 +1,7 @@
 # Curitopia Entity-Relationship Model
 
 **Status:** Deployed first-release model, plus later sketches that are not tables. This file is not permission to add tables or run SQL.  
-**Migration:** `supabase/migrations/20261026000000_initial_v2_schema.sql`  
+**Migration:** `supabase/migrations/20261026000000_initial_v2_schema.sql` is deployed. `supabase/migrations/20261028173000_curiosities.sql` adds curiosities and has not been applied.  
 **Explanation:** `docs/schema-inventory/proposals/v2-initial-schema-proposal.md`  
 **Experience:** `Curitopia_Garden_Experience_Framework.md` and `PRODUCT_VISION.md`.
 
@@ -9,7 +9,7 @@ V1 tables are untouched. V2 does not import them. The first-release tables below
 
 ## 1. Model goals
 
-- The person owns questions, themes, and concepts directly. There is no exploration container.
+- The person owns curiosities. Each curiosity owns its questions and concepts. Themes stay optional labels on the account. A curiosity is not an exploration, and it has no completed state.
 - A question keeps its original text and its optional considered text.
 - The Library of Curiosities is a collection of concepts. A concept is one selected image, a title of one or two words, the wording that image was made for, and any number of source questions. The title is part of the concept, not a caption stored elsewhere. A question may inform any number of concepts. A concept is never a completed status. There is no relationship between two concepts in this model.
 - A question can belong to zero or more themes. A theme can contain zero or more questions. Themes are optional in the journey and included in this schema.
@@ -21,9 +21,10 @@ V1 tables are untouched. V2 does not import them. The first-release tables below
 
 ```mermaid
 erDiagram
-    AUTH_USER ||--o{ QUESTION : owns
+    AUTH_USER ||--o{ CURIOSITY : owns
     AUTH_USER ||--o{ THEME : owns
-    AUTH_USER ||--o{ CONCEPT : owns
+    CURIOSITY ||--o{ QUESTION : contains
+    CURIOSITY ||--o{ CONCEPT : contains
 
     THEME ||--o{ THEME_QUESTION : groups
     QUESTION ||--o{ THEME_QUESTION : belongs_to
@@ -33,9 +34,18 @@ erDiagram
 
     QUESTION ||--o{ QUESTION : merged_into
 
+    CURIOSITY {
+        uuid id PK
+        uuid user_id FK
+        text name
+        text stage
+        timestamptz created_at
+        timestamptz updated_at
+    }
     QUESTION {
         uuid id PK
         uuid user_id FK
+        uuid curiosity_id FK
         text original_text
         text considered_text
         text disposition
@@ -61,6 +71,7 @@ erDiagram
     CONCEPT {
         uuid id PK
         uuid user_id FK
+        uuid curiosity_id FK
         text title
         text for_considered_text
         text image_path
@@ -74,13 +85,16 @@ erDiagram
         uuid concept_id FK
         uuid question_id FK
         uuid user_id FK
+        uuid curiosity_id FK
         text original_text_snapshot
         text considered_text_snapshot
         timestamptz created_at
     }
 ```
 
-The private bucket `concept-images` is not a table. `concepts.image_path` is `{user_id}/{concept_id}/{filename}`.
+A curiosity has a name and the last opened stage. It has no completed state. Questions and concepts point at one curiosity, and that pointer cannot be changed. A merge stays inside the same curiosity. Provenance links carry the same curiosity as the concept. Deleting a live question still clears only `concept_questions.question_id`. The snapshots remain. The curiosity migration has not been applied, so the hosted database does not have this table yet.
+
+The private bucket `concept-images` is not a table. `concepts.image_path` is `{user_id}/{concept_id}/{filename}`. The curiosity migration does not rewrite those paths.
 
 ### Question
 

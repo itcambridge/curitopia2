@@ -1,7 +1,7 @@
 # Curitopia Product Architecture
 
 **Status:** Working architecture for V2. Experience and tone follow `Curitopia_Garden_Experience_Framework.md`. Scope, the image-quality rubric, and the title rubric live in `PRODUCT_VISION.md`.  
-**Persistence:** The deployed account model is `supabase/migrations/20261026000000_initial_v2_schema.sql`. Questions and visual concepts are many-to-many. A concept stays in the Library when a source question is edited, parked, or removed. Optional themes are `themes` and `theme_questions`. There is no table relating two concepts. `docs/schema-inventory/proposals/v2-revised-schema-proposal.md` is the earlier image-on-question sketch and is not a migration.  
+**Persistence:** The deployed account model is `supabase/migrations/20261026000000_initial_v2_schema.sql`. `supabase/migrations/20261028173000_curiosities.sql` adds named curiosities and has not been applied. Questions and visual concepts are many-to-many inside one curiosity. A concept stays in the Library when a source question is edited, parked, or removed. Optional themes are `themes` and `theme_questions`. There is no table relating two concepts. `docs/schema-inventory/proposals/v2-revised-schema-proposal.md` is the earlier image-on-question sketch and is not a migration.  
 **Journeys and entities:** `USER_JOURNEYS.md`, `ENTITY_RELATIONSHIP_MODEL.md`.  
 **Earlier schema drafts** in `docs/schema-inventory/proposals/` are historical. They are not deployable.
 
@@ -9,7 +9,7 @@ This document does not authorise application changes, new SQL, or any edit to V1
 
 ## 1. Design driver
 
-The garden is one workspace. The four stages are how a person moves through it. The Library of Curiosities is where a visual concept stays open, not where the work is declared done.
+An account can hold many curiosities. Each curiosity is one garden, and the four stages are how a person moves through that garden. The Library of Curiosities shows the concepts kept in the open curiosity, not a score and not a finished state.
 
 1. **Gather.** Capture questions without losing the original wording.
 2. **Curate.** Keep, park, discard, restore, or merge, with provenance intact.

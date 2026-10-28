@@ -1,6 +1,6 @@
 # V2 initial schema proposal
 
-**Status:** Explanation of the deployed first-release migration. Do not run it again, and do not run it against V1. A relationship between two concepts is not part of this schema. That design is open in `PRODUCT_VISION.md`.  
+**Status:** Explanation of the deployed first-release migration. Do not run it again, and do not run it against V1. A later file, `supabase/migrations/20261028173000_curiosities.sql`, proposes named curiosities and has not been applied. A relationship between two concepts is not part of this schema. That design is open in `PRODUCT_VISION.md`.  
 **Migration:** `supabase/migrations/20261026000000_initial_v2_schema.sql`  
 **Product:** `Curitopia_Garden_Experience_Framework.md`, `PRODUCT_VISION.md`  
 **Entities:** `ENTITY_RELATIONSHIP_MODEL.md`  

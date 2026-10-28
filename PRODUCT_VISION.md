@@ -52,7 +52,7 @@ The visual system stays warm and editorial: cream and paper surfaces, a coral ac
 
 ## 3. The four-stage cycle
 
-The stages are views over one workspace. They are not a wizard. A person can open any stage, capture another question, or return to the Library without finishing the activity in front of them.
+A signed-in person can keep more than one curiosity. Each curiosity is its own garden: its questions, its images, and its library stay separate. After sign-in they see those curiosities, name a new one, rename one, or open one and resume the stage they left. The stages are views over that curiosity. They are not a wizard. A person can open any stage, capture another question, return to the list of curiosities, or return to the Library without finishing the activity in front of them.
 
 ### Gather — sow freely
 

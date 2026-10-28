@@ -57,21 +57,23 @@ function toRecord(row: {
   }
 }
 
-export async function listQuestions() {
+export async function listQuestions(curiosityId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('questions')
     .select('id, original_text, considered_text, disposition, merged_into_id, created_at, updated_at')
+    .eq('curiosity_id', curiosityId)
     .order('created_at', { ascending: false })
   if (error) throw new Error(questionSaveMessage(error))
   return (data ?? []).map(toRecord)
 }
 
-export async function insertQuestion(question: QuestionRecord) {
+export async function insertQuestion(question: QuestionRecord, curiosityId: string) {
   const { supabase, userId } = await signedInUserId()
   const { error } = await supabase.from('questions').insert({
     id: question.id,
     user_id: userId,
+    curiosity_id: curiosityId,
     original_text: question.originalText,
     considered_text: question.consideredText,
     disposition: question.disposition,
@@ -80,7 +82,7 @@ export async function insertQuestion(question: QuestionRecord) {
   if (error) throw new Error(questionSaveMessage(error))
 }
 
-export async function updateQuestion(id: string, patch: QuestionPatch) {
+export async function updateQuestion(id: string, patch: QuestionPatch, curiosityId: string) {
   const { supabase } = await signedInUserId()
   const row: {
     original_text?: string
@@ -93,6 +95,6 @@ export async function updateQuestion(id: string, patch: QuestionPatch) {
   if (patch.disposition !== undefined) row.disposition = patch.disposition
   if (patch.mergedIntoId !== undefined) row.merged_into_id = patch.mergedIntoId
   if (Object.keys(row).length === 0) return
-  const { error } = await supabase.from('questions').update(row).eq('id', id)
+  const { error } = await supabase.from('questions').update(row).eq('id', id).eq('curiosity_id', curiosityId)
   if (error) throw new Error(questionSaveMessage(error))
 }

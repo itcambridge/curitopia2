@@ -1,3 +1,4 @@
+import { curiosityDraftKey } from '@/lib/questions/curiosity'
 import { emptyWorkspace, isStageId, migrateLegacyQuestions } from '@/lib/questions/workspace'
 import type { CandidateDraft, ConceptRecord, QuestionRecord, Workspace, WorkspaceRepository } from '@/lib/questions/types'
 
@@ -81,10 +82,12 @@ function readWorkspace(value: unknown): Workspace | null {
 }
 
 export class BrowserWorkspaceRepository implements WorkspaceRepository {
+  constructor(private readonly storageKey = workspaceKey, private readonly readLegacy = true) {}
+
   load() {
     if (typeof window === 'undefined') return { workspace: emptyWorkspace(), migrated: false }
     try {
-      const saved = window.localStorage.getItem(workspaceKey)
+      const saved = window.localStorage.getItem(this.storageKey)
       if (saved) {
         const workspace = readWorkspace(JSON.parse(saved) as unknown)
         if (workspace) return { workspace, migrated: false }
@@ -92,6 +95,7 @@ export class BrowserWorkspaceRepository implements WorkspaceRepository {
     } catch {
       // A damaged workspace falls through to the earlier question list, then to empty.
     }
+    if (!this.readLegacy) return { workspace: emptyWorkspace(), migrated: false }
     try {
       const legacy = window.localStorage.getItem(legacyKey)
       if (!legacy) return { workspace: emptyWorkspace(), migrated: false }
@@ -105,9 +109,13 @@ export class BrowserWorkspaceRepository implements WorkspaceRepository {
 
   persist(workspace: Workspace) {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(workspaceKey, JSON.stringify({ version: 2, ...workspace }))
-    window.localStorage.removeItem(legacyKey)
+    window.localStorage.setItem(this.storageKey, JSON.stringify({ version: 2, ...workspace }))
+    if (this.readLegacy) window.localStorage.removeItem(legacyKey)
   }
 }
 
 export const browserWorkspaceRepository = new BrowserWorkspaceRepository()
+
+export function curiosityDraftRepository(curiosityId: string) {
+  return new BrowserWorkspaceRepository(curiosityDraftKey(curiosityId), false)
+}

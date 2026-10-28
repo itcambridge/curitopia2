@@ -26,6 +26,7 @@ export function StudioShell({
   counts,
   onStage,
   email,
+  curiosityName,
   onSignOut,
   children,
 }: {
@@ -33,6 +34,7 @@ export function StudioShell({
   counts: Counts
   onStage: (stage: StageId) => void
   email: string | null
+  curiosityName: string | null
   onSignOut: () => void
   children: ReactNode
 }) {
@@ -50,6 +52,8 @@ export function StudioShell({
                 <h1 className="font-serif text-[22px] font-semibold tracking-tight">curitopia</h1>
               </div>
             </div>
+            <a href="/" className="mb-4 block text-sm font-semibold text-studio-ink underline-offset-2 hover:underline">All curiosities</a>
+            {curiosityName ? <p className="mb-4 font-serif text-2xl leading-tight">{curiosityName}</p> : null}
             <nav aria-label="Workspace stages" className="flex w-full gap-2 overflow-x-auto lg:flex-col">
               {stages.map((item) => {
                 const current = stage === item.id

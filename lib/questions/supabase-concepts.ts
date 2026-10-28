@@ -70,11 +70,11 @@ function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string):
   }
 }
 
-export async function listConcepts() {
+export async function listConcepts(curiosityId: string) {
   const { supabase } = await signedIn()
   const [{ data: conceptRows, error: conceptError }, { data: linkRows, error: linkError }] = await Promise.all([
-    supabase.from('concepts').select('id, title, for_considered_text, image_path, image_model, prompt_version, created_at, updated_at').order('updated_at', { ascending: false }),
-    supabase.from('concept_questions').select('id, concept_id, question_id, original_text_snapshot, considered_text_snapshot'),
+    supabase.from('concepts').select('id, title, for_considered_text, image_path, image_model, prompt_version, created_at, updated_at').eq('curiosity_id', curiosityId).order('updated_at', { ascending: false }),
+    supabase.from('concept_questions').select('id, concept_id, question_id, original_text_snapshot, considered_text_snapshot').eq('curiosity_id', curiosityId),
   ])
   if (conceptError) throw new Error(conceptMessage(conceptError, 'The library could not be loaded.'))
   if (linkError) throw new Error(conceptMessage(linkError, 'The library could not be loaded.'))
@@ -124,7 +124,7 @@ function cleanupMessage(action: string, problems: string[]) {
   return `${action} Cleanup also failed: ${problems.join('; ')}.`
 }
 
-export async function createStoredConcept(concept: ConceptRecord, questions: QuestionRecord[]) {
+export async function createStoredConcept(concept: ConceptRecord, questions: QuestionRecord[], curiosityId: string) {
   if (!concept.model?.trim() || !concept.promptVersion?.trim()) {
     throw new Error('This drawing has no image model on record, so it was not kept in the account.')
   }
@@ -141,6 +141,7 @@ export async function createStoredConcept(concept: ConceptRecord, questions: Que
   const inserted = await supabase.from('concepts').insert({
     id: concept.id,
     user_id: userId,
+    curiosity_id: curiosityId,
     title: concept.title,
     for_considered_text: concept.forConsideredText.trim(),
     image_path: path,
@@ -157,6 +158,7 @@ export async function createStoredConcept(concept: ConceptRecord, questions: Que
     concept_id: string
     question_id: string
     user_id: string
+    curiosity_id: string
     original_text_snapshot: string
     considered_text_snapshot: string | null
   }[]
@@ -170,6 +172,7 @@ export async function createStoredConcept(concept: ConceptRecord, questions: Que
         concept_id: concept.id,
         question_id: question.id,
         user_id: userId,
+        curiosity_id: curiosityId,
         ...text,
       }
     })
@@ -189,10 +192,10 @@ export async function createStoredConcept(concept: ConceptRecord, questions: Que
   }
 }
 
-export async function updateStoredConcept(before: ConceptRecord, after: ConceptRecord, questions: QuestionRecord[]) {
+export async function updateStoredConcept(before: ConceptRecord, after: ConceptRecord, questions: QuestionRecord[], curiosityId: string) {
   const { supabase, userId } = await signedIn()
   if (before.title !== after.title) {
-    const updated = await supabase.from('concepts').update({ title: after.title }).eq('id', after.id)
+    const updated = await supabase.from('concepts').update({ title: after.title }).eq('id', after.id).eq('curiosity_id', curiosityId)
     if (updated.error) throw new Error(conceptMessage(updated.error, 'The title could not be saved.'))
   }
   const changes = linkChanges(before.sources, after.questionIds)
@@ -210,6 +213,7 @@ export async function updateStoredConcept(before: ConceptRecord, after: ConceptR
         concept_id: after.id,
         question_id: question.id,
         user_id: userId,
+        curiosity_id: curiosityId,
         ...text,
       }
     })
@@ -234,7 +238,7 @@ export function conceptsEqual(before: ConceptRecord[], after: ConceptRecord[]) {
   })
 }
 
-export async function syncConceptChanges(before: ConceptRecord[], after: ConceptRecord[], questions: QuestionRecord[]) {
+export async function syncConceptChanges(before: ConceptRecord[], after: ConceptRecord[], questions: QuestionRecord[], curiosityId: string) {
   const afterIds = new Set(after.map((concept) => concept.id))
   if (before.some((concept) => !afterIds.has(concept.id))) {
     throw new Error('A concept disappeared from the screen. The account copy was left in place.')
@@ -243,7 +247,7 @@ export async function syncConceptChanges(before: ConceptRecord[], after: Concept
   for (const concept of after) {
     const existing = prior.get(concept.id)
     if (!existing) {
-      await createStoredConcept(concept, questions)
+      await createStoredConcept(concept, questions, curiosityId)
       continue
     }
     if (
@@ -251,7 +255,7 @@ export async function syncConceptChanges(before: ConceptRecord[], after: Concept
       || existing.questionIds.length !== concept.questionIds.length
       || existing.questionIds.some((id) => !concept.questionIds.includes(id))
     ) {
-      await updateStoredConcept(existing, concept, questions)
+      await updateStoredConcept(existing, concept, questions, curiosityId)
     }
   }
 }

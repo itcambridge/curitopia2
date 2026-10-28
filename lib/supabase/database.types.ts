@@ -19,6 +19,7 @@ export type Database = {
           concept_id: string
           considered_text_snapshot: string | null
           created_at: string
+          curiosity_id: string
           id: string
           original_text_snapshot: string
           question_id: string | null
@@ -28,6 +29,7 @@ export type Database = {
           concept_id: string
           considered_text_snapshot?: string | null
           created_at?: string
+          curiosity_id: string
           id: string
           original_text_snapshot: string
           question_id?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           concept_id?: string
           considered_text_snapshot?: string | null
           created_at?: string
+          curiosity_id?: string
           id?: string
           original_text_snapshot?: string
           question_id?: string | null
@@ -51,17 +54,32 @@ export type Database = {
             referencedColumns: ["id", "user_id"]
           },
           {
+            foreignKeyName: "concept_questions_concept_curiosity"
+            columns: ["concept_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "concepts"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
+          {
             foreignKeyName: "concept_questions_question_owner"
             columns: ["question_id", "user_id"]
             isOneToOne: false
             referencedRelation: "questions"
             referencedColumns: ["id", "user_id"]
           },
+          {
+            foreignKeyName: "concept_questions_question_curiosity"
+            columns: ["question_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
         ]
       }
       concepts: {
         Row: {
           created_at: string
+          curiosity_id: string
           for_considered_text: string
           id: string
           image_model: string
@@ -73,6 +91,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          curiosity_id: string
           for_considered_text: string
           id: string
           image_model: string
@@ -84,6 +103,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          curiosity_id?: string
           for_considered_text?: string
           id?: string
           image_model?: string
@@ -93,12 +113,48 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "concepts_curiosity_owner"
+            columns: ["curiosity_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "curiosities"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      curiosities: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          stage: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          stage?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          stage?: string
+          updated_at?: string
+          user_id?: string
+        }
         Relationships: []
       }
       questions: {
         Row: {
           considered_text: string | null
           created_at: string
+          curiosity_id: string
           disposition: string
           id: string
           merged_into_id: string | null
@@ -109,6 +165,7 @@ export type Database = {
         Insert: {
           considered_text?: string | null
           created_at?: string
+          curiosity_id: string
           disposition?: string
           id: string
           merged_into_id?: string | null
@@ -119,6 +176,7 @@ export type Database = {
         Update: {
           considered_text?: string | null
           created_at?: string
+          curiosity_id?: string
           disposition?: string
           id?: string
           merged_into_id?: string | null
@@ -128,11 +186,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "questions_curiosity_owner"
+            columns: ["curiosity_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "curiosities"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
             foreignKeyName: "questions_merge_same_owner"
             columns: ["merged_into_id", "user_id"]
             isOneToOne: false
             referencedRelation: "questions"
             referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "questions_merge_same_curiosity"
+            columns: ["merged_into_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
           },
         ]
       }
