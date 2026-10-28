@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Sparkles } from 'lucide-react'
+import { StageMark } from '@/components/studio/stage-mark'
 import type { StageId } from '@/lib/questions/types'
 import type { workspaceCounts } from '@/lib/questions/workspace'
 
@@ -83,7 +84,8 @@ export function StudioShell({
         </aside>
         <section className="relative min-w-0 flex-1 overflow-x-clip px-5 py-7 sm:px-8 lg:px-12 lg:py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-studio-mint-wash opacity-70 blur-3xl" />
-          <div className="relative">
+          <StageMark stage={stage} />
+          <div className="relative z-10 pr-28 sm:pr-44 lg:pr-56">
             {children}
           </div>
         </section>
