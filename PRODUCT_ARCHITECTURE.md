@@ -46,7 +46,7 @@ One place for the cycle. It shows the current garden in ordinary counts: questio
 
 ### Gather, Curate, Visualise, Distil
 
-The four work areas in `PRODUCT_VISION.md` section 3. Gather is fast and list-centred. Curate is selective and reversible. Visualise is image-led. Distil is the composition of image, title, and source questions. The title field is always editable. A future suggestion control may offer three one- or two-word candidates when the person asks. Those candidates are temporary. Saving is the only way one of them becomes the concept title.
+The four work areas in `PRODUCT_VISION.md` section 3. Gather is fast and list-centred. Curate is selective and reversible. Visualise is image-led. Distil is the composition of image, title, and source questions. The title field is always editable. Suggest titles offers three one- or two-word candidates when the person asks. Those candidates are temporary. Saving is the only way one of them becomes the concept title.
 
 ### Library of Curiosities
 
@@ -96,9 +96,9 @@ Row level security is enabled for `authenticated` and scoped by `auth.uid()`. Th
 - Model calls and secrets stay server-side. The client uses the signed-in session when an account exists.
 - Provider choice and whether that provider retains prompts or images are a product decision in `PRODUCT_VISION.md`. They are not settled by this architecture.
 
-**Title help is proposed, not built.** The text path that exists today is a chat completion. The configured model id is an environment setting. The user message is text. If the key or model is absent, or the call fails, question help shows a local demo scaffold and does not retry. That path does not propose titles and does not attach an image. Image generation is a different endpoint and a different cost. Do not call it to name a concept.
+**Title help is a separate chat completion, requested from Distil.** It reads `OPENAI_TEXT_MODEL` when that is set, otherwise `OPENAI_MODEL`, and `OPENAI_API_KEY`. Question help still reads only `OPENAI_TEXT_MODEL`. Image generation is a different endpoint and a different cost. Title help does not call it.
 
-When title help is built, a request should consider the considered wording, the metaphor direction already stored with the selected image, and the source questions. Include the image itself only if the configured text model is known to accept image input. That capability is not recorded in the current client. Do not assume a model name or a multimodal API. Three suggestions, each one or two words, validated with the same check the database uses. Invalid suggestions are dropped. A timeout, a missing model, a malformed response, or a weak set leaves manual entry available and does not block a valid save. Another set of suggestions does not regenerate the image. Suggestions live in the screen until the person saves a title. They are not a table.
+A title request sends the considered wording, the metaphor direction when the draft still has one, and the source questions. It also sends the selected image when the configured model is confirmed to accept image input and the file is a PNG, JPEG, WebP, or GIF. `gpt-6-luna` is confirmed for text and image input on chat completions. A demo SVG is not attached, and an unconfirmed model id is not given the image. The reply is parsed as three titles and checked with the same one- or two-word rule the database uses. Invalid suggestions are dropped. A timeout, a missing model, a malformed response, or fewer than three usable titles leaves the typed title unchanged and does not block a save. Another set of suggestions does not regenerate the image. Suggestions live in the screen until the person saves a title. They are not a table.
 
 The rubric for images, and the six qualities of a title, are in `PRODUCT_VISION.md`. Architecture does not add a second rubric. AI title quality has not been tested.
 

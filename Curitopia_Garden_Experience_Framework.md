@@ -100,7 +100,7 @@ Experience principles:
 - The title should catch the essence of the idea and still mean something later, without the conversation that produced it. A generic, literal, or interchangeable title fails the image it sits under.
 - “Spacetime Fusion” and “Russian Blackholes” are examples of concise, memorable handles. They are not a pattern the product should impose.
 - Brevity is not the whole aim. The title should stay faithful to the question and the image, and be easy to say beside other concepts.
-- If the person asks, the product may suggest three distinct titles. Suggestions are recommendations. The person selects, edits, asks again, or writes their own. The field is never filled or saved for them. Asking again does not make a new image. This help is proposed and not built. See `PRODUCT_VISION.md`.
+- If the person asks, the product suggests three distinct titles. Suggestions are recommendations. The person selects, edits, asks again, or writes their own. The field is never filled or saved for them. Asking again does not make a new image. See `PRODUCT_VISION.md`.
 - A missing or failed suggestion must not block a manually entered valid title.
 - Preserve links to the source question or questions. A concept may emerge from more than one related question and, in the future, may draw on an investigation.
 - Let users edit a title, revisit the source, and refine the concept later. Retitling updates the concept they already saved.

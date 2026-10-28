@@ -44,6 +44,7 @@ export function DistilStage({
           concept={concept}
           anchorId={anchor?.id ?? concept?.anchorQuestionId ?? ''}
           image={image}
+          metaphor={chosen?.metaphor ?? null}
           usingNewImage={Boolean(chosen)}
           informing={informing}
           relatedChoices={relatedChoices.map((item) => ({ id: item.id, text: item.originalText }))}
@@ -88,6 +89,7 @@ function Composer({
   concept,
   anchorId,
   image,
+  metaphor,
   usingNewImage,
   informing,
   relatedChoices,
@@ -99,6 +101,7 @@ function Composer({
   concept: ConceptRecord | null
   anchorId: string
   image: { src: string; label: string; source: 'openai' | 'demo' }
+  metaphor: string | null
   usingNewImage: boolean
   informing: string
   relatedChoices: { id: string; text: string }[]
@@ -107,7 +110,12 @@ function Composer({
   savedConceptId: string | null
 }) {
   const sent = useRef(false)
+  const suggestRequest = useRef(0)
   const [title, setTitle] = useState(concept?.title ?? '')
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestNotice, setSuggestNotice] = useState<string | null>(null)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
   const [related, setRelated] = useState<string[]>(concept?.questionIds.filter((id) => id !== anchorId) ?? [])
   const problem = title.trim() ? titleProblem(title) : 'Add a one- or two-word title.'
   const anchor = workspace.questions.find((item) => item.id === anchorId)
@@ -128,6 +136,55 @@ function Composer({
 
   function toggle(id: string) {
     setRelated((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+  }
+
+  function suggestionQuestions() {
+    const rows = included.flatMap((id) => {
+      const item = workspace.questions.find((question) => question.id === id)
+      const remembered = concept?.sources.find((source) => source.questionId === id)
+      const originalText = item?.originalText ?? remembered?.originalText ?? ''
+      if (!originalText) return []
+      return [{ originalText, consideredText: item?.consideredText ?? remembered?.consideredText ?? null }]
+    })
+    for (const source of concept?.sources.filter((source) => !source.questionId) ?? []) {
+      rows.push({ originalText: source.originalText, consideredText: source.consideredText })
+    }
+    return rows
+  }
+
+  async function askForTitles() {
+    if (suggesting || saving || !informing.trim()) return
+    const id = suggestRequest.current + 1
+    suggestRequest.current = id
+    setSuggesting(true)
+    setSuggestError(null)
+    try {
+      const response = await fetch('/api/titles', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          consideredText: informing,
+          metaphor,
+          imageSrc: image.src,
+          questions: suggestionQuestions(),
+        }),
+      })
+      const body = await response.json() as { titles?: unknown; notice?: unknown; error?: unknown }
+      if (id !== suggestRequest.current) return
+      const titles = Array.isArray(body.titles) ? body.titles.filter((item): item is string => typeof item === 'string') : []
+      if (!response.ok || typeof body.error === 'string' || titles.length !== 3) {
+        setSuggestNotice(null)
+        setSuggestError(typeof body.error === 'string' ? body.error : 'Titles could not be suggested. Your title was left unchanged.')
+        return
+      }
+      setSuggestError(null)
+      setSuggestions(titles)
+      setSuggestNotice(typeof body.notice === 'string' ? body.notice : 'Suggestions only. Nothing is saved until you save the concept.')
+    } catch {
+      if (id === suggestRequest.current) setSuggestError('Titles could not be suggested. Your title was left unchanged.')
+    } finally {
+      if (id === suggestRequest.current) setSuggesting(false)
+    }
   }
 
   function keep() {
@@ -201,6 +258,29 @@ function Composer({
             className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
           />
           {title.trim() && titleProblem(title) && <p className="mt-2 text-sm text-studio-coral">{titleProblem(title)}</p>}
+        </div>
+        <div>
+          <button type="button" className={quietButton} disabled={suggesting || saving || !informing.trim()} onClick={() => { void askForTitles() }}>
+            {suggesting ? 'Suggesting titles…' : suggestions.length > 0 ? 'Suggest different titles' : 'Suggest titles'}
+          </button>
+          <p className="mt-2 text-sm text-studio-body">Suggestions are temporary. Choosing one fills the title field. It does not save the concept or change the image.</p>
+          {suggestError && <p role="alert" className="mt-2 text-sm text-studio-coral">{suggestError}</p>}
+          {suggestNotice && !suggestError && <p role="status" className="mt-2 text-sm text-studio-body">{suggestNotice}</p>}
+          {suggestions.length > 0 && (
+            <div role="group" aria-label="Title suggestions" className="mt-3 flex flex-wrap gap-2">
+              {suggestions.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={title.trim() ? cleanTitle(title) === item : false}
+                  className={title.trim() && cleanTitle(title) === item ? coralButton : quietButton}
+                  onClick={() => setTitle(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <p className="text-sm text-studio-body">
           {usingNewImage

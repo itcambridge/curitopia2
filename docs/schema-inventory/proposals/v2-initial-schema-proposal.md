@@ -23,7 +23,7 @@ V2 starts empty, in its own Supabase project. V1 is not a source and not a targe
 
 There is no `completed` column, no `explorations` table, no investigation tables, no story table, no thumbnail bucket, and no questions-per-minute storage. Candidate images are not rows.
 
-Workspace stage, focus, and candidate drafts can still sit in the browser. Those are not tables. Saved concepts are rows in `concepts`. Title suggestions, which are proposed and not built, are not rows either.
+Workspace stage, focus, and candidate drafts can still sit in the browser. Those are not tables. Saved concepts are rows in `concepts`. Title suggestions are not rows.
 
 ## 2. Questions and merges
 

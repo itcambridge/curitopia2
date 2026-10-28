@@ -2,7 +2,7 @@
 
 **Status:** Working product direction. Experience, tone, and the four-stage cycle follow `Curitopia_Garden_Experience_Framework.md`.  
 **Persistence:** The deployed account model is `supabase/migrations/20261026000000_initial_v2_schema.sql`. Questions and visual concepts are many-to-many through `concept_questions`. Optional themes are `themes` and `theme_questions`. There is no persisted relationship between two concepts. `docs/schema-inventory/proposals/v2-revised-schema-proposal.md` is the earlier image-on-question sketch and must not be executed.  
-**Companions:** `PRODUCT_ARCHITECTURE.md`, `USER_JOURNEYS.md`, `ENTITY_RELATIONSHIP_MODEL.md`. AI title help is specified in section 9 and is not built. Connecting two concepts is a future journey in `USER_JOURNEYS.md`.  
+**Companions:** `PRODUCT_ARCHITECTURE.md`, `USER_JOURNEYS.md`, `ENTITY_RELATIONSHIP_MODEL.md`. AI title help is specified in section 9 and is requested from Distil. Connecting two concepts is a future journey in `USER_JOURNEYS.md`.  
 **Out of scope for this document:** application changes, SQL, V1, and secrets.
 
 V2 has its own Supabase project, its own accounts, and its own private storage. V1 stays as it is. A V1 account, row, or file is not present in V2 unless a later import is explicitly approved.
@@ -70,7 +70,7 @@ The person chooses which question to interpret. They write or accept one conside
 
 The person arrives with the image they chose, the considered wording that image was made for, and the source questions. Distil is where that material becomes a concept. The title names the idea, not a shortened caption of the question. One word is valid. Two words are the maximum.
 
-Title help, if the person asks for it, is specified in section 9. It is proposed and not built. Suggestions stay beside the field until the person selects one, edits one, or writes their own. Nothing is saved until they explicitly save the concept to the Library. Saving means "worth returning to." The title can be changed later on that same concept.
+Title help, when the person asks for it, is specified in section 9. Suggestions stay beside the field until the person selects one, edits one, or writes their own. Nothing is saved until they explicitly save the concept to the Library. Saving means "worth returning to." The title can be changed later on that same concept.
 
 ## 4. The Library of Curiosities
 
@@ -232,9 +232,9 @@ Change one of prompt, model, or comparison layout at a time. Once the product is
 
 Question help and image generation are specified in `USER_JOURNEYS.md`.
 
-### Proposed title help in Distil
+### Title help in Distil
 
-This interaction is proposed. It is not implemented. Opening Distil does not call a model, does not choose a title, and does not save a concept.
+Distil has a Suggest titles control. Opening Distil does not call a model, does not choose a title, and does not save a concept. The quality of the suggestions has not been reviewed.
 
 When the person asks:
 
@@ -256,7 +256,7 @@ What the suggestion should consider:
 - The central tension, relationship, surprise, or insight.
 - That the title may later be seen beside other concepts in the Library.
 
-The configured text path today is a chat completion. The user message is question text. The model id comes from configuration, and a missing or failed call falls back to a local demo scaffold for question wording. That path does not propose titles and does not receive an image. Image generation is a separate request. Whether the configured text model can accept an image is not established. A future title request should include the selected image only when that capability has been confirmed for the model actually configured. Until then, use the considered wording, the metaphor direction, and the source questions. Do not assume a multimodal model, and do not call the image model in order to invent titles.
+Question help is a separate chat completion. Its user message is question text, and a missing or failed call falls back to a local demo scaffold. Title help is also a chat completion, and it does not use that scaffold as a title. Image generation is a separate request and is not used to name a concept. The selected image is attached only for a model this application has confirmed can accept one, and only when the file is a PNG, JPEG, WebP, or GIF. `gpt-6-luna` is confirmed. A demo drawing is not attached. An unconfirmed model id receives the wording and metaphor only, and the screen says the image was not shown.
 
 If the text model is missing, times out, returns a malformed response, or offers only weak or invalid suggestions, the person can still save a concept with a title they typed, provided it passes the one- or two-word check. Invalid suggestions are discarded. They do not bypass validation.
 
@@ -279,10 +279,10 @@ Also not built. If a later Connect activity asks a model for perspectives, those
 - Curation states are `gathered`, `retained`, `parked`, and `discarded`. A merge is `merged_into_id`.
 - A concept is never completed.
 
-**Proposed, not built**
+**Built, and not yet reviewed for quality**
 
 - Title suggestions in Distil, as specified in section 9. They appear only when the person asks. They are not the stored title until the person saves.
-- Using the selected image as model context for a title. That depends on the configured text model. It is not confirmed.
+- The selected image is sent only when the configured text model is one this application has confirmed can accept an image. For `gpt-6-luna`, the image is included when the file is a PNG, JPEG, WebP, or GIF. A demo drawing is not sent. Other model ids are not given the image until their capability is confirmed.
 
 **Still open**
 
