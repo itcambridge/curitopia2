@@ -283,6 +283,13 @@ export type Database = {
         Args: { target_user: string }
         Returns: undefined
       }
+      reserve_ai_request: {
+        Args: { p_endpoint: string }
+        Returns: {
+          allowed: boolean
+          retry_after_seconds: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

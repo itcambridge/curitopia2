@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/lib/supabase/database.types'
+import { sessionRedirectPath } from '@/lib/paths'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 
 function redirectWithSession(request: NextRequest, supabaseResponse: NextResponse, pathname: string) {
@@ -48,10 +49,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const path = request.nextUrl.pathname
-  const authPage = path === '/sign-in' || path === '/sign-up'
-  const api = path.startsWith('/api')
-  if (!signedIn && !authPage && !api) return redirectWithSession(request, supabaseResponse, '/sign-in')
-  if (signedIn && authPage) return redirectWithSession(request, supabaseResponse, '/')
+  const destination = sessionRedirectPath(request.nextUrl.pathname, signedIn)
+  if (destination) return redirectWithSession(request, supabaseResponse, destination)
   return supabaseResponse
 }

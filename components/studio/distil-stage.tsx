@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Eyebrow, Notice, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { withBasePath } from '@/lib/paths'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
 import { foldedQuestions, saveConcept, selectedCandidate, updateConcept } from '@/lib/questions/workspace'
 import type { ConceptRecord, Workspace } from '@/lib/questions/types'
@@ -159,7 +160,7 @@ function Composer({
     setSuggesting(true)
     setSuggestError(null)
     try {
-      const response = await fetch('/api/titles', {
+      const response = await fetch(withBasePath('/api/titles'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

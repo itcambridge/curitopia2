@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sparkles } from 'lucide-react'
 import { Eyebrow, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { withBasePath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { createCuriosity, listCuriosities, renameCuriosity, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
 import { createClient } from '@/lib/supabase/client'
@@ -159,7 +160,7 @@ export function CuriosityLanding() {
                     </div>
                     <div className="flex gap-2">
                       <button type="button" className={quietButton} onClick={() => { setRenamingId(item.id); setRenameValue(item.name) }}>Rename</button>
-                      <a className={inkButton} href={`/?curiosity=${item.id}`}>Open</a>
+                      <a className={inkButton} href={withBasePath(`/?curiosity=${item.id}`)}>Open</a>
                     </div>
                   </div>
                 )}

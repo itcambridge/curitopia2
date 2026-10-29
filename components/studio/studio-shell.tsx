@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Sparkles } from 'lucide-react'
 import { StageMark } from '@/components/studio/stage-mark'
+import { withBasePath } from '@/lib/paths'
 import type { StageId } from '@/lib/questions/types'
 import type { workspaceCounts } from '@/lib/questions/workspace'
 
@@ -53,7 +54,7 @@ export function StudioShell({
                 <h1 className="font-serif text-[22px] font-semibold tracking-tight">curitopia</h1>
               </div>
             </div>
-            <a href="/" className="mb-4 block text-sm font-semibold text-studio-ink underline-offset-2 hover:underline">All curiosities</a>
+            <a href={withBasePath('/')} className="mb-4 block text-sm font-semibold text-studio-ink underline-offset-2 hover:underline">All curiosities</a>
             {curiosityName ? <p className="mb-4 font-serif text-2xl leading-tight">{curiosityName}</p> : null}
             <nav aria-label="Workspace stages" className="flex w-full gap-2 overflow-x-auto lg:flex-col">
               {stages.map((item) => {

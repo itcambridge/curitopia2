@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Sparkles } from 'lucide-react'
 import { MissingSupabaseEnv } from '@/components/auth/missing-env'
 import { coralButton, quietButton } from '@/components/studio/studio-ui'
+import { authReturnUrl } from '@/lib/paths'
 import { createClient } from '@/lib/supabase/client'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 
@@ -64,7 +65,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: `${window.location.origin}/sign-in` },
+        options: { emailRedirectTo: authReturnUrl(window.location.origin) },
       })
       if (signUpError) {
         setError(authMessage(mode, signUpError))

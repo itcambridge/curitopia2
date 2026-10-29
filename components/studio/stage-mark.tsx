@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { withBasePath } from '@/lib/paths'
 import type { StageId } from '@/lib/questions/types'
 
 // Sizes are the full canvas. shiftX and shiftY, measured from each PNG, move the
@@ -57,7 +58,7 @@ export function StageMark({ stage }: { stage: StageId }) {
   return (
     <div className="pointer-events-none absolute right-1 top-[7.25rem] z-[1] size-0 sm:right-4 sm:top-[10.75rem] lg:right-8 lg:top-[13.25rem]">
       <Image
-        src={mark.src}
+        src={withBasePath(mark.src)}
         alt={mark.alt}
         width={mark.width}
         height={mark.height}

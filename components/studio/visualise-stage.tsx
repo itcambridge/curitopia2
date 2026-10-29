@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Eyebrow, Notice, coralButton, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import type { ConsiderResult } from '@/lib/providers/types'
 import type { ImageSetResult } from '@/lib/providers/types'
+import { withBasePath } from '@/lib/paths'
 import { acceptConsidered, applyImageResult, draftFor, draftIsCurrent, questionPlace, rejectCandidate, restoreCandidate, selectCandidate } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
 
@@ -77,7 +78,7 @@ function QuestionImages({
     setBusy('consider')
     setError(null)
     try {
-      const response = await fetch('/api/consider', {
+      const response = await fetch(withBasePath('/api/consider'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ originalText: question.originalText, attempt }),
@@ -109,7 +110,7 @@ function QuestionImages({
     setError(null)
     try {
       const sentText = question.consideredText
-      const response = await fetch('/api/images', {
+      const response = await fetch(withBasePath('/api/images'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ consideredText: question.consideredText }),

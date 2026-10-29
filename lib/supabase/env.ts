@@ -19,8 +19,9 @@ function supabaseProjectUrl(value: string): string | null {
 }
 
 export function readPublicSupabaseEnv(): PublicSupabaseEnv | null {
-  const rawUrl = process.env[supabaseUrlName]?.trim()
-  const publishableKey = process.env[publishableKeyName]?.trim()
+  // Static property access so the production client bundle can inline these public values.
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
   const url = rawUrl ? supabaseProjectUrl(rawUrl) : null
   if (!url || !publishableKey) return null
   return { url, publishableKey }
