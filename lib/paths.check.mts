@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { NextRequest } from 'next/server.js'
-import { authReturnUrl, sessionRedirectPath, withBasePath } from './paths.ts'
-import { readBasePath } from './base-path.mjs'
+import { authReturnUrl, externalRedirectPath, sessionRedirectPath, withBasePath } from './paths.ts'
+import { readBasePath, resolveConfiguredBasePath } from './base-path.mjs'
 
 const saved = process.env.NEXT_PUBLIC_BASE_PATH
 
@@ -42,6 +42,24 @@ try {
   assert.equal(sessionRedirectPath('/api/images', false), null)
   assert.equal(sessionRedirectPath('/sign-in', true), '/')
   assert.equal(sessionRedirectPath('/', true), null)
+
+  assert.equal(externalRedirectPath('/42/sign-in', false, '/42', ''), null)
+  assert.equal(externalRedirectPath('/42/sign-up', false, '/42', ''), null)
+  assert.equal(externalRedirectPath('/42/api/consider', false, '/42', ''), null)
+  assert.equal(externalRedirectPath('/42/library', false, '/42', ''), '/42/sign-in')
+  assert.equal(externalRedirectPath('/42', false, '/42', ''), '/42/sign-in')
+  assert.equal(externalRedirectPath('/42/sign-in', true, '/42', ''), '/42')
+  assert.equal(externalRedirectPath('/library', false, '/42', '/42'), '/sign-in')
+  assert.equal(externalRedirectPath('/sign-in', true, '/42', '/42'), '/')
+  assert.equal(externalRedirectPath('/sign-in', false, '', ''), null)
+  assert.equal(externalRedirectPath('/', false, '', ''), '/sign-in')
+  assert.equal(externalRedirectPath('/api/consider', false, '', ''), null)
+  assert.equal(externalRedirectPath('/sign-in', true, '', ''), '/')
+
+  assert.equal(resolveConfiguredBasePath({ envValue: '/42', phase: 'phase-production-build', nodeEnv: 'production', manifestBasePath: '', command: 'build' }), '/42')
+  assert.equal(resolveConfiguredBasePath({ envValue: '', phase: 'phase-production-build', nodeEnv: 'production', manifestBasePath: '/42', command: 'build' }), '')
+  assert.equal(resolveConfiguredBasePath({ envValue: '', phase: 'phase-production-server', nodeEnv: 'production', manifestBasePath: '/42', command: 'start' }), '/42')
+  assert.equal(resolveConfiguredBasePath({ envValue: '', phase: 'phase-development-server', nodeEnv: 'development', manifestBasePath: '/42', command: 'dev' }), '')
 
   const request = new NextRequest('https://curitopia.com/42/library', {
     nextConfig: { basePath: '/42' },

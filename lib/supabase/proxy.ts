@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/lib/supabase/database.types'
-import { sessionRedirectPath } from '@/lib/paths'
+import { externalRedirectPath } from '@/lib/paths'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 
 function redirectWithSession(request: NextRequest, supabaseResponse: NextResponse, pathname: string) {
@@ -49,7 +49,12 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const destination = sessionRedirectPath(request.nextUrl.pathname, signedIn)
+  const destination = externalRedirectPath(
+    request.nextUrl.pathname,
+    signedIn,
+    process.env.NEXT_PUBLIC_BASE_PATH ?? '',
+    request.nextUrl.basePath,
+  )
   if (destination) return redirectWithSession(request, supabaseResponse, destination)
   return supabaseResponse
 }
