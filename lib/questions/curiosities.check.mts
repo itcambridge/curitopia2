@@ -33,6 +33,7 @@ const local: Workspace = {
   focusQuestionId: null,
   focusConceptId: null,
   questions: [],
+  branches: [],
   drafts: [],
   concepts: [],
 }

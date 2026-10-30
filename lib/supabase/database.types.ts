@@ -208,6 +208,55 @@ export type Database = {
           },
         ]
       }
+      question_branches: {
+        Row: {
+          created_at: string
+          curiosity_id: string
+          id: string
+          question_high_id: string
+          question_low_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curiosity_id: string
+          id: string
+          question_high_id: string
+          question_low_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curiosity_id?: string
+          id?: string
+          question_high_id?: string
+          question_low_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_branches_curiosity_owner"
+            columns: ["curiosity_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "curiosities"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "question_branches_low_question"
+            columns: ["question_low_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
+          {
+            foreignKeyName: "question_branches_high_question"
+            columns: ["question_high_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
+        ]
+      }
       theme_questions: {
         Row: {
           created_at: string

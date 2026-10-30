@@ -1,7 +1,9 @@
 import { considerWouldCallProvider, imagesWouldCallProvider, titlesWouldCallProvider, type AiEndpoint, type AiSession } from './policy.ts'
 import { configuredTextModel, requestTitleSuggestions } from '../providers/title-suggestions.ts'
-import type { ConsiderResult, ImageSetResult } from '../providers/types.ts'
+import type { ImageSetResult } from '../providers/types.ts'
 import { acceptTitleSuggestions, inspectTitleSuggestions, titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
+
+const questionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type Gate = {
   session: AiSession
@@ -12,27 +14,40 @@ type Gate = {
 export async function considerHttp(
   request: Request,
   gate: Gate,
-  consider: (original: string, attempt: number) => Promise<ConsiderResult>,
+  consider: (original: string) => Promise<{ proposal: string } | { error: string }>,
+  loadQuestion: (questionId: string, curiosityId: string) => Promise<string | null>,
 ) {
   const auth = await gate.authenticate('consider', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { originalText?: unknown; attempt?: unknown }
+  let body: { questionId?: unknown; curiosityId?: unknown }
   try {
     body = await request.json()
   } catch {
     return Response.json({ error: 'The request could not be read.' }, { status: 400 })
   }
-  const originalText = typeof body.originalText === 'string' ? body.originalText.trim() : ''
-  const attempt = typeof body.attempt === 'number' && Number.isInteger(body.attempt) && body.attempt >= 0 ? body.attempt : 0
-  if (!originalText || originalText.length > 2000) {
-    return Response.json({ error: 'Write a question of 1 to 2000 characters first.' }, { status: 400 })
+  const questionId = typeof body.questionId === 'string' ? body.questionId : ''
+  const curiosityId = typeof body.curiosityId === 'string' ? body.curiosityId : ''
+  if (!questionIdPattern.test(questionId) || !questionIdPattern.test(curiosityId)) {
+    return Response.json({ error: 'Choose a saved question before asking for an image prompt.' }, { status: 400 })
+  }
+  const originalText = (await loadQuestion(questionId, curiosityId))?.trim() ?? ''
+  if (!originalText) {
+    return Response.json({ error: 'That question is not in this curiosity. Nothing was sent.' }, { status: 404 })
+  }
+  if (originalText.length > 2000) {
+    return Response.json({ error: 'That question is too long to turn into an image prompt.' }, { status: 400 })
   }
   if (considerWouldCallProvider()) {
     const limited = await gate.reserve('consider', gate.session)
     if (limited) return limited
   }
-  return Response.json(await consider(originalText, attempt))
+  const result = await consider(originalText)
+  if ('error' in result) {
+    const status = result.error.startsWith('No text model') ? 503 : 502
+    return Response.json({ error: result.error }, { status })
+  }
+  return Response.json({ proposal: result.proposal, source: 'openai' })
 }
 
 export async function imagesHttp(

@@ -9,7 +9,7 @@ type CompletionBody = {
   }[]
 }
 
-function assistantText(message: { content?: unknown; refusal?: unknown } | undefined) {
+export function assistantText(message: { content?: unknown; refusal?: unknown } | undefined) {
   const content = message?.content
   if (typeof content === 'string') return content.trim()
   if (!Array.isArray(content)) return ''

@@ -1,9 +1,11 @@
+import { configuredTextModel } from '../providers/title-suggestions.ts'
+
 export const aiEndpoints = ['consider', 'images', 'titles'] as const
 
 export type AiEndpoint = (typeof aiEndpoints)[number]
 
 const signedOut: Record<AiEndpoint, string> = {
-  consider: 'Sign in again before asking for a proposal. Nothing was sent.',
+  consider: 'Sign in again before asking for an image prompt. Nothing was sent.',
   images: 'Sign in again before asking for images. Nothing was sent.',
   titles: 'Sign in again before asking for titles. You can still type a title.',
 }
@@ -80,7 +82,11 @@ export async function reserveAiEndpoint(endpoint: AiEndpoint, session: AiSession
 }
 
 export function considerWouldCallProvider() {
-  return Boolean(process.env.OPENAI_API_KEY?.trim() && process.env.OPENAI_TEXT_MODEL?.trim())
+  const model = configuredTextModel({
+    OPENAI_TEXT_MODEL: process.env.OPENAI_TEXT_MODEL,
+    OPENAI_MODEL: process.env.OPENAI_MODEL,
+  })
+  return Boolean(process.env.OPENAI_API_KEY?.trim() && model)
 }
 
 export function imagesWouldCallProvider() {

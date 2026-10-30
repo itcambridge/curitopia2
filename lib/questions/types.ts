@@ -17,6 +17,14 @@ export type QuestionRecord = {
   updatedAt: string
 }
 
+// An undirected relationship. Both questions stay themselves.
+export type QuestionBranch = {
+  id: string
+  questionLowId: string
+  questionHighId: string
+  createdAt: string
+}
+
 export type StoredCandidate = {
   id: string
   label: string
@@ -66,6 +74,7 @@ export type Workspace = {
   focusQuestionId: string | null
   focusConceptId: string | null
   questions: QuestionRecord[]
+  branches: QuestionBranch[]
   drafts: CandidateDraft[]
   concepts: ConceptRecord[]
 }

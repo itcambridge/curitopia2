@@ -1,18 +1,10 @@
 import { aboveSpendCeiling, maxImageCalls, readReportedUsage, spendCeilingUsd, usageCostUsd } from '@/lib/providers/cost'
 import { demoFixtureSrc } from '@/lib/providers/demo-images'
-import { demoProposal, imagePrompt, metaphorDirections } from '@/lib/providers/prompts'
-import type { ConsiderResult, ImageCandidate, ImageSetResult, ReportedUsage } from '@/lib/providers/types'
+import { imagePrompt, metaphorDirections } from '@/lib/providers/prompts'
+import type { ImageCandidate, ImageSetResult, ReportedUsage } from '@/lib/providers/types'
 
 const imageModel = 'gpt-image-2.5-flare'
 const imageTimeoutMs = 55_000
-
-function demoConsider(original: string, attempt: number): ConsiderResult {
-  return {
-    source: 'demo',
-    proposal: demoProposal(original, attempt),
-    notice: 'Demo proposal. No text model is connected, so this is a scaffold for you to edit. It is not a generated reading of your question.',
-  }
-}
 
 function demoImages(considered: string, notice: string): ImageSetResult {
   return {
@@ -31,48 +23,6 @@ function demoImages(considered: string, notice: string): ImageSetResult {
       source: 'demo' as const,
       usage: null,
     })),
-  }
-}
-
-export async function considerQuestion(original: string, attempt: number): Promise<ConsiderResult> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim()
-  const model = process.env.OPENAI_TEXT_MODEL?.trim()
-  if (!apiKey || !model) return demoConsider(original, attempt)
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.4,
-        messages: [
-          {
-            role: 'system',
-            content: 'Rewrite the unfinished thought as one considered question. Preserve the person\'s meaning. Add no facts, no list, and no advice. Reply with the question only.',
-          },
-          { role: 'user', content: original },
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (!response.ok) {
-      return { ...demoConsider(original, attempt), notice: 'The text model did not respond. This scaffold is a demo, and nothing was retried.' }
-    }
-    const body = await response.json() as { choices?: { message?: { content?: string } }[] }
-    const proposal = body.choices?.[0]?.message?.content?.trim()
-    if (!proposal) {
-      return { ...demoConsider(original, attempt), notice: 'The text model returned no question. This scaffold is a demo.' }
-    }
-    return {
-      source: 'openai',
-      proposal,
-      notice: 'One proposal from the configured text model. Edit it, accept it, or ask again. The original wording stays as captured.',
-    }
-  } catch {
-    return { ...demoConsider(original, attempt), notice: 'The text model did not finish. This scaffold is a demo, and nothing was retried.' }
   }
 }
 

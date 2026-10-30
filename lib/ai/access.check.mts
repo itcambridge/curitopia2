@@ -130,7 +130,7 @@ try {
         ? post('/api/images', { consideredText: 'How can I be more productive?' })
         : post('/api/titles', { consideredText: 'How can I be more productive?', questions: [] })
     const response = endpoint === 'consider'
-      ? await considerHttp(request, gateFor(null), consider)
+      ? await considerHttp(request, gateFor(null), consider, async () => 'How can I be more productive?')
       : endpoint === 'images'
         ? await imagesHttp(request, gateFor(null), interpret)
         : await titlesHttp(request, gateFor(null))
@@ -141,7 +141,7 @@ try {
   providerCalls = 0
   const invalid = await imagesHttp(post('/api/images', { consideredText: '' }), gateFor('user-a'), interpret)
   assert.equal(invalid.status, 400)
-  const malformed = await considerHttp(post('/api/consider', '{', true), gateFor('user-a'), consider)
+  const malformed = await considerHttp(post('/api/consider', '{', true), gateFor('user-a'), consider, async () => 'How can I be more productive?')
   assert.equal(malformed.status, 400)
   const missingTitle = await titlesHttp(post('/api/titles', { metaphor: 'only' }), gateFor('user-a'))
   assert.equal(missingTitle.status, 400)
@@ -172,9 +172,13 @@ try {
   assert.equal(providerCalls, 4)
 
   const otherEndpoint = await considerHttp(
-    post('/api/consider', { originalText: 'How can I be more productive?', attempt: 0 }),
+    post('/api/consider', {
+      questionId: '11111111-1111-4111-8111-111111111111',
+      curiosityId: '22222222-2222-4222-8222-222222222222',
+    }),
     gateFor('user-a'),
     consider,
+    async () => 'How can I be more productive?',
   )
   assert.equal(otherEndpoint.status, 200)
 

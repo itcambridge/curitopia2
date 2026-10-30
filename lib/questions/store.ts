@@ -1,6 +1,6 @@
 import { curiosityDraftKey } from '@/lib/questions/curiosity'
 import { emptyWorkspace, isStageId, migrateLegacyQuestions } from '@/lib/questions/workspace'
-import type { CandidateDraft, ConceptRecord, QuestionRecord, Workspace, WorkspaceRepository } from '@/lib/questions/types'
+import type { CandidateDraft, ConceptRecord, QuestionBranch, QuestionRecord, Workspace, WorkspaceRepository } from '@/lib/questions/types'
 
 const workspaceKey = 'curitopia.v2.workspace'
 const legacyKey = 'curitopia.v2.questions'
@@ -16,6 +16,16 @@ function isQuestion(value: unknown): value is QuestionRecord {
     && (record.consideredText === null || typeof record.consideredText === 'string')
     && (record.mergedIntoId === null || typeof record.mergedIntoId === 'string')
     && (disposition === 'gathered' || disposition === 'retained' || disposition === 'parked' || disposition === 'discarded')
+}
+
+function isBranch(value: unknown): value is QuestionBranch {
+  if (!value || typeof value !== 'object') return false
+  const branch = value as Partial<QuestionBranch>
+  return typeof branch.id === 'string'
+    && typeof branch.questionLowId === 'string'
+    && typeof branch.questionHighId === 'string'
+    && branch.questionLowId.toLowerCase() < branch.questionHighId.toLowerCase()
+    && typeof branch.createdAt === 'string'
 }
 
 function isCandidate(value: unknown): value is CandidateDraft['candidates'][number] {
@@ -69,6 +79,9 @@ function readWorkspace(value: unknown): Workspace | null {
   if (record.version !== 2 || !Array.isArray(record.questions) || !Array.isArray(record.drafts) || !Array.isArray(record.concepts)) return null
   const questions = record.questions.filter(isQuestion)
   const known = new Set(questions.map((item) => item.id))
+  const branches = Array.isArray(record.branches)
+    ? record.branches.filter(isBranch).filter((branch) => known.has(branch.questionLowId) && known.has(branch.questionHighId))
+    : []
   const drafts = record.drafts.filter(isDraft).filter((draft) => known.has(draft.questionId))
   const concepts = record.concepts.filter(isConcept).filter((concept) => concept.anchorQuestionId !== null && known.has(concept.anchorQuestionId))
   return {
@@ -76,6 +89,7 @@ function readWorkspace(value: unknown): Workspace | null {
     focusQuestionId: typeof record.focusQuestionId === 'string' && known.has(record.focusQuestionId) ? record.focusQuestionId : null,
     focusConceptId: typeof record.focusConceptId === 'string' && concepts.some((concept) => concept.id === record.focusConceptId) ? record.focusConceptId : null,
     questions,
+    branches,
     drafts,
     concepts,
   }

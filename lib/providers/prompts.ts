@@ -45,9 +45,3 @@ export function imagePrompt(considered: string, instruction: string) {
     `Also avoid: ${extra}`,
   ].join('\n')
 }
-
-export function demoProposal(original: string, attempt: number) {
-  const words = original.trim()
-  if (attempt % 2 === 0) return `What is the question I am actually asking when I say “${words}”?`
-  return `What tension is still unresolved in “${words}”?`
-}

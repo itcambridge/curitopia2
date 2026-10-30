@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Home, Sparkles } from 'lucide-react'
 import { StageMark } from '@/components/studio/stage-mark'
 import { withBasePath } from '@/lib/paths'
 import type { StageId } from '@/lib/questions/types'
@@ -9,7 +9,7 @@ type Counts = ReturnType<typeof workspaceCounts>
 
 const stages: { id: StageId; number: string; label: string; hint: string }[] = [
   { id: 'gather', number: '1', label: 'Gather', hint: 'Capture freely' },
-  { id: 'curate', number: '2', label: 'Curate', hint: 'Sort and merge' },
+  { id: 'curate', number: '2', label: 'Curate', hint: 'Connect questions' },
   { id: 'visualise', number: '3', label: 'Visualise', hint: 'Compare images' },
   { id: 'distil', number: '4', label: 'Distil', hint: 'Name a concept' },
   { id: 'library', number: '5', label: 'Library of Curiosities', hint: 'Open archive' },
@@ -46,15 +46,15 @@ export function StudioShell({
         <aside className="flex w-full min-w-0 flex-col justify-between overflow-x-hidden border-b border-studio-line bg-studio-sidebar px-5 py-5 lg:w-[250px] lg:border-b-0 lg:border-r lg:px-6 lg:py-8">
           <div>
             <div className="mb-6 flex items-center gap-3 lg:mb-8">
-              <div className="grid size-10 place-items-center rounded-[14px] bg-studio-coral text-studio-ivory shadow-studio-stamp">
-                <Sparkles size={19} />
+              <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-studio-coral text-studio-ivory shadow-studio-stamp">
+                <Sparkles size={20} />
               </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-studio-kicker">Field notes</p>
-                <h1 className="font-serif text-[22px] font-semibold tracking-tight">curitopia</h1>
-              </div>
+              <h1 className="font-serif text-[1.65rem] font-semibold leading-none tracking-tight">curitopia</h1>
             </div>
-            <a href={withBasePath('/')} className="mb-4 block text-sm font-semibold text-studio-ink underline-offset-2 hover:underline">All curiosities</a>
+            <a href={withBasePath('/')} className="mb-4 flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-studio-ink hover:bg-studio-sidebar-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+              <Home size={16} aria-hidden="true" />
+              Home
+            </a>
             {curiosityName ? <p className="mb-4 font-serif text-2xl leading-tight">{curiosityName}</p> : null}
             <nav aria-label="Workspace stages" className="flex w-full gap-2 overflow-x-auto lg:flex-col">
               {stages.map((item) => {

@@ -6,11 +6,12 @@ import { workspaceForAccount } from '@/lib/questions/account-workspace'
 import { isStageId } from '@/lib/questions/workspace'
 import { conceptsEqual, listConcepts, syncConceptChanges } from '@/lib/questions/supabase-concepts'
 import { getCuriosity, rememberCuriosityStage, renameCuriosity } from '@/lib/questions/supabase-curiosities'
+import { branchesEqual, listBranches, syncBranchChanges } from '@/lib/questions/supabase-branches'
 import { questionsEqual, syncQuestionChanges } from '@/lib/questions/question-sync'
 import { curiosityDraftRepository } from '@/lib/questions/store'
 import { listQuestions } from '@/lib/questions/supabase-questions'
 import { createClient } from '@/lib/supabase/client'
-import type { ConceptRecord, QuestionRecord, Workspace } from '@/lib/questions/types'
+import type { ConceptRecord, QuestionBranch, QuestionRecord, Workspace } from '@/lib/questions/types'
 import { emptyWorkspace } from '@/lib/questions/workspace'
 
 export function useAccountWorkspace(curiosityId: string) {
@@ -48,8 +49,8 @@ export function useAccountWorkspace(curiosityId: string) {
     setWorkspace(next)
   }
 
-  function applyAccount(local: Workspace, questions: QuestionRecord[], concepts: ConceptRecord[]) {
-    return workspaceForAccount(local, questions, concepts)
+  function applyAccount(local: Workspace, questions: QuestionRecord[], concepts: ConceptRecord[], branches: QuestionBranch[] = []) {
+    return workspaceForAccount(local, questions, concepts, branches)
   }
 
   useEffect(() => {
@@ -96,15 +97,22 @@ export function useAccountWorkspace(curiosityId: string) {
         } catch (error) {
           libraryError = error instanceof Error ? error.message : 'The library could not be loaded.'
         }
+        let branches: QuestionBranch[] = []
+        let branchError: string | null = null
+        try {
+          branches = await listBranches(curiosityId)
+        } catch (error) {
+          branchError = error instanceof Error ? error.message : 'Branches could not be loaded.'
+        }
         if (cancelled) return
-        const resumed = applyAccount(local.workspace, questions, concepts)
+        const resumed = applyAccount(local.workspace, questions, concepts, branches)
         const next = { ...resumed, stage: isStageId(curiosity.stage) ? curiosity.stage : resumed.stage }
         setEmail(data.user?.email ?? null)
         publish(next)
         remoteReady.current = true
         confirmed.current = next
         setConceptsLoaded(!libraryError)
-        setStoreError(libraryError)
+        setStoreError([libraryError, branchError].filter(Boolean).join(' ') || null)
       } catch (error) {
         if (cancelled) return
         const next = applyAccount(local.workspace, [], [])
@@ -133,9 +141,10 @@ export function useAccountWorkspace(curiosityId: string) {
       const base = confirmed.current
       const draftsBeforeSave = base.drafts
       const questionsChanged = !questionsEqual(base.questions, resolved.questions)
+      const branchesChanged = !branchesEqual(base.branches, resolved.branches)
       const conceptsChanged = !conceptsEqual(base.concepts, resolved.concepts)
       const openingLibrary = resolved.stage === 'library' && base.stage !== 'library'
-      if (!remoteReady.current && (questionsChanged || conceptsChanged)) {
+      if (!remoteReady.current && (questionsChanged || branchesChanged || conceptsChanged)) {
         confirmed.current = base
         if (current.current === resolved) show(base)
         setStoreError('The account is not loaded, so this change was not saved.')
@@ -148,13 +157,19 @@ export function useAccountWorkspace(curiosityId: string) {
           questions = await listQuestions(curiosityId)
           confirmed.current = { ...confirmed.current, questions }
         }
+        let branches = base.branches
+        if (branchesChanged) {
+          await syncBranchChanges(base.branches, resolved.branches, curiosityId)
+          branches = await listBranches(curiosityId)
+          confirmed.current = { ...confirmed.current, branches }
+        }
         if (conceptsChanged) {
           await syncConceptChanges(base.concepts, resolved.concepts, questions, curiosityId)
         }
         if (resolved.stage !== base.stage) await rememberCuriosityStage(curiosityId, resolved.stage)
         const refreshedConcepts = conceptsChanged || openingLibrary
         const concepts = refreshedConcepts ? await listConcepts(curiosityId) : resolved.concepts
-        const synced = applyAccount({ ...resolved, questions, concepts }, questions, concepts)
+        const synced = applyAccount({ ...resolved, questions, concepts, branches }, questions, concepts, branches)
         confirmed.current = synced
         if (current.current === resolved) publish(synced)
         if (refreshedConcepts) setConceptsLoaded(true)
@@ -172,10 +187,12 @@ export function useAccountWorkspace(curiosityId: string) {
       } catch (error) {
         let questions = confirmed.current.questions
         let concepts = confirmed.current.concepts
+        let branches = confirmed.current.branches
         if (remoteReady.current) {
           try {
             questions = await listQuestions(curiosityId)
             concepts = await listConcepts(curiosityId)
+            branches = await listBranches(curiosityId)
           } catch {
             // The last confirmed account copy stays on screen when the reload also fails.
           }
@@ -185,7 +202,8 @@ export function useAccountWorkspace(curiosityId: string) {
           drafts: conceptsChanged ? draftsBeforeSave : resolved.drafts,
           questions,
           concepts,
-        }, questions, concepts)
+          branches,
+        }, questions, concepts, branches)
         confirmed.current = reverted
         if (current.current === resolved) show(reverted)
         setSavedConceptId(null)

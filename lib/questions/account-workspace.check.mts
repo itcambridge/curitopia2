@@ -24,6 +24,7 @@ const local: Workspace = {
   focusQuestionId: browserQuestion.id,
   focusConceptId: 'concept-browser',
   questions: [browserQuestion],
+  branches: [],
   drafts: [{
     questionId: browserQuestion.id,
     forConsideredText: 'cached',
@@ -69,6 +70,27 @@ assert.equal(switched.questions.some((item) => item.id === firstAccountQuestion.
 const emptyAccount = workspaceForAccount({ ...local, questions: [firstAccountQuestion] }, [firstAccountQuestion], [])
 assert.deepEqual(emptyAccount.questions.map((item) => item.id), [firstAccountQuestion.id])
 assert.equal(emptyAccount.concepts.length, 0)
+
+const accountBranch = {
+  id: 'branch-account',
+  questionLowId: firstAccountQuestion.id,
+  questionHighId: '44444444-4444-4444-8444-444444444444',
+  createdAt: '2026-10-26T00:00:00.000Z',
+}
+const partner = question(accountBranch.questionHighId, 'A second question in the same account')
+const withBrowserBranch = {
+  ...local,
+  branches: [{
+    id: 'branch-browser',
+    questionLowId: browserQuestion.id,
+    questionHighId: firstAccountQuestion.id,
+    createdAt: '2026-10-26T00:00:00.000Z',
+  }],
+}
+const keptBranches = workspaceForAccount(withBrowserBranch, [firstAccountQuestion, partner], [], [accountBranch])
+assert.deepEqual(keptBranches.branches.map((branch) => branch.id), [accountBranch.id])
+assert.equal(keptBranches.questions.find((item) => item.id === firstAccountQuestion.id)?.originalText, firstAccountQuestion.originalText)
+assert.equal(keptBranches.questions.find((item) => item.id === partner.id)?.originalText, partner.originalText)
 
 const startup = readFileSync(new URL('../../components/studio/use-account-workspace.ts', import.meta.url), 'utf8')
 const screen = readFileSync(new URL('../../components/studio/curitopia-app.tsx', import.meta.url), 'utf8')

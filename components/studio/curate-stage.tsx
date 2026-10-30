@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { correctOriginal, duplicateGroups, foldedQuestions, mergeQuestions, questionPlace, restoreQuestion, reviewQuestions, setDisposition } from '@/lib/questions/workspace'
+import { Pause, Pencil } from 'lucide-react'
+import { branchPartners, correctOriginal, duplicateGroups, foldedQuestions, linkQuestions, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
-import { Eyebrow, Notice, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, Notice, coralButton, iconButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 
 export function CurateStage({ workspace, onChange }: { workspace: Workspace; onChange: (workspace: Workspace) => void }) {
   const groups = duplicateGroups(workspace)
@@ -17,8 +18,7 @@ export function CurateStage({ workspace, onChange }: { workspace: Workspace; onC
   return (
     <div className="flex flex-col gap-8">
       <header>
-        <Eyebrow>2 · Curate</Eyebrow>
-        <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Keep what is worth carrying.</h2>
+        <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Keep what is worth carrying.</h2>
         <p className="mt-3 max-w-2xl text-sm text-studio-body">{waiting.length} gathered, {retained.length} retained, {parked.length} parked, {discarded.length} discarded. Parking and discarding leave the wording here. Nothing is removed by a suggestion.</p>
       </header>
       {groups.length > 0 && (
@@ -79,7 +79,9 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
   const [target, setTarget] = useState('')
   const [editing, setEditing] = useState(false)
   const [correction, setCorrection] = useState(item.originalText)
-  const others = reviewQuestions(workspace).filter((candidate) => candidate.id !== item.id)
+  const partners = branchPartners(workspace, item.id)
+  const partnerIds = new Set(partners.map((partner) => partner.id))
+  const others = reviewQuestions(workspace).filter((candidate) => candidate.id !== item.id && !partnerIds.has(candidate.id))
   const folded = foldedQuestions(workspace, item.id)
   const parked = item.disposition === 'parked'
   const discarded = item.disposition === 'discarded'
@@ -116,13 +118,19 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
           ))}
         </ul>
       )}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {!editing && <button type="button" className={quietButton} onClick={() => { setCorrection(item.originalText); setEditing(true) }}>Correct the capture</button>}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {!editing && (
+          <button type="button" className={iconButton} aria-label="Correct the capture" title="Correct the capture" onClick={() => { setCorrection(item.originalText); setEditing(true) }}>
+            <Pencil size={16} aria-hidden="true" />
+          </button>
+        )}
         {item.disposition !== 'retained' && !discarded && (
           <button type="button" className={coralButton} onClick={() => onChange(setDisposition(workspace, item.id, 'retained'))}>Keep</button>
         )}
         {!parked && !discarded && (
-          <button type="button" className={quietButton} onClick={() => onChange(setDisposition(workspace, item.id, 'parked'))}>Park</button>
+          <button type="button" className={iconButton} aria-label="Park" title="Park" onClick={() => onChange(setDisposition(workspace, item.id, 'parked'))}>
+            <Pause size={16} aria-hidden="true" />
+          </button>
         )}
         {!discarded && (
           <button type="button" className={quietButton} onClick={() => onChange(setDisposition(workspace, item.id, 'discarded'))}>Discard</button>
@@ -131,19 +139,43 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
           <button type="button" className={coralButton} onClick={() => onChange(restoreQuestion(workspace, item.id))}>Restore</button>
         )}
       </div>
+      {partners.length > 0 && (
+        <ul className="mt-4 text-sm text-studio-body">
+          {workspace.branches.filter((branch) => branch.questionLowId === item.id || branch.questionHighId === item.id).map((branch) => {
+            const partner = partners.find((candidate) => candidate.id === (branch.questionLowId === item.id ? branch.questionHighId : branch.questionLowId))
+            if (!partner) return null
+            return (
+              <li key={branch.id} className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <span>Branched with {partner.originalText}</span>
+                <button type="button" className={quietButton} onClick={() => onChange(removeBranch(workspace, branch.id))}>Remove branch</button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
       {!discarded && others.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <label className="text-sm text-studio-body" htmlFor={`merge-${fieldId}`}>Merge this wording into</label>
+          <label className="text-sm text-studio-body" htmlFor={`link-${fieldId}`}>Link this question with another</label>
           <select
-            id={`merge-${fieldId}`}
+            id={`link-${fieldId}`}
             value={target}
             onChange={(event) => setTarget(event.target.value)}
-            className="rounded-xl border border-studio-line bg-studio-cream px-3 py-2 text-sm"
+            className="max-w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2 text-sm"
           >
             <option value="">Choose a question</option>
             {others.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.originalText}</option>)}
           </select>
-          <button type="button" className={quietButton} disabled={!target} onClick={() => onChange(mergeQuestions(workspace, item.id, target))}>Merge</button>
+          <button
+            type="button"
+            className={quietButton}
+            disabled={!target}
+            onClick={() => {
+              onChange(linkQuestions(workspace, item.id, target))
+              setTarget('')
+            }}
+          >
+            Create a branch
+          </button>
         </div>
       )}
     </div>

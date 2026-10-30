@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronRight, Play, Sparkles } from 'lucide-react'
 import { QuestionGarden } from '@/components/studio/question-garden'
-import { addQuestion, correctOriginal, foldedQuestions, questionPlace } from '@/lib/questions/workspace'
+import { addQuestion, branchPartners, correctOriginal, foldedQuestions, plantedQuestion, questionPlace } from '@/lib/questions/workspace'
 import type { StageId, Workspace } from '@/lib/questions/types'
 import { Eyebrow, inkButton, quietButton } from '@/components/studio/studio-ui'
 
@@ -17,12 +17,12 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
   const [error, setError] = useState<string | null>(null)
   const field = useRef<HTMLInputElement>(null)
   const questions = workspace.questions.filter((item) => !item.mergedIntoId)
-  const branching = new Set(questions.filter((item) => foldedQuestions(workspace, item.id).length > 0).map((item) => item.id))
+  const linked = new Set(workspace.branches.flatMap((branch) => [branch.questionLowId, branch.questionHighId]))
   const shelf = shelfPreview(questions)
   const invitation = nextInvitation(workspace)
 
   function add(value: string) {
-    const original = value.trim()
+    const original = plantedQuestion(value)
     if (!original) return
     const next = addQuestion(workspace, original)
     if (next === workspace) {
@@ -69,13 +69,14 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
         <section className="flex flex-col rounded-[30px] border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">
           <div className="order-1 mb-6">
             <Eyebrow>The question garden</Eyebrow>
-            <p className="mt-2 max-w-xl text-sm text-studio-body">Seeds are newly captured questions. Shoots are questions retained for further attention. Branches are connections between questions. Blossoms are visual concepts grown from one or more questions, and they stay open in the library.</p>
+            <p className="mt-2 max-w-xl text-sm text-studio-body">Seeds are newly captured questions. Shoots are questions you choose to explore further. Branches are connections between questions. Blossoms are visual concepts grown from one or more questions.</p>
           </div>
           <div className="order-3 xl:order-2">
             <QuestionGarden
               questions={questions}
               concepts={workspace.concepts}
-              branching={branching}
+              links={workspace.branches}
+              linked={linked}
               onFocus={(id) => document.getElementById(`question-${id}`)?.scrollIntoView({ block: 'nearest' })}
               onOpenConcept={(id) => {
                 const concept = workspace.concepts.find((item) => item.id === id)
@@ -122,7 +123,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
                 Plant <ArrowUpRight size={16} />
               </button>
             </div>
-            <p className="mt-2 text-xs text-studio-note-on">Enter keeps the wording as you wrote it, then clears the field.</p>
+            <p className="mt-2 text-xs text-studio-note-on">Enter plants the question and adds a question mark when one is missing.</p>
             {error && <p role="alert" className="mt-3 text-sm text-studio-coral">{error}</p>}
           </form>
           {questions.length > 0 && (
@@ -175,6 +176,11 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
                     {folded.length > 0 && (
                       <ul className="mt-3 text-sm text-studio-body">
                         {folded.map((source) => <li key={source.id}>Merged wording kept: {source.originalText}</li>)}
+                      </ul>
+                    )}
+                    {branchPartners(workspace, item.id).length > 0 && (
+                      <ul className="mt-3 text-sm text-studio-body">
+                        {branchPartners(workspace, item.id).map((partner) => <li key={partner.id}>Branched with {partner.originalText}</li>)}
                       </ul>
                     )}
                   </li>

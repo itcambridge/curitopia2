@@ -1,23 +1,21 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Eyebrow, Notice, coralButton, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
-import type { ConsiderResult } from '@/lib/providers/types'
+import { Bot, Check, Image as ImageIcon } from 'lucide-react'
+import { Eyebrow, Notice, iconButton, iconCoralButton, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import type { ImageSetResult } from '@/lib/providers/types'
 import { withBasePath } from '@/lib/paths'
 import { acceptConsidered, applyImageResult, draftFor, draftIsCurrent, questionPlace, rejectCandidate, restoreCandidate, selectCandidate } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
 
-export function VisualiseStage({ workspace, onChange }: { workspace: Workspace; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
+export function VisualiseStage({ workspace, curiosityId, onChange }: { workspace: Workspace; curiosityId: string; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
   const choices = workspace.questions.filter((item) => !item.mergedIntoId && (item.disposition === 'retained' || item.disposition === 'gathered'))
   const selected = choices.find((item) => item.id === workspace.focusQuestionId) ?? null
 
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <Eyebrow>3 · Visualise</Eyebrow>
-        <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">One question, four interpretations.</h2>
-        <p className="mt-3 max-w-2xl text-sm text-studio-body">Images are requested only for the question you choose, and only from the button. Accepting a considered question does not generate them.</p>
+        <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">One question, four interpretations.</h2>
       </header>
       <div className="grid items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         <ul className="flex gap-3 overflow-x-auto xl:flex-col xl:overflow-visible">
@@ -39,7 +37,7 @@ export function VisualiseStage({ workspace, onChange }: { workspace: Workspace; 
             )
           })}
         </ul>
-        {selected ? <QuestionImages key={selected.id} question={selected} workspace={workspace} onChange={onChange} /> : (
+        {selected ? <QuestionImages key={selected.id} question={selected} curiosityId={curiosityId} workspace={workspace} onChange={onChange} /> : (
           <div className={panelClass}><p className="text-studio-body">Choose a question. The comparison stays with that question.</p></div>
         )}
       </div>
@@ -49,16 +47,17 @@ export function VisualiseStage({ workspace, onChange }: { workspace: Workspace; 
 
 function QuestionImages({
   question,
+  curiosityId,
   workspace,
   onChange,
 }: {
   question: QuestionRecord
+  curiosityId: string
   workspace: Workspace
   onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void
 }) {
   const [wording, setWording] = useState(question.consideredText ?? '')
-  const [proposal, setProposal] = useState<ConsiderResult | null>(null)
-  const [attempt, setAttempt] = useState(0)
+  const [generated, setGenerated] = useState(false)
   const [busy, setBusy] = useState<'consider' | 'images' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const request = useRef(0)
@@ -81,19 +80,18 @@ function QuestionImages({
       const response = await fetch(withBasePath('/api/consider'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ originalText: question.originalText, attempt }),
+        body: JSON.stringify({ questionId: question.id, curiosityId }),
       })
-      const body = await response.json() as ConsiderResult & { error?: string }
+      const body = await response.json() as { proposal?: string; error?: string }
       if (id !== request.current) return
       if (!response.ok || !body.proposal) {
-        setError(body.error ?? 'A proposal did not come back. You can try again.')
+        setError(body.error ?? 'An image prompt did not come back. You can try again. The prompt already in the field was left unchanged.')
         return
       }
-      setProposal(body)
+      setGenerated(true)
       setWording(body.proposal)
-      setAttempt((value) => value + 1)
     } catch {
-      if (id === request.current) setError('A proposal did not come back. You can try again.')
+      if (id === request.current) setError('An image prompt did not come back. You can try again. The prompt already in the field was left unchanged.')
     } finally {
       if (id === request.current) setBusy(null)
     }
@@ -141,34 +139,63 @@ function QuestionImages({
         <blockquote className="mt-3 font-serif text-3xl leading-snug">{question.originalText}</blockquote>
       </section>
       <section className={panelClass}>
-        <Eyebrow>Considered question</Eyebrow>
-        {question.consideredText && !proposal && <p className="mt-3 text-xl leading-snug">{question.consideredText}</p>}
-        <label htmlFor="considered-draft" className="mt-4 block text-sm text-studio-body">Write it yourself, or edit a proposal.</label>
+        <Eyebrow>Image prompt</Eyebrow>
+        {question.consideredText && !generated && <p className="mt-3 text-xl leading-snug">{question.consideredText}</p>}
+        <label htmlFor="considered-draft" className="mt-4 block text-sm text-studio-body">Write a visual prompt, or edit the one that comes back.</label>
         <textarea
           id="considered-draft"
           value={wording}
           onChange={(event) => setWording(event.target.value)}
           className="mt-2 min-h-28 w-full rounded-2xl border border-studio-line bg-studio-cream p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
         />
-        {proposal && <div className="mt-3"><Notice>{proposal.notice}</Notice></div>}
+        {busy === 'consider' ? <p className="mt-3 text-sm text-studio-body">Writing an image prompt…</p> : null}
         <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" onClick={askForProposal} disabled={busy === 'consider'} className={quietButton}>
-            {busy === 'consider' ? 'Asking…' : proposal ? 'Ask for another proposal' : 'Ask for one proposal'}
+          <button
+            type="button"
+            onClick={askForProposal}
+            disabled={busy === 'consider'}
+            className={iconButton}
+            aria-label={busy === 'consider' ? 'Writing an image prompt' : generated ? 'Ask for another image prompt' : 'Ask for an image prompt'}
+            title={busy === 'consider' ? 'Writing an image prompt' : generated ? 'Ask for another image prompt' : 'Ask for an image prompt'}
+          >
+            <Bot size={18} aria-hidden="true" />
           </button>
-          <button type="button" onClick={() => { setError(null); setProposal(null); onChange(acceptConsidered(workspace, question.id, wording)) }} className={coralButton}>
-            Accept this wording
+          <button
+            type="button"
+            onClick={() => { setError(null); onChange(acceptConsidered(workspace, question.id, wording)) }}
+            className={iconCoralButton}
+            aria-label="Accept this prompt"
+            title="Accept this prompt"
+          >
+            <Check size={18} aria-hidden="true" />
           </button>
         </div>
       </section>
       <section className={panelClass}>
-        <Eyebrow>Images</Eyebrow>
-        <p className="mt-3 max-w-2xl text-sm text-studio-body">Four interpretations are requested only when you ask. They stay in this browser until you save a concept in Distil.</p>
-        <p className="mt-2 max-w-2xl text-sm text-studio-body">Use this image only chooses the current draft. It is not saved to your account yet.</p>
-        <button type="button" onClick={askForImages} disabled={!question.consideredText || !wordingSaved || busy === 'images'} className={`${inkButton} mt-4`}>
-          {busy === 'images' ? 'Preparing four views…' : 'Make four images'}
-        </button>
-        {!question.consideredText && <p className="mt-3 text-sm text-studio-muted">Accept a considered question first.</p>}
-        {question.consideredText && !wordingSaved && <p className="mt-3 text-sm text-studio-muted">Accept the wording before asking for images.</p>}
+        <div className="flex items-center gap-2 text-studio-ink">
+          <ImageIcon size={18} aria-hidden="true" />
+          <h3 className="font-serif text-2xl">Images</h3>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={askForImages} disabled={!question.consideredText || !wordingSaved || busy === 'images'} className={inkButton}>
+            {busy === 'images' ? 'Preparing four views…' : 'Make four images'}
+          </button>
+          <button
+            type="button"
+            className={inkButton}
+            disabled={!current || !selected}
+            onClick={() => onChange({
+              ...workspace,
+              stage: 'distil',
+              focusQuestionId: question.id,
+              focusConceptId: null,
+            })}
+          >
+            Name this image
+          </button>
+        </div>
+        {!question.consideredText && <p className="mt-3 text-sm text-studio-muted">Accept an image prompt first.</p>}
+        {question.consideredText && !wordingSaved && <p className="mt-3 text-sm text-studio-muted">Accept the prompt before asking for images.</p>}
         {draft && !current && (
           <div className="mt-4">
             <Notice>These images were made for “{draft.forConsideredText}”. The considered question is now different, so they are not a reading of the new wording.</Notice>
@@ -191,12 +218,14 @@ function QuestionImages({
                   <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
                     <button
                       type="button"
-                      className={chosen ? coralButton : quietButton}
+                      className={chosen ? iconCoralButton : iconButton}
+                      aria-label={chosen ? 'Using this image' : 'Use this image'}
+                      title={chosen ? 'Using this image' : 'Use this image'}
                       aria-pressed={chosen}
                       disabled={!current}
                       onClick={() => onChange(selectCandidate(workspace, question.id, candidate.id))}
                     >
-                      {chosen ? 'Using this image' : 'Use this image'}
+                      <Check size={16} aria-hidden="true" />
                     </button>
                     <button type="button" className="text-sm font-semibold text-studio-muted underline-offset-2 hover:underline" onClick={() => onChange(rejectCandidate(workspace, question.id, candidate.id))}>Hide from this comparison</button>
                   </div>
@@ -217,26 +246,6 @@ function QuestionImages({
             </div>
           </div>
         )}
-        <div className="mt-5 flex flex-col items-start gap-3">
-          <p className="max-w-xl text-sm text-studio-body">
-            {selected
-              ? 'This image is the current draft. It is not saved yet. Next, name it in Distil, then save the concept to your library.'
-              : 'Choose Use this image, then continue to Distil. Changing or hiding a candidate does not save it.'}
-          </p>
-          <button
-            type="button"
-            className={coralButton}
-            disabled={!current || !selected}
-            onClick={() => onChange({
-              ...workspace,
-              stage: 'distil',
-              focusQuestionId: question.id,
-              focusConceptId: null,
-            })}
-          >
-            Name this image
-          </button>
-        </div>
       </section>
     </div>
   )

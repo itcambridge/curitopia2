@@ -1,4 +1,5 @@
-import { addQuestion, duplicateGroups, mergeQuestions, migrateLegacyQuestions, restoreQuestion, saveConcept, selectCandidate, applyImageResult, workspaceCounts } from './workspace.ts'
+import { readFileSync } from 'node:fs'
+import { addQuestion, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, applyImageResult, workspaceCounts } from './workspace.ts'
 import { emptyWorkspace } from './workspace.ts'
 import { titleProblem } from './title.ts'
 import assert from 'node:assert/strict'
@@ -6,6 +7,11 @@ import assert from 'node:assert/strict'
 function fresh() {
   return emptyWorkspace()
 }
+
+assert.equal(plantedQuestion('What makes people curious'), 'What makes people curious?')
+assert.equal(plantedQuestion('What makes people curious?'), 'What makes people curious?')
+assert.equal(plantedQuestion('  What makes people curious?  '), 'What makes people curious?')
+assert.equal(plantedQuestion('What makes people curious!'), 'What makes people curious!?')
 
 const first = addQuestion(fresh(), '  Why does the room feel far away?  ')
 assert.equal(first.questions[0].originalText, 'Why does the room feel far away?')
@@ -26,6 +32,21 @@ assert.equal(merged.questions.find((item) => item.id === source.id)?.mergedIntoI
 assert.equal(merged.questions.find((item) => item.id === source.id)?.originalText, source.originalText)
 assert.equal(merged.questions.find((item) => item.id === survivor.id)?.originalText, survivor.originalText)
 assert.equal(duplicateGroups(merged).length, 0)
+
+const left = third.questions[0]
+const right = third.questions[1]
+const linked = linkQuestions(third, left.id, right.id)
+assert.equal(linked.branches.length, 1)
+assert.equal(linked.questions.find((item) => item.id === left.id)?.originalText, left.originalText)
+assert.equal(linked.questions.find((item) => item.id === right.id)?.originalText, right.originalText)
+assert.equal(linked.questions.find((item) => item.id === left.id)?.disposition, left.disposition)
+assert.equal(linked.questions.find((item) => item.id === right.id)?.mergedIntoId, null)
+assert.equal(linkQuestions(linked, right.id, left.id).branches.length, 1)
+assert.equal(linkQuestions(linked, left.id, left.id).branches.length, 1)
+assert.equal(branchPartners(linked, left.id)[0]?.id, right.id)
+assert.equal(branchPartners(linked, right.id)[0]?.id, left.id)
+assert.equal(removeBranch(linked, linked.branches[0].id).branches.length, 0)
+assert.equal(removeBranch(linked, linked.branches[0].id).questions.length, linked.questions.length)
 
 const restored = restoreQuestion(merged, source.id)
 assert.equal(restored.questions.find((item) => item.id === source.id)?.mergedIntoId, null)
@@ -95,5 +116,14 @@ assert.equal(legacy.concepts.length, 1)
 assert.equal(legacy.concepts[0].questionIds.length, 1)
 assert.equal(legacy.concepts[0].imageSource, 'demo')
 assert.equal('imageSrc' in legacy.questions[0], false)
+
+const migration = readFileSync(new URL('../../supabase/migrations/20261030200000_question_branches.sql', import.meta.url), 'utf8')
+assert.equal(migration.includes('create table public.question_branches'), true)
+assert.equal(migration.includes('question_low_id < question_high_id'), true)
+assert.equal(migration.includes('original_text'), false)
+assert.equal(migration.includes('merged_into_id'), false)
+assert.equal(migration.includes('enable row level security'), true)
+assert.equal(migration.includes('grant select, insert, delete'), true)
+assert.equal(migration.includes('grant update'), false)
 
 console.log('workspace checks passed')

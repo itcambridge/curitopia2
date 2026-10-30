@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import type { ConceptRecord, QuestionRecord } from '@/lib/questions/types'
+import type { ConceptRecord, QuestionBranch, QuestionRecord } from '@/lib/questions/types'
 
 const shownInOrbit = 6
 
@@ -13,8 +13,7 @@ function slot(index: number, count: number) {
   }
 }
 
-function kindOf(question: QuestionRecord, branching: Set<string>) {
-  if (branching.has(question.id)) return 'branch'
+function kindOf(question: QuestionRecord) {
   if (question.disposition === 'retained') return 'shoot'
   if (question.disposition === 'parked') return 'parked'
   return 'seed'
@@ -31,9 +30,11 @@ const kindLabel = {
 function NodeFace({
   question,
   kind,
+  linked,
 }: {
   question: QuestionRecord
   kind: keyof typeof kindLabel
+  linked: boolean
 }) {
   return (
     <>
@@ -41,6 +42,7 @@ function NodeFace({
         {kindLabel[kind]}
       </span>
       <span className="line-clamp-3 text-left text-[11px] font-semibold leading-snug">{question.originalText}</span>
+      {linked ? <span className="mt-1 block font-mono text-[8px] uppercase tracking-widest text-studio-grove">Branch</span> : null}
     </>
   )
 }
@@ -52,19 +54,21 @@ type OrbitNode =
 export function QuestionGarden({
   questions,
   concepts,
-  branching,
+  links,
+  linked,
   onFocus,
   onOpenConcept,
 }: {
   questions: QuestionRecord[]
   concepts: ConceptRecord[]
-  branching: Set<string>
+  links: QuestionBranch[]
+  linked: Set<string>
   onFocus: (id: string) => void
   onOpenConcept: (id: string) => void
 }) {
   const living = questions.filter((item) => item.disposition !== 'discarded')
   const blossoms = concepts.slice(0, 3).map((concept): OrbitNode => ({ key: concept.id, kind: 'blossom', title: concept.title, conceptId: concept.id }))
-  const questionNodes = living.slice(0, shownInOrbit - blossoms.length).map((question): OrbitNode => ({ key: question.id, kind: kindOf(question, branching), question }))
+  const questionNodes = living.slice(0, shownInOrbit - blossoms.length).map((question): OrbitNode => ({ key: question.id, kind: kindOf(question), question }))
   const orbit = [...blossoms, ...questionNodes]
   const hidden = living.length - questionNodes.length
   const hiddenConcepts = concepts.length - blossoms.length
@@ -89,7 +93,7 @@ export function QuestionGarden({
         <ul className="flex flex-wrap justify-center gap-2">
           {orbit.map((node) => (
             <li key={node.key}>
-              <OrbitButton node={node} onFocus={onFocus} onOpenConcept={onOpenConcept} className="max-w-full" />
+              <OrbitButton node={node} linked={linked} onFocus={onFocus} onOpenConcept={onOpenConcept} className="max-w-full" />
             </li>
           ))}
         </ul>
@@ -99,6 +103,14 @@ export function QuestionGarden({
           {orbit.map((node, index) => {
             const point = slot(index, orbit.length)
             return <line key={node.key} x1="50" y1="50" x2={point.x} y2={point.y} stroke="currentColor" strokeWidth="0.35" />
+          })}
+          {links.map((link) => {
+            const fromIndex = orbit.findIndex((node) => node.key === link.questionLowId)
+            const toIndex = orbit.findIndex((node) => node.key === link.questionHighId)
+            if (fromIndex < 0 || toIndex < 0) return null
+            const from = slot(fromIndex, orbit.length)
+            const to = slot(toIndex, orbit.length)
+            return <line key={`${link.questionLowId}-${link.questionHighId}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="text-studio-grove" stroke="currentColor" strokeWidth="0.7" />
           })}
         </svg>
         <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
@@ -110,6 +122,7 @@ export function QuestionGarden({
             <OrbitButton
               key={node.key}
               node={node}
+              linked={linked}
               onFocus={onFocus}
               onOpenConcept={onOpenConcept}
               style={{ left: `${point.x}%`, top: `${point.y}%` }}
@@ -131,12 +144,14 @@ export function QuestionGarden({
 
 function OrbitButton({
   node,
+  linked,
   onFocus,
   onOpenConcept,
   className,
   style,
 }: {
   node: OrbitNode
+  linked: Set<string>
   onFocus: (id: string) => void
   onOpenConcept: (id: string) => void
   className?: string
@@ -152,7 +167,7 @@ function OrbitButton({
   }
   return (
     <button type="button" style={style} onClick={() => onFocus(node.question.id)} className={`${className ?? ''} ${chipClass(node.kind)}`}>
-      <NodeFace question={node.question} kind={node.kind} />
+      <NodeFace question={node.question} kind={node.kind} linked={linked.has(node.question.id)} />
     </button>
   )
 }

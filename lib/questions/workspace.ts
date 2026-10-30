@@ -1,12 +1,12 @@
 import type { ImageSetResult } from '../providers/types'
-import { groupSimilarIds } from './duplicates'
-import { cleanTitle, titleProblem } from './title'
-import type { CandidateDraft, ConceptRecord, Disposition, QuestionRecord, StageId, StoredCandidate, Workspace } from './types'
+import { groupSimilarIds } from './duplicates.ts'
+import { cleanTitle, titleProblem } from './title.ts'
+import type { CandidateDraft, ConceptRecord, Disposition, QuestionBranch, QuestionRecord, StageId, StoredCandidate, Workspace } from './types'
 
 const stages: StageId[] = ['gather', 'curate', 'visualise', 'distil', 'library']
 
 export function emptyWorkspace(): Workspace {
-  return { stage: 'gather', focusQuestionId: null, focusConceptId: null, questions: [], drafts: [], concepts: [] }
+  return { stage: 'gather', focusQuestionId: null, focusConceptId: null, questions: [], branches: [], drafts: [], concepts: [] }
 }
 
 export function isStageId(value: unknown): value is StageId {
@@ -32,6 +32,12 @@ export function createQuestion(originalText: string): QuestionRecord {
     createdAt: stamp,
     updatedAt: stamp,
   }
+}
+
+export function plantedQuestion(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed || trimmed.endsWith('?')) return trimmed
+  return `${trimmed}?`
 }
 
 export function addQuestion(workspace: Workspace, text: string) {
@@ -79,6 +85,35 @@ function pointsAt(workspace: Workspace, startId: string, targetId: string) {
     current = question(workspace, current)?.mergedIntoId ?? null
   }
   return false
+}
+
+export function orderedQuestionIds(leftId: string, rightId: string): [string, string] {
+  return leftId.toLowerCase() < rightId.toLowerCase() ? [leftId, rightId] : [rightId, leftId]
+}
+
+export function linkQuestions(workspace: Workspace, leftId: string, rightId: string) {
+  if (leftId === rightId) return workspace
+  const left = question(workspace, leftId)
+  const right = question(workspace, rightId)
+  if (!left || !right || left.mergedIntoId || right.mergedIntoId) return workspace
+  const [questionLowId, questionHighId] = orderedQuestionIds(leftId, rightId)
+  if (workspace.branches.some((branch) => branch.questionLowId === questionLowId && branch.questionHighId === questionHighId)) return workspace
+  const branch: QuestionBranch = { id: crypto.randomUUID(), questionLowId, questionHighId, createdAt: now() }
+  return { ...workspace, branches: [...workspace.branches, branch] }
+}
+
+export function removeBranch(workspace: Workspace, id: string) {
+  if (!workspace.branches.some((branch) => branch.id === id)) return workspace
+  return { ...workspace, branches: workspace.branches.filter((branch) => branch.id !== id) }
+}
+
+export function branchPartners(workspace: Workspace, id: string) {
+  return workspace.branches.flatMap((branch) => {
+    const otherId = branch.questionLowId === id ? branch.questionHighId : branch.questionHighId === id ? branch.questionLowId : null
+    if (!otherId) return []
+    const other = question(workspace, otherId)
+    return other ? [other] : []
+  })
 }
 
 export function mergeQuestions(workspace: Workspace, sourceId: string, survivorId: string) {

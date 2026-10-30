@@ -27,7 +27,7 @@ export function CuritopiaApp({ curiosityId }: { curiosityId: string }) {
         <>
           {account.workspace.stage === 'gather' && <GatherStage workspace={account.workspace} onChange={account.write} saveIssue={account.storeError} />}
           {account.workspace.stage === 'curate' && <CurateStage workspace={account.workspace} onChange={account.write} />}
-          {account.workspace.stage === 'visualise' && <VisualiseStage workspace={account.workspace} onChange={account.write} />}
+          {account.workspace.stage === 'visualise' && <VisualiseStage workspace={account.workspace} curiosityId={curiosityId} onChange={account.write} />}
           {account.workspace.stage === 'distil' && <DistilStage workspace={account.workspace} onChange={account.write} saving={account.saving} savedConceptId={account.savedConceptId} />}
           {account.workspace.stage === 'library' && <LibraryView workspace={account.workspace} onChange={account.write} conceptsLoaded={account.conceptsLoaded} />}
         </>
