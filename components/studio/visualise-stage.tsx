@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bot, Check, Image as ImageIcon } from 'lucide-react'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, Notice, iconButton, iconCoralButton, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, Notice, iconButton, iconCoralButton, inkButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 import type { ImageSetResult } from '@/lib/providers/types'
 import { withBasePath } from '@/lib/paths'
 import { acceptConsidered, applyImageResult, draftFor, draftIsCurrent, questionPlace, rejectCandidate, restoreCandidate, selectCandidate } from '@/lib/questions/workspace'
@@ -12,20 +12,42 @@ import type { QuestionRecord, Workspace } from '@/lib/questions/types'
 export function VisualiseStage({ workspace, curiosityId, onChange }: { workspace: Workspace; curiosityId: string; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
   const choices = workspace.questions.filter((item) => !item.mergedIntoId && (item.disposition === 'retained' || item.disposition === 'gathered'))
   const selected = choices.find((item) => item.id === workspace.focusQuestionId) ?? null
+  const listRef = useRef<HTMLUListElement>(null)
+  const selectedId = selected?.id ?? null
+
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || !selectedId) return
+    const item = list.querySelector<HTMLElement>(`[data-question-id="${CSS.escape(selectedId)}"]`)
+    if (!item) return
+    const listRect = list.getBoundingClientRect()
+    const itemRect = item.getBoundingClientRect()
+    let deltaX = 0
+    let deltaY = 0
+    if (itemRect.left < listRect.left - 1) deltaX = itemRect.left - listRect.left
+    else if (itemRect.right > listRect.right + 1) deltaX = itemRect.right - listRect.right
+    if (itemRect.top < listRect.top - 1) deltaY = itemRect.top - listRect.top
+    else if (itemRect.bottom > listRect.bottom + 1) deltaY = itemRect.bottom - listRect.bottom
+    if (deltaX !== 0 || deltaY !== 0) list.scrollBy({ left: deltaX, top: deltaY, behavior: 'smooth' })
+  }, [selectedId])
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <header>
         <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">One question, four interpretations.</h2>
         <StageMark stage="visualise" placement="content" />
       </header>
-      <div className={selected ? 'grid min-w-0 items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]' : 'min-w-0'}>
-        <ul className={selected ? 'flex min-w-0 gap-3 overflow-x-auto xl:flex-col xl:overflow-visible' : 'grid min-w-0 gap-3 sm:grid-cols-2'}>
-          {choices.length === 0 && <li className={`${panelClass} text-sm text-studio-body sm:col-span-2`}>Gather or retain a question before asking for an image.</li>}
+      <div className="grid min-h-0 min-w-0 items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <ul
+          ref={listRef}
+          aria-label="Questions to visualise"
+          className={`${questionListClass} xl:sticky xl:top-10`}
+        >
+          {choices.length === 0 && <li className={`${panelClass} w-full shrink-0 text-sm text-studio-body`}>Gather or retain a question before asking for an image.</li>}
           {choices.map((item) => {
             const current = item.id === selected?.id
             return (
-              <li key={item.id} className={selected ? 'min-w-[240px] xl:min-w-0' : 'min-w-0'}>
+              <li key={item.id} data-question-id={item.id} className={questionListItemClass}>
                 <button
                   type="button"
                   onClick={() => onChange({ ...workspace, focusQuestionId: item.id, focusConceptId: null })}

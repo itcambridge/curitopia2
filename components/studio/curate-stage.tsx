@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Pause, Pencil } from 'lucide-react'
+import { Pause, Pencil, Trash2 } from 'lucide-react'
 import { branchPartners, correctOriginal, duplicateGroups, foldedQuestions, linkQuestions, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, Notice, coralButton, iconButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, Notice, coralButton, iconButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 
 export function CurateStage({ workspace, onChange }: { workspace: Workspace; onChange: (workspace: Workspace) => void }) {
   const groups = duplicateGroups(workspace)
@@ -17,14 +17,14 @@ export function CurateStage({ workspace, onChange }: { workspace: Workspace; onC
   const discarded = workspace.questions.filter((item) => !item.mergedIntoId && item.disposition === 'discarded')
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex min-w-0 flex-col gap-8">
       <header>
         <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Keep what is worth carrying.</h2>
         <p className="mt-3 max-w-2xl text-sm text-studio-body">{waiting.length} gathered, {retained.length} retained, {parked.length} parked, {discarded.length} discarded. Parking and discarding leave the wording here. Nothing is removed by a suggestion.</p>
         <StageMark stage="curate" placement="content" />
       </header>
       {groups.length > 0 && (
-        <section className="flex flex-col gap-4">
+        <section className="flex min-w-0 flex-col gap-4">
           <Notice>Similar wording. This match is text in the browser. No model read the list.</Notice>
           {groups.map((group) => (
             <div key={group.join('-')} className={panelClass}>
@@ -62,13 +62,13 @@ function QuestionSection({
   onChange: (workspace: Workspace) => void
 }) {
   return (
-    <section>
+    <section className="min-w-0">
       <h3 className="mb-3 font-serif text-2xl">{title}</h3>
       {items.length === 0 ? <p className="text-sm text-studio-body">{empty}</p> : (
-        <ul className="flex flex-col gap-3">
+        <ul aria-label={title} className={questionListClass}>
           {items.map((item) => (
-            <li key={item.id} className={panelClass}>
-              <QuestionRow key={item.id} fieldId={item.id} item={item} workspace={workspace} onChange={onChange} />
+            <li key={item.id} className={`${panelClass} ${questionListItemClass}`}>
+              <QuestionRow fieldId={item.id} item={item} workspace={workspace} onChange={onChange} />
             </li>
           ))}
         </ul>
@@ -89,7 +89,7 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
   const discarded = item.disposition === 'discarded'
 
   return (
-    <div>
+    <div className="min-w-0">
       <Eyebrow>{questionPlace(workspace, item)}</Eyebrow>
       {editing ? (
         <div className="mt-3 flex flex-col gap-3">
@@ -97,7 +97,7 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
             value={correction}
             onChange={(event) => setCorrection(event.target.value)}
             aria-label="Correct the capture"
-            className="min-h-24 rounded-2xl border border-studio-line bg-studio-cream p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+            className="min-h-24 w-full min-w-0 rounded-2xl border border-studio-line bg-studio-cream p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
           />
           <div className="flex gap-2">
             <button type="button" className={coralButton} onClick={() => {
@@ -109,7 +109,7 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
             <button type="button" className={quietButton} onClick={() => setEditing(false)}>Cancel</button>
           </div>
         </div>
-      ) : <p className="mt-2 font-serif text-2xl leading-snug">{item.originalText}</p>}
+      ) : <p className="mt-2 break-words font-serif text-2xl leading-snug">{item.originalText}</p>}
       {folded.length > 0 && (
         <ul className="mt-3 text-sm text-studio-body">
           {folded.map((source) => (
@@ -135,7 +135,9 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
           </button>
         )}
         {!discarded && (
-          <button type="button" className={quietButton} onClick={() => onChange(setDisposition(workspace, item.id, 'discarded'))}>Discard</button>
+          <button type="button" className={iconButton} aria-label="Discard" title="Discard" onClick={() => onChange(setDisposition(workspace, item.id, 'discarded'))}>
+            <Trash2 size={16} aria-hidden="true" />
+          </button>
         )}
         {(parked || discarded) && (
           <button type="button" className={coralButton} onClick={() => onChange(restoreQuestion(workspace, item.id))}>Restore</button>
@@ -156,13 +158,13 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
         </ul>
       )}
       {!discarded && others.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <label className="text-sm text-studio-body" htmlFor={`link-${fieldId}`}>Link this question with another</label>
+        <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2">
+          <label className="max-w-full text-sm text-studio-body" htmlFor={`link-${fieldId}`}>Link this question with another</label>
           <select
             id={`link-${fieldId}`}
             value={target}
             onChange={(event) => setTarget(event.target.value)}
-            className="max-w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2 text-sm xl:w-auto"
           >
             <option value="">Choose a question</option>
             {others.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.originalText}</option>)}

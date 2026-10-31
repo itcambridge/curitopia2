@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, Notice, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, Notice, coralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 import { withBasePath } from '@/lib/paths'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
 import { foldedQuestions, saveConcept, selectedCandidate, updateConcept } from '@/lib/questions/workspace'
@@ -31,9 +31,27 @@ export function DistilStage({
       : null
   const informing = concept?.forConsideredText ?? anchor?.consideredText ?? ''
   const relatedChoices = workspace.questions.filter((item) => item.id !== anchor?.id && !item.mergedIntoId && (item.disposition === 'retained' || item.disposition === 'gathered'))
+  const listRef = useRef<HTMLUListElement>(null)
+  const focusedId = focusedConcept?.id ?? null
+
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || !focusedId) return
+    const item = list.querySelector<HTMLElement>(`[data-concept-id="${CSS.escape(focusedId)}"]`)
+    if (!item) return
+    const listRect = list.getBoundingClientRect()
+    const itemRect = item.getBoundingClientRect()
+    let deltaX = 0
+    let deltaY = 0
+    if (itemRect.left < listRect.left - 1) deltaX = itemRect.left - listRect.left
+    else if (itemRect.right > listRect.right + 1) deltaX = itemRect.right - listRect.right
+    if (itemRect.top < listRect.top - 1) deltaY = itemRect.top - listRect.top
+    else if (itemRect.bottom > listRect.bottom + 1) deltaY = itemRect.bottom - listRect.bottom
+    if (deltaX !== 0 || deltaY !== 0) list.scrollBy({ left: deltaX, top: deltaY, behavior: 'smooth' })
+  }, [focusedId])
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex min-w-0 flex-col gap-8">
       <header>
         <Eyebrow>4 · Distil</Eyebrow>
         <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Name the image, not the sentence.</h2>
@@ -60,22 +78,22 @@ export function DistilStage({
           <p className="max-w-xl text-studio-body">Use an image in Visualise, name it here, then save the concept to your library. A concept already saved can be opened from the list below.</p>
         </div>
       )}
-      <section>
+      <section className="min-w-0">
         <h3 className="mb-3 font-serif text-2xl">Retained concepts</h3>
         {workspace.concepts.length === 0 ? <p className="text-sm text-studio-body">None yet.</p> : (
-          <ul className="grid gap-4 md:grid-cols-2">
+          <ul ref={listRef} aria-label="Retained concepts" className={questionListClass}>
             {workspace.concepts.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} data-concept-id={item.id} className={questionListItemClass}>
                 <button
                   type="button"
                   disabled={saving}
                   onClick={() => onChange({ ...workspace, focusConceptId: item.id, focusQuestionId: item.anchorQuestionId, stage: 'distil' })}
-                  className="flex w-full gap-4 rounded-[24px] border border-studio-line bg-studio-paper p-3 text-left shadow-studio-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40"
+                  className="flex w-full min-w-0 gap-4 rounded-[24px] border border-studio-line bg-studio-paper p-3 text-left shadow-studio-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40"
                 >
-                  <img src={item.imageSrc} alt="" className="size-24 rounded-2xl bg-studio-ink object-cover" />
-                  <span>
+                  <img src={item.imageSrc} alt="" className="size-24 shrink-0 rounded-2xl bg-studio-ink object-cover" />
+                  <span className="min-w-0">
                     <Eyebrow>{(item.sources.length || item.questionIds.length) === 1 ? 'One question' : `${item.sources.length || item.questionIds.length} questions`}{item.imageSource === 'demo' ? ' · Demo fixture' : ''}</Eyebrow>
-                    <span className="mt-1 block font-serif text-2xl">{item.title}</span>
+                    <span className="mt-1 block break-words font-serif text-2xl">{item.title}</span>
                   </span>
                 </button>
               </li>

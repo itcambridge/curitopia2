@@ -18,22 +18,14 @@ export function stepConceptIndex(index: number, count: number, direction: -1 | 1
 }
 
 export function conceptQuestionCopy(
-  concept: Pick<ConceptRecord, 'forConsideredText' | 'sources' | 'questionIds'>,
+  concept: Pick<ConceptRecord, 'sources' | 'questionIds'>,
   questions: Pick<QuestionRecord, 'id' | 'originalText'>[],
-): { count: number; lead: string; supporting: string[]; hidden: number } {
+): { questions: string[] } {
   const fromSources = concept.sources.map((source) => source.originalText.trim()).filter(Boolean)
   const fromQuestions = concept.questionIds.flatMap((id) => {
     const question = questions.find((item) => item.id === id)
     return question?.originalText.trim() ? [question.originalText.trim()] : []
   })
   const originals = fromSources.length > 0 ? fromSources : fromQuestions
-  const considered = concept.forConsideredText.trim()
-  const lead = considered || originals[0] || ''
-  const unique = [...new Set(originals.filter((text) => text !== lead))]
-  return {
-    count: concept.sources.length || concept.questionIds.length,
-    lead,
-    supporting: unique.slice(0, 3),
-    hidden: Math.max(0, unique.length - 3),
-  }
+  return { questions: [...new Set(originals)] }
 }

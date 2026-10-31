@@ -27,7 +27,6 @@ assert.equal(stepConceptIndex(0, 1, -1), 0)
 assert.equal(stepConceptIndex(0, 0, 1), -1)
 
 const copy = conceptQuestionCopy({
-  forConsideredText: 'Who should I ask about Citrix?',
   questionIds: ['q1', 'q2', 'q3', 'q4', 'q5'],
   sources: [
     { linkId: 'a', questionId: 'q1', originalText: 'Who should I ask about Citrix?', consideredText: null },
@@ -37,21 +36,37 @@ const copy = conceptQuestionCopy({
     { linkId: 'e', questionId: 'q5', originalText: 'How can I be more productive?', consideredText: null },
   ],
 }, [])
-assert.equal(copy.count, 5)
-assert.equal(copy.lead, 'Who should I ask about Citrix?')
-assert.deepEqual(copy.supporting, ['How can I be more productive?', 'Should I carry on performing fake documentation?', 'When should I phone Ekco Accounts?'])
-assert.equal(copy.hidden, 0)
+assert.deepEqual(copy.questions, [
+  'Who should I ask about Citrix?',
+  'How can I be more productive?',
+  'Should I carry on performing fake documentation?',
+  'When should I phone Ekco Accounts?',
+])
 
 const fromQuestions = conceptQuestionCopy({
-  forConsideredText: '',
   questionIds: ['q1'],
   sources: [],
 }, [{ id: 'q1', originalText: 'When should I phone Ekco Accounts?' }])
-assert.equal(fromQuestions.lead, 'When should I phone Ekco Accounts?')
-assert.deepEqual(fromQuestions.supporting, [])
+assert.deepEqual(fromQuestions.questions, ['When should I phone Ekco Accounts?'])
+
+const promptStaysHidden = conceptQuestionCopy({
+  questionIds: ['q1', 'q2'],
+  sources: [
+    { linkId: 'a', questionId: 'q1', originalText: 'Is magnetism a distortion in electromagnetic spacetime?', consideredText: 'A lone iron needle suspended in a dark glassy void.' },
+    { linkId: 'b', questionId: 'q2', originalText: 'How can I visualise below atoms?', consideredText: null },
+  ],
+}, [])
+assert.deepEqual(promptStaysHidden.questions, [
+  'Is magnetism a distortion in electromagnetic spacetime?',
+  'How can I visualise below atoms?',
+])
+
+const none = conceptQuestionCopy({ questionIds: [], sources: [] }, [])
+assert.deepEqual(none.questions, [])
 
 const view = readFileSync(new URL('../../components/studio/library-view.tsx', import.meta.url), 'utf8')
 assert.equal(view.includes('images/generations'), false)
 assert.equal(view.includes('orderedConcepts'), true)
 assert.equal(view.includes('stepConceptIndex'), true)
 assert.equal(view.includes("stage: 'distil'"), true)
+assert.equal(view.includes('forConsideredText'), false)

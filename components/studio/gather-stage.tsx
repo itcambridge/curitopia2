@@ -6,7 +6,7 @@ import { QuestionGarden } from '@/components/studio/question-garden'
 import { addQuestion, branchPartners, correctOriginal, foldedQuestions, plantedQuestion, questionPlace } from '@/lib/questions/workspace'
 import type { StageId, Workspace } from '@/lib/questions/types'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, inkButton, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, inkButton, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 
 const shelfDots = ['bg-studio-coral', 'bg-studio-violet', 'bg-studio-mint', 'bg-studio-grove']
 
@@ -54,7 +54,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <header className="mb-8">
         <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-studio-date">
           <span className="size-2 rounded-full bg-studio-coral" />
@@ -67,8 +67,8 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
         </h2>
         <StageMark stage="gather" placement="content" />
       </header>
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.62fr)]">
-        <section className="flex flex-col rounded-[30px] border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.62fr)]">
+        <section className="flex min-w-0 flex-col rounded-[30px] border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">
           <div className="order-1 mb-6">
             <Eyebrow>The question garden</Eyebrow>
             <p className="mt-2 max-w-xl text-sm text-studio-body">Seeds are newly captured questions. Shoots are questions you choose to explore further. Branches are connections between questions. Blossoms are visual concepts grown from one or more questions.</p>
@@ -79,7 +79,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
               concepts={workspace.concepts}
               links={workspace.branches}
               linked={linked}
-              onFocus={(id) => document.getElementById(`question-${id}`)?.scrollIntoView({ block: 'nearest' })}
+              onFocus={(id) => revealQuestion(id)}
               onOpenConcept={(id) => {
                 const concept = workspace.concepts.find((item) => item.id === id)
                 if (!concept) return
@@ -129,11 +129,11 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
             {error && <p role="alert" className="mt-3 text-sm text-studio-coral">{error}</p>}
           </form>
           {questions.length > 0 && (
-            <ul className="order-4 mt-8 flex flex-col gap-4 border-t border-studio-line pt-6">
+            <ul aria-label="Captured questions" className={`order-4 mt-8 border-t border-studio-line pt-6 ${questionListClass}`}>
               {questions.map((item) => {
                 const folded = foldedQuestions(workspace, item.id)
                 return (
-                  <li key={item.id} id={`question-${item.id}`}>
+                  <li key={item.id} id={`question-${item.id}`} className={questionListItemClass}>
                     <Eyebrow>{questionPlace(workspace, item)}</Eyebrow>
                     {editingId === item.id ? (
                       <div className="mt-3 flex flex-col gap-3">
@@ -141,7 +141,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
                           value={correction}
                           onChange={(event) => setCorrection(event.target.value)}
                           aria-label="Correct the capture"
-                          className="min-h-24 rounded-2xl border border-studio-line bg-studio-cream p-4 text-lg outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+                          className="min-h-24 w-full min-w-0 rounded-2xl border border-studio-line bg-studio-cream p-4 text-lg outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
                         />
                         <div className="flex flex-wrap gap-2">
                           <button
@@ -165,7 +165,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
                       </div>
                     ) : (
                       <>
-                        <p className="mt-1 font-serif text-2xl leading-snug">{item.originalText}</p>
+                        <p className="mt-1 break-words font-serif text-2xl leading-snug">{item.originalText}</p>
                         <button
                           type="button"
                           className="mt-2 text-sm text-studio-grove underline-offset-4 hover:underline"
@@ -217,7 +217,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
               <ul className="mt-5 flex flex-col gap-3">
                 {shelf.map((item, index) => (
                   <li key={item.id}>
-                    <button type="button" onClick={() => document.getElementById(`question-${item.id}`)?.scrollIntoView({ block: 'nearest' })} className="flex w-full items-start gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+                    <button type="button" onClick={() => revealQuestion(item.id)} className="flex w-full items-start gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
                       <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${shelfDots[index % shelfDots.length]}`} />
                       <span className="text-sm text-studio-body">{item.originalText}</span>
                     </button>
@@ -238,6 +238,10 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
       </footer>
     </div>
   )
+}
+
+function revealQuestion(id: string) {
+  document.getElementById(`question-${id}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 }
 
 function shelfPreview(questions: Workspace['questions']) {

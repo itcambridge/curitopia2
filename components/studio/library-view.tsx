@@ -8,6 +8,7 @@ import { conceptQuestionCopy, orderedConcepts, selectedConceptIndex, stepConcept
 import type { ConceptRecord, Workspace } from '@/lib/questions/types'
 
 const navButton = 'grid size-11 place-items-center rounded-full border border-studio-line bg-studio-paper text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
+const heroFrame = 'h-[min(88vw,24rem)] sm:h-[28rem] xl:h-[36rem]'
 
 export function LibraryView({ workspace, onChange, conceptsLoaded }: { workspace: Workspace; onChange: (workspace: Workspace) => void; conceptsLoaded: boolean }) {
   const concepts = orderedConcepts(workspace.concepts)
@@ -29,7 +30,7 @@ export function LibraryView({ workspace, onChange, conceptsLoaded }: { workspace
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <header className="mb-8">
         <Eyebrow>Library</Eyebrow>
         <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">
@@ -53,7 +54,7 @@ export function LibraryView({ workspace, onChange, conceptsLoaded }: { workspace
           role="region"
           aria-roledescription="carousel"
           aria-label="Saved concepts"
-          className="mx-auto max-w-3xl outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral"
+          className="mx-auto min-w-0 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral"
           tabIndex={0}
           onKeyDown={(event) => {
             if (event.key === 'ArrowLeft') {
@@ -67,7 +68,7 @@ export function LibraryView({ workspace, onChange, conceptsLoaded }: { workspace
           }}
         >
           <div
-            className="relative h-[220px] overflow-hidden sm:h-[320px] lg:h-[390px]"
+            className={`relative overflow-hidden ${heroFrame}`}
             style={{ perspective: reducedMotion ? undefined : '1400px', touchAction: 'pan-y' }}
             onPointerDown={(event) => {
               if (event.pointerType === 'mouse') return
@@ -139,7 +140,7 @@ function ConceptSlide({
   const scale = current ? 1 : 0.78
   const rotate = reducedMotion || current ? 0 : offset * -14
   const frame = <ConceptImage src={concept.imageSrc} alt="" />
-  const className = 'absolute top-1/2 w-[72%] max-w-md transition-transform duration-500 ease-out motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-studio-coral sm:w-[48%]'
+  const className = 'absolute top-1/2 w-[92%] max-w-[40rem] transition-transform duration-500 ease-out motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-studio-coral sm:w-[72%] xl:w-[62%]'
   const style = {
     left: `${50 + offset * spread}%`,
     zIndex: current ? 2 : 1,
@@ -162,16 +163,23 @@ function ConceptSlide({
 }
 
 function ConceptImage({ src, alt }: { src: string; alt: string }) {
+  const imageRef = useRef<HTMLImageElement>(null)
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   useEffect(() => {
+    const image = imageRef.current
+    if (image?.complete && image.naturalWidth > 0) {
+      setPhase('ready')
+      return
+    }
     setPhase('loading')
   }, [src])
   return (
-    <span className="relative block h-[220px] overflow-hidden rounded-[28px] bg-studio-paper sm:h-[320px] lg:h-[390px]">
+    <span className={`relative block overflow-hidden rounded-[28px] bg-studio-paper ${heroFrame}`}>
       {phase === 'loading' && <span className="absolute inset-0 grid place-items-center px-4 text-center text-sm text-studio-body">Opening image…</span>}
       {phase === 'error' && <span className="absolute inset-0 grid place-items-center px-4 text-center text-sm text-studio-body">This image could not be opened.</span>}
       {phase !== 'error' && (
         <img
+          ref={imageRef}
           src={src}
           alt={alt}
           onLoad={() => setPhase('ready')}
@@ -199,9 +207,9 @@ function ConceptDetail({
   onChange: (workspace: Workspace) => void
 }) {
   const copy = conceptQuestionCopy(concept, workspace.questions)
-  const countLabel = copy.count === 1 ? 'One question' : copy.count === 0 ? 'No linked questions' : `${copy.count} questions`
+  const countLabel = copy.questions.length === 1 ? 'One question' : copy.questions.length === 0 ? 'No linked questions' : `${copy.questions.length} questions`
   return (
-    <div className="mx-auto mt-5 max-w-xl text-center">
+    <div className="mx-auto mt-5 max-w-2xl text-center">
       <h3 aria-live="polite" className="font-serif text-4xl leading-tight tracking-[-0.03em] sm:text-5xl">{concept.title}</h3>
       <div className="mt-3 flex items-center justify-center gap-3">
         <button type="button" className={navButton} aria-label="Show the previous concept" disabled={index <= 0} onClick={() => onMove(-1)}>
@@ -212,15 +220,19 @@ function ConceptDetail({
           <ChevronRight size={20} aria-hidden="true" />
         </button>
       </div>
-      <div className="mt-3">
+      <div className="mt-4">
         <Eyebrow>
           {countLabel}
           {concept.imageSource === 'demo' ? ' · Demo fixture' : ''}
         </Eyebrow>
       </div>
-      {copy.lead && <p className="mt-2 text-sm text-studio-body">{copy.lead}</p>}
-      {copy.supporting.length > 0 && <p className="mt-1 text-sm text-studio-muted">{copy.supporting.join(' · ')}</p>}
-      {copy.hidden > 0 && <p className="mt-1 text-sm text-studio-muted">{copy.hidden === 1 ? 'One more linked question.' : `${copy.hidden} more linked questions.`}</p>}
+      {copy.questions.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2">
+          {copy.questions.map((text) => (
+            <li key={text} className="font-serif text-lg leading-snug text-studio-ink">{text}</li>
+          ))}
+        </ul>
+      )}
       <button
         type="button"
         className={`${quietButton} mt-4`}
