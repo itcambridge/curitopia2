@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Bot, Check, Image as ImageIcon } from 'lucide-react'
+import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, Notice, iconButton, iconCoralButton, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import type { ImageSetResult } from '@/lib/providers/types'
 import { withBasePath } from '@/lib/paths'
@@ -16,14 +17,15 @@ export function VisualiseStage({ workspace, curiosityId, onChange }: { workspace
     <div className="flex flex-col gap-6">
       <header>
         <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">One question, four interpretations.</h2>
+        <StageMark stage="visualise" placement="content" />
       </header>
-      <div className="grid items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <ul className="flex gap-3 overflow-x-auto xl:flex-col xl:overflow-visible">
-          {choices.length === 0 && <li className={`${panelClass} text-sm text-studio-body`}>Gather or retain a question before asking for an image.</li>}
+      <div className={selected ? 'grid min-w-0 items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]' : 'min-w-0'}>
+        <ul className={selected ? 'flex min-w-0 gap-3 overflow-x-auto xl:flex-col xl:overflow-visible' : 'grid min-w-0 gap-3 sm:grid-cols-2'}>
+          {choices.length === 0 && <li className={`${panelClass} text-sm text-studio-body sm:col-span-2`}>Gather or retain a question before asking for an image.</li>}
           {choices.map((item) => {
             const current = item.id === selected?.id
             return (
-              <li key={item.id} className="min-w-[240px] xl:min-w-0">
+              <li key={item.id} className={selected ? 'min-w-[240px] xl:min-w-0' : 'min-w-0'}>
                 <button
                   type="button"
                   onClick={() => onChange({ ...workspace, focusQuestionId: item.id, focusConceptId: null })}
@@ -37,9 +39,7 @@ export function VisualiseStage({ workspace, curiosityId, onChange }: { workspace
             )
           })}
         </ul>
-        {selected ? <QuestionImages key={selected.id} question={selected} curiosityId={curiosityId} workspace={workspace} onChange={onChange} /> : (
-          <div className={panelClass}><p className="text-studio-body">Choose a question. The comparison stays with that question.</p></div>
-        )}
+        {selected ? <QuestionImages key={selected.id} question={selected} curiosityId={curiosityId} workspace={workspace} onChange={onChange} /> : null}
       </div>
     </div>
   )

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import { conceptQuestionCopy, orderedConcepts, selectedConceptIndex, stepConceptIndex } from '@/lib/questions/library-carousel'
 import type { ConceptRecord, Workspace } from '@/lib/questions/types'
@@ -36,6 +37,7 @@ export function LibraryView({ workspace, onChange, conceptsLoaded }: { workspace
           <br />
           <em className="text-studio-coral">looking at again.</em>
         </h2>
+        <StageMark stage="library" placement="content" />
       </header>
       {!conceptsLoaded ? (
         <div className={panelClass}>

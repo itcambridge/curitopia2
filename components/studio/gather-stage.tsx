@@ -5,6 +5,7 @@ import { ArrowUpRight, ChevronRight, Play, Sparkles } from 'lucide-react'
 import { QuestionGarden } from '@/components/studio/question-garden'
 import { addQuestion, branchPartners, correctOriginal, foldedQuestions, plantedQuestion, questionPlace } from '@/lib/questions/workspace'
 import type { StageId, Workspace } from '@/lib/questions/types'
+import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, inkButton, quietButton } from '@/components/studio/studio-ui'
 
 const shelfDots = ['bg-studio-coral', 'bg-studio-violet', 'bg-studio-mint', 'bg-studio-grove']
@@ -64,6 +65,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
           <br />
           <em className="text-studio-coral">See what unfolds.</em>
         </h2>
+        <StageMark stage="gather" placement="content" />
       </header>
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.62fr)]">
         <section className="flex flex-col rounded-[30px] border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">

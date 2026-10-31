@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Pause, Pencil } from 'lucide-react'
 import { branchPartners, correctOriginal, duplicateGroups, foldedQuestions, linkQuestions, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
+import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, Notice, coralButton, iconButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 
 export function CurateStage({ workspace, onChange }: { workspace: Workspace; onChange: (workspace: Workspace) => void }) {
@@ -20,6 +21,7 @@ export function CurateStage({ workspace, onChange }: { workspace: Workspace; onC
       <header>
         <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Keep what is worth carrying.</h2>
         <p className="mt-3 max-w-2xl text-sm text-studio-body">{waiting.length} gathered, {retained.length} retained, {parked.length} parked, {discarded.length} discarded. Parking and discarding leave the wording here. Nothing is removed by a suggestion.</p>
+        <StageMark stage="curate" placement="content" />
       </header>
       {groups.length > 0 && (
         <section className="flex flex-col gap-4">

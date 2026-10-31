@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, Notice, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import { withBasePath } from '@/lib/paths'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
@@ -37,6 +38,7 @@ export function DistilStage({
         <Eyebrow>4 · Distil</Eyebrow>
         <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Name the image, not the sentence.</h2>
         <p className="mt-3 max-w-2xl text-sm text-studio-body">A concept keeps one image, a one- or two-word title, and the questions that informed it. Nothing is stored in the account until you save it here.</p>
+        <StageMark stage="distil" placement="content" />
       </header>
       {(anchor || concept) && image ? (
         <Composer
