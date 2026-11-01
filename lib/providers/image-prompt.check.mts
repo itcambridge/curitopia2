@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { considerHttp } from '../ai/http.ts'
-import { authenticateAiUser, considerWouldCallProvider, reserveAiEndpoint, type AiSession } from '../ai/policy.ts'
+import { authenticateAiUser, considerWouldCallProvider, type AiSession } from '../ai/policy.ts'
 import { requestImagePrompt } from './image-prompt.ts'
 
 const questionId = '11111111-1111-4111-8111-111111111111'
@@ -31,12 +31,11 @@ function session(userId: string | null): AiSession {
     auth: {
       getUser: async () => ({ data: { user: userId ? { id: userId } : null }, error: null }),
     },
-    rpc: async () => ({ data: [{ allowed: true, retry_after_seconds: 0 }], error: null }),
   }
 }
 
 function gate(userId: string | null) {
-  return { session: session(userId), authenticate: authenticateAiUser, reserve: reserveAiEndpoint }
+  return { session: session(userId), authenticate: authenticateAiUser }
 }
 
 const calls: { url: string; question: string; system: string }[] = []
@@ -76,7 +75,31 @@ try {
 
   const failed = await requestImagePrompt({ apiKey: 'test-not-a-real-key', model: 'gpt-6-luna', question: 'fail this question', fetchImpl })
   assert.equal('proposal' in failed, false)
-  assert.equal('error' in failed, true)
+  assert.equal('error' in failed && failed.error.includes('did not return an image prompt'), true)
+  assert.equal('error' in failed && failed.error.includes('60 minutes'), false)
+
+  let promptCalls = 0
+  const rateLimited = await requestImagePrompt({
+    apiKey: 'test-not-a-real-key',
+    model: 'gpt-6-luna',
+    question: conduct,
+    fetchImpl: async () => {
+      promptCalls += 1
+      return new Response(JSON.stringify({ error: { code: 'rate_limit_exceeded', message: 'Rate limit reached for requests.' } }), { status: 429 })
+    },
+  })
+  assert.equal(promptCalls, 1)
+  assert.equal('error' in rateLimited && rateLimited.error.includes('rate limiting'), true)
+  assert.equal('error' in rateLimited && rateLimited.error.includes('60 minutes'), false)
+
+  const unpaid = await requestImagePrompt({
+    apiKey: 'test-not-a-real-key',
+    model: 'gpt-6-luna',
+    question: conduct,
+    fetchImpl: async () => new Response(JSON.stringify({ error: { code: 'insufficient_quota', message: 'You exceeded your current quota, please check your plan and billing details.' } }), { status: 429 }),
+  })
+  assert.equal('error' in unpaid && unpaid.error.includes('no remaining credit'), true)
+  assert.equal('error' in unpaid && unpaid.error.includes('60 minutes'), false)
 
   const thrown = await requestImagePrompt({
     apiKey: 'test-not-a-real-key',

@@ -1,52 +1,18 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { considerHttp, imagesHttp, titlesHttp } from './http.ts'
-import { authenticateAiUser, reserveAiEndpoint, type AiEndpoint, type AiSession } from './policy.ts'
+import { authenticateAiUser, type AiEndpoint, type AiSession } from './policy.ts'
+import { providerFailure } from '../providers/provider-error.ts'
 import { readPublicSupabaseEnv } from '../supabase/env.ts'
 
 function readPublicEnvSource() {
   return readFileSync(new URL('../supabase/env.ts', import.meta.url), 'utf8')
 }
 
-type Stamp = { userId: string; endpoint: string; at: number }
-
-class ReservationLedger {
-  private rows: Stamp[] = []
-  private chains = new Map<string, Promise<void>>()
-  private limits: Record<string, { max: number; windowMs: number }>
-
-  constructor(limits: Record<string, { max: number; windowMs: number }>) {
-    this.limits = limits
-  }
-
-  reserve(userId: string, endpoint: string, now: number) {
-    const key = `${userId}\u001f${endpoint}`
-    const previous = this.chains.get(key) ?? Promise.resolve()
-    const run = previous.then(() => {
-      const policy = this.limits[endpoint]
-      const cutoff = now - policy.windowMs
-      const mine = this.rows.filter((row) => row.userId === userId && row.endpoint === endpoint && row.at > cutoff)
-      if (mine.length >= policy.max) {
-        const oldest = Math.min(...mine.map((row) => row.at))
-        return { allowed: false, retry_after_seconds: Math.max(1, Math.ceil((oldest + policy.windowMs - now) / 1000)) }
-      }
-      this.rows.push({ userId, endpoint, at: now })
-      return { allowed: true, retry_after_seconds: 0 }
-    })
-    this.chains.set(key, run.then(() => undefined, () => undefined))
-    return run
-  }
-}
-
-function sessionFor(userId: string | null, ledger: ReservationLedger, now: number): AiSession {
+function sessionFor(userId: string | null): AiSession {
   return {
     auth: {
       getUser: async () => ({ data: { user: userId ? { id: userId } : null }, error: userId ? null : { message: 'expired' } }),
-    },
-    rpc: async (name, args) => {
-      assert.equal(name, 'reserve_ai_request')
-      if (!userId) return { data: null, error: { message: 'not authenticated' } }
-      return { data: [await ledger.reserve(userId, args.p_endpoint, now)], error: null }
     },
   }
 }
@@ -59,13 +25,6 @@ function post(path: string, body: unknown, raw = false) {
   })
 }
 
-const limits = {
-  consider: { max: 30, windowMs: 3_600_000 },
-  titles: { max: 20, windowMs: 3_600_000 },
-  images: { max: 3, windowMs: 3_600_000 },
-}
-const ledger = new ReservationLedger(limits)
-const now = Date.parse('2026-10-28T20:00:00.000Z')
 const savedKey = process.env.OPENAI_API_KEY
 const savedModel = process.env.OPENAI_MODEL
 const savedTextModel = process.env.OPENAI_TEXT_MODEL
@@ -99,8 +58,7 @@ globalThis.fetch = async () => {
 }
 
 function gateFor(userId: string | null) {
-  const session = sessionFor(userId, ledger, now)
-  return { session, authenticate: authenticateAiUser, reserve: reserveAiEndpoint }
+  return { session: sessionFor(userId), authenticate: authenticateAiUser }
 }
 
 const consider = async (original: string) => {
@@ -148,30 +106,55 @@ try {
   assert.equal(providerCalls, 0)
 
   providerCalls = 0
-  const imageResults = await Promise.all(Array.from({ length: 8 }, () => imagesHttp(
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const repeated = await imagesHttp(
+      post('/api/images', { consideredText: 'Who should I ask about Citrix?' }),
+      gateFor('user-a'),
+      interpret,
+    )
+    assert.equal(repeated.status, 200)
+    const body = await repeated.json() as { error?: string }
+    assert.equal(body.error, undefined)
+  }
+  assert.equal(providerCalls, 3)
+
+  let releaseHeld: () => void = () => {}
+  let started: () => void = () => {}
+  const startedPromise = new Promise<void>((resolve) => { started = resolve })
+  const held = imagesHttp(
+    post('/api/images', { consideredText: 'Who should I ask about Citrix?' }),
+    gateFor('user-a'),
+    () => new Promise((resolve) => {
+      started()
+      releaseHeld = () => resolve({
+        source: 'openai' as const,
+        notice: 'checked',
+        candidates: [],
+        reportedCostUsd: 0,
+        stoppedBecause: 'complete' as const,
+        model: 'gpt-image-2.5-flare',
+        promptVersion: 'image-eval-1',
+      })
+    }),
+  )
+  await startedPromise
+  const overlapping = await imagesHttp(
     post('/api/images', { consideredText: 'Who should I ask about Citrix?' }),
     gateFor('user-a'),
     interpret,
-  )))
-  const allowedImages = imageResults.filter((response) => response.status === 200)
-  const limitedImages = imageResults.filter((response) => response.status === 429)
-  assert.equal(allowedImages.length, 3)
-  assert.equal(limitedImages.length, 5)
-  assert.equal(providerCalls, 3)
-  const limitedBody = await limitedImages[0].json() as { error?: string; retryAfterSeconds?: number }
-  assert.equal(typeof limitedBody.error, 'string')
-  assert.equal(typeof limitedBody.retryAfterSeconds, 'number')
-  assert.equal(limitedImages[0].headers.get('retry-after'), String(limitedBody.retryAfterSeconds))
-
-  const otherUser = await imagesHttp(
+  )
+  assert.equal(overlapping.status, 409)
+  const overlappingBody = await overlapping.json() as { error?: string }
+  assert.equal(overlappingBody.error, 'Another request is already running. Nothing extra was sent.')
+  assert.equal(String(overlappingBody.error).includes('60 minutes'), false)
+  assert.equal(overlapping.headers.get('retry-after'), null)
+  const otherUserDuring = await imagesHttp(
     post('/api/images', { consideredText: 'Who should I ask about Citrix?' }),
     gateFor('user-b'),
     interpret,
   )
-  assert.equal(otherUser.status, 200)
-  assert.equal(providerCalls, 4)
-
-  const otherEndpoint = await considerHttp(
+  assert.equal(otherUserDuring.status, 200)
+  const promptDuringImages = await considerHttp(
     post('/api/consider', {
       questionId: '11111111-1111-4111-8111-111111111111',
       curiosityId: '22222222-2222-4222-8222-222222222222',
@@ -180,7 +163,15 @@ try {
     consider,
     async () => 'How can I be more productive?',
   )
-  assert.equal(otherEndpoint.status, 200)
+  assert.equal(promptDuringImages.status, 200)
+  releaseHeld()
+  assert.equal((await held).status, 200)
+  const afterHeld = await imagesHttp(
+    post('/api/images', { consideredText: 'Who should I ask about Citrix?' }),
+    gateFor('user-a'),
+    interpret,
+  )
+  assert.equal(afterHeld.status, 200)
 
   providerCalls = 0
   const firstTitles = await titlesHttp(
@@ -193,17 +184,30 @@ try {
   assert.equal(providerCalls, 1)
 
   providerCalls = 0
-  const broken: AiSession = {
-    auth: { getUser: async () => ({ data: { user: { id: 'user-d' } }, error: null }) },
-    rpc: async () => ({ data: null, error: { message: 'function public.reserve_ai_request does not exist' } }),
-  }
-  const blocked = await imagesHttp(
-    post('/api/images', { consideredText: 'Who should I ask about Citrix?' }),
-    { session: broken, authenticate: authenticateAiUser, reserve: reserveAiEndpoint },
-    interpret,
+  const secondTitles = await titlesHttp(
+    post('/api/titles', { consideredText: 'How can I be more productive?', questions: [{ originalText: 'How can I be more productive?' }] }),
+    gateFor('user-c'),
   )
-  assert.equal(blocked.status, 503)
-  assert.equal(providerCalls, 0)
+  assert.equal(secondTitles.status, 200)
+  assert.equal(providerCalls, 1)
+
+  const secondPrompt = await considerHttp(
+    post('/api/consider', {
+      questionId: '11111111-1111-4111-8111-111111111111',
+      curiosityId: '22222222-2222-4222-8222-222222222222',
+    }),
+    gateFor('user-a'),
+    consider,
+    async () => 'How can I be more productive?',
+  )
+  assert.equal(secondPrompt.status, 200)
+
+  const httpSource = readFileSync(new URL('./http.ts', import.meta.url), 'utf8')
+  const policySource = readFileSync(new URL('./policy.ts', import.meta.url), 'utf8')
+  assert.equal(httpSource.includes('reserve_ai_request'), false)
+  assert.equal(httpSource.includes('reached its limit'), false)
+  assert.equal(policySource.includes('reached its limit'), false)
+  assert.equal(policySource.includes('reserve_ai_request'), false)
 
   delete process.env.NEXT_PUBLIC_SUPABASE_URL
   delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -219,6 +223,17 @@ try {
   assert.equal(envSource.includes('process.env[supabaseUrlName]'), false)
   assert.equal(envSource.includes('process.env[publishableKeyName]'), false)
   assert.equal(envSource.includes('OPENAI_API_KEY'), false)
+
+  const unpaidImages = providerFailure(429, 'You exceeded your current quota, please check your plan and billing details.', 'insufficient_quota', 'image provider', '')
+  assert.equal(unpaidImages.includes('no remaining credit'), true)
+  assert.equal(unpaidImages.includes('60 minutes'), false)
+  const providerLimited = providerFailure(429, 'Rate limit reached for requests.', 'rate_limit_exceeded', 'image provider', '')
+  assert.equal(providerLimited.includes('rate limiting'), true)
+  assert.equal(providerLimited.includes('60 minutes'), false)
+  const imageSource = readFileSync(new URL('../providers/openai-images.ts', import.meta.url), 'utf8')
+  assert.equal(imageSource.includes('imageFailure(response)'), true)
+  assert.equal(imageSource.includes('Nothing was retried.'), true)
+  assert.equal(imageSource.includes('reached its limit'), false)
 
   const sql = readFileSync(new URL('../../supabase/migrations/20261028210000_ai_request_reservations.sql', import.meta.url), 'utf8')
   assert.equal(sql.includes('security definer'), true)

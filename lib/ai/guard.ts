@@ -8,7 +8,6 @@ export async function openAiSession(): Promise<AiSession | Response> {
       auth: {
         getUser: () => supabase.auth.getUser(),
       },
-      rpc: async (name, args) => supabase.rpc(name, args),
     }
   } catch {
     return accountsNotConfigured()

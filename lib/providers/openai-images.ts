@@ -1,4 +1,5 @@
 import { aboveSpendCeiling, maxImageCalls, readReportedUsage, spendCeilingUsd, usageCostUsd } from '@/lib/providers/cost'
+import { providerFailure, readProviderError } from '@/lib/providers/provider-error'
 import { demoFixtureSrc } from '@/lib/providers/demo-images'
 import { imagePrompt, metaphorDirections } from '@/lib/providers/prompts'
 import type { ImageCandidate, ImageSetResult, ReportedUsage } from '@/lib/providers/types'
@@ -26,6 +27,22 @@ function demoImages(considered: string, notice: string): ImageSetResult {
   }
 }
 
+async function imageFailure(response: Response) {
+  let detail = ''
+  let code = ''
+  try {
+    const read = readProviderError(await response.json())
+    detail = read.detail
+    code = read.code
+  } catch {
+    detail = ''
+  }
+  const specific = providerFailure(response.status, detail, code, 'image provider', '')
+  if (specific) return specific
+  const extra = detail ? ` ${detail}` : ''
+  return `The image provider did not return an image.${extra} Nothing was retried.`
+}
+
 async function requestOneImage(prompt: string, apiKey: string, signal: AbortSignal) {
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
@@ -43,10 +60,7 @@ async function requestOneImage(prompt: string, apiKey: string, signal: AbortSign
     }),
     signal,
   })
-  if (!response.ok) {
-    const reason = response.status === 401 ? 'The image provider refused the credential.' : response.status === 429 ? 'The image provider is rate limiting. Nothing was retried.' : 'The image provider did not return an image. Nothing was retried.'
-    return { ok: false as const, reason }
-  }
+  if (!response.ok) return { ok: false as const, reason: await imageFailure(response) }
   const body = await response.json() as { data?: { b64_json?: string }[]; usage?: unknown }
   const encoded = body.data?.[0]?.b64_json
   if (!encoded) return { ok: false as const, reason: 'The image provider returned no image. Nothing was retried.' }

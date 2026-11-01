@@ -1,4 +1,4 @@
-import { considerWouldCallProvider, imagesWouldCallProvider, titlesWouldCallProvider, type AiEndpoint, type AiSession } from './policy.ts'
+import { beginAiTurn, considerWouldCallProvider, imagesWouldCallProvider, titlesWouldCallProvider, type AiEndpoint, type AiSession } from './policy.ts'
 import { configuredTextModel, requestTitleSuggestions } from '../providers/title-suggestions.ts'
 import type { ImageSetResult } from '../providers/types.ts'
 import { acceptTitleSuggestions, inspectTitleSuggestions, titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
@@ -8,7 +8,10 @@ const questionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 type Gate = {
   session: AiSession
   authenticate: (endpoint: AiEndpoint, session: AiSession) => Promise<Response | { userId: string }>
-  reserve: (endpoint: AiEndpoint, session: AiSession) => Promise<Response | null>
+}
+
+function startTurn(userId: string, endpoint: AiEndpoint, callsProvider: boolean) {
+  return callsProvider ? beginAiTurn(userId, endpoint) : null
 }
 
 export async function considerHttp(
@@ -38,16 +41,18 @@ export async function considerHttp(
   if (originalText.length > 2000) {
     return Response.json({ error: 'That question is too long to turn into an image prompt.' }, { status: 400 })
   }
-  if (considerWouldCallProvider()) {
-    const limited = await gate.reserve('consider', gate.session)
-    if (limited) return limited
+  const turn = startTurn(auth.userId, 'consider', considerWouldCallProvider())
+  if (turn instanceof Response) return turn
+  try {
+    const result = await consider(originalText)
+    if ('error' in result) {
+      const status = result.error.startsWith('No text model') ? 503 : 502
+      return Response.json({ error: result.error }, { status })
+    }
+    return Response.json({ proposal: result.proposal, source: 'openai' })
+  } finally {
+    turn?.()
   }
-  const result = await consider(originalText)
-  if ('error' in result) {
-    const status = result.error.startsWith('No text model') ? 503 : 502
-    return Response.json({ error: result.error }, { status })
-  }
-  return Response.json({ proposal: result.proposal, source: 'openai' })
 }
 
 export async function imagesHttp(
@@ -68,11 +73,13 @@ export async function imagesHttp(
   if (!consideredText || consideredText.length > 2000) {
     return Response.json({ error: 'Save a considered question before asking for images.' }, { status: 400 })
   }
-  if (imagesWouldCallProvider()) {
-    const limited = await gate.reserve('images', gate.session)
-    if (limited) return limited
+  const turn = startTurn(auth.userId, 'images', imagesWouldCallProvider())
+  if (turn instanceof Response) return turn
+  try {
+    return Response.json(await interpret(consideredText, request.signal))
+  } finally {
+    turn?.()
   }
-  return Response.json(await interpret(consideredText, request.signal))
 }
 
 type QuestionInput = { originalText?: unknown; consideredText?: unknown }
@@ -112,46 +119,48 @@ export async function titlesHttp(request: Request, gate: Gate) {
     OPENAI_TEXT_MODEL: process.env.OPENAI_TEXT_MODEL,
     OPENAI_MODEL: process.env.OPENAI_MODEL,
   })
-  if (titlesWouldCallProvider(model)) {
-    const limited = await gate.reserve('titles', gate.session)
-    if (limited) return limited
-  }
-  if (!process.env.OPENAI_API_KEY?.trim() || !model) {
-    return Response.json({ error: 'No text model is connected. Type a one- or two-word title yourself.' })
-  }
+  const turn = startTurn(auth.userId, 'titles', titlesWouldCallProvider(model))
+  if (turn instanceof Response) return turn
+  try {
+    if (!process.env.OPENAI_API_KEY?.trim() || !model) {
+      return Response.json({ error: 'No text model is connected. Type a one- or two-word title yourself.' })
+    }
 
-  const image = titleImageUrl(model, imageSrc)
-  const requested = await requestTitleSuggestions({
-    apiKey: process.env.OPENAI_API_KEY?.trim() ?? '',
-    model,
-    imageUrl: image.url,
-    prompt: titleSuggestionPrompt({
-      consideredText,
-      metaphor: metaphor || null,
-      questions,
-      sawImage: image.reason === 'seen',
-    }),
-  })
-  console.info(JSON.stringify({
-    titleSuggestion: {
+    const image = titleImageUrl(model, imageSrc)
+    const requested = await requestTitleSuggestions({
+      apiKey: process.env.OPENAI_API_KEY?.trim() ?? '',
       model,
-      httpStatus: requested.httpStatus,
-      ok: requested.ok,
-      finishReason: requested.finishReason,
-      contentPresent: requested.contentPresent,
-      contentType: requested.contentType,
-      ...('content' in requested ? inspectTitleSuggestions(requested.content) : { parsed: false, extracted: 0, passed: 0 }),
-    },
-  }))
-  if ('error' in requested) return Response.json({ error: requested.error })
+      imageUrl: image.url,
+      prompt: titleSuggestionPrompt({
+        consideredText,
+        metaphor: metaphor || null,
+        questions,
+        sawImage: image.reason === 'seen',
+      }),
+    })
+    console.info(JSON.stringify({
+      titleSuggestion: {
+        model,
+        httpStatus: requested.httpStatus,
+        ok: requested.ok,
+        finishReason: requested.finishReason,
+        contentPresent: requested.contentPresent,
+        contentType: requested.contentType,
+        ...('content' in requested ? inspectTitleSuggestions(requested.content) : { parsed: false, extracted: 0, passed: 0 }),
+      },
+    }))
+    if ('error' in requested) return Response.json({ error: requested.error })
 
-  const accepted = acceptTitleSuggestions(requested.content)
-  if ('error' in accepted) return Response.json({ error: accepted.error })
+    const accepted = acceptTitleSuggestions(requested.content)
+    if ('error' in accepted) return Response.json({ error: accepted.error })
 
-  const notice = image.reason === 'seen'
-    ? 'These suggestions used the selected image and the source questions. Choosing one only fills the title. Nothing is saved until you save the concept.'
-    : image.reason === 'model'
-      ? 'These suggestions used the wording only. This text model was not given the image, because that capability is not confirmed for it. Nothing is saved until you save the concept.'
-      : 'These suggestions used the wording and metaphor only. This image was not shown to the text model. Nothing is saved until you save the concept.'
-  return Response.json({ titles: accepted.titles, notice, sawImage: image.reason === 'seen' })
+    const notice = image.reason === 'seen'
+      ? 'These suggestions used the selected image and the source questions. Choosing one only fills the title. Nothing is saved until you save the concept.'
+      : image.reason === 'model'
+        ? 'These suggestions used the wording only. This text model was not given the image, because that capability is not confirmed for it. Nothing is saved until you save the concept.'
+        : 'These suggestions used the wording and metaphor only. This image was not shown to the text model. Nothing is saved until you save the concept.'
+    return Response.json({ titles: accepted.titles, notice, sawImage: image.reason === 'seen' })
+  } finally {
+    turn?.()
+  }
 }

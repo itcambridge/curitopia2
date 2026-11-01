@@ -1,5 +1,5 @@
 import { openAiSession } from '@/lib/ai/guard'
-import { authenticateAiUser, reserveAiEndpoint } from '@/lib/ai/policy'
+import { authenticateAiUser } from '@/lib/ai/policy'
 import { considerHttp } from '@/lib/ai/http'
 import { requestImagePrompt } from '@/lib/providers/image-prompt'
 import { configuredTextModel } from '@/lib/providers/title-suggestions'
@@ -24,6 +24,5 @@ export async function POST(request: Request) {
   return considerHttp(request, {
     session,
     authenticate: authenticateAiUser,
-    reserve: reserveAiEndpoint,
   }, consider, loadOwnedQuestionText)
 }

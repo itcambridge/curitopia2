@@ -1,3 +1,4 @@
+import { providerFailure, readProviderError } from './provider-error.ts'
 import { assistantText } from './title-suggestions.ts'
 
 const systemPrompt = [
@@ -30,12 +31,16 @@ function fitPrompt(text: string) {
 
 async function providerError(response: Response) {
   let detail = ''
+  let code = ''
   try {
-    const body = await response.json() as { error?: { message?: unknown } }
-    if (typeof body.error?.message === 'string') detail = body.error.message.replace(/\s+/g, ' ').trim().slice(0, 180)
+    const read = readProviderError(await response.json())
+    detail = read.detail
+    code = read.code
   } catch {
     detail = ''
   }
+  const specific = providerFailure(response.status, detail, code, 'text model', 'Your prompt was left unchanged. ')
+  if (specific) return specific
   const extra = detail ? ` ${detail}` : ''
   return `The text model did not return an image prompt.${extra} Your prompt was left unchanged.`
 }

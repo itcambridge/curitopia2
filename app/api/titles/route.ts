@@ -1,5 +1,5 @@
 import { openAiSession } from '@/lib/ai/guard'
-import { authenticateAiUser, reserveAiEndpoint } from '@/lib/ai/policy'
+import { authenticateAiUser } from '@/lib/ai/policy'
 import { titlesHttp } from '@/lib/ai/http'
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +10,5 @@ export async function POST(request: Request) {
   return titlesHttp(request, {
     session,
     authenticate: authenticateAiUser,
-    reserve: reserveAiEndpoint,
   })
 }

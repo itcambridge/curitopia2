@@ -137,6 +137,31 @@ const rejected = await requestTitleSuggestions({
 assert.equal('error' in rejected && rejected.error.includes('Unsupported parameter'), true)
 assert.equal('error' in rejected && rejected.error.includes('sk-test-secret'), false)
 
+let titleProviderCalls = 0
+const titleLimited = await requestTitleSuggestions({
+  apiKey: 'test-key',
+  model: 'gpt-6-luna',
+  prompt: 'Name it',
+  imageUrl: null,
+  fetchImpl: async () => {
+    titleProviderCalls += 1
+    return new Response(JSON.stringify({ error: { code: 'rate_limit_exceeded', message: 'Rate limit reached for requests.' } }), { status: 429 })
+  },
+})
+assert.equal(titleProviderCalls, 1)
+assert.equal('error' in titleLimited && titleLimited.error.includes('rate limiting'), true)
+assert.equal('error' in titleLimited && titleLimited.error.includes('60 minutes'), false)
+
+const titleUnpaid = await requestTitleSuggestions({
+  apiKey: 'test-key',
+  model: 'gpt-6-luna',
+  prompt: 'Name it',
+  imageUrl: null,
+  fetchImpl: async () => new Response(JSON.stringify({ error: { code: 'insufficient_quota', message: 'You exceeded your current quota.' } }), { status: 429 }),
+})
+assert.equal('error' in titleUnpaid && titleUnpaid.error.includes('no remaining credit'), true)
+assert.equal('error' in titleUnpaid && titleUnpaid.error.includes('60 minutes'), false)
+
 const route = readFileSync(new URL('../../app/api/titles/route.ts', import.meta.url), 'utf8')
 const provider = readFileSync(new URL('../providers/title-suggestions.ts', import.meta.url), 'utf8')
 assert.equal(route.includes('images/generations'), false)
