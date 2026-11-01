@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 import { Eyebrow, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import { withBasePath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
@@ -102,9 +102,7 @@ export function CuriosityLanding() {
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10">
         <header className="mb-10 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-11 place-items-center rounded-2xl bg-studio-coral text-studio-ivory shadow-studio-stamp">
-              <Sparkles size={20} />
-            </div>
+            <BrandMark />
             <h1 className="font-serif text-[1.7rem] font-semibold leading-none tracking-tight">curitopia</h1>
           </div>
           <div className="text-right text-xs text-studio-body">

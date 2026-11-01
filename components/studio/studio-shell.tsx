@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Home, LogOut, Sparkles } from 'lucide-react'
+import { Home, LogOut } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 import { StageMark } from '@/components/studio/stage-mark'
 import { withBasePath } from '@/lib/paths'
 import type { StageId } from '@/lib/questions/types'
@@ -47,9 +48,7 @@ export function StudioShell({
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
         <aside className="flex w-full min-w-0 flex-col overflow-x-hidden border-b border-studio-line bg-studio-sidebar px-5 py-5 lg:w-[250px] lg:border-b-0 lg:border-r lg:px-6 lg:py-8">
           <div className="mb-6 flex items-center gap-3 lg:mb-8">
-            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-studio-coral text-studio-ivory shadow-studio-stamp">
-              <Sparkles size={20} />
-            </div>
+            <BrandMark />
             <h1 className="font-serif text-[1.65rem] font-semibold leading-none tracking-tight">curitopia</h1>
           </div>
           <div className="mb-4 flex min-w-0 items-center gap-1.5">

@@ -1,4 +1,5 @@
-import { BookOpen, ChevronRight, FlaskConical, Lightbulb, Menu, Sparkles, Timer, WandSparkles } from 'lucide-react'
+import { BookOpen, ChevronRight, FlaskConical, Lightbulb, Menu, Timer, WandSparkles } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 import type { LucideIcon } from 'lucide-react'
 
 const stages: { id: string; label: string; icon: LucideIcon; note: string }[] = [
@@ -12,9 +13,7 @@ export function HomeSidebar({ active, onNavigate }: { active: string; onNavigate
     <aside className="flex w-full flex-col justify-between border-b border-studio-line bg-studio-sidebar px-6 py-6 lg:w-[238px] lg:border-b-0 lg:border-r lg:px-7 lg:py-8">
       <div>
         <div className="mb-10 flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-[14px] bg-studio-coral text-studio-ivory shadow-studio-stamp">
-            <Sparkles size={19} />
-          </div>
+          <BrandMark size="sm" />
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-studio-kicker">Field notes / 042</p>
             <h1 className="font-serif text-[22px] font-semibold tracking-tight">curitopia</h1>

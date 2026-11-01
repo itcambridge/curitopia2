@@ -8,21 +8,8 @@ export const metadata: Metadata = {
   description: 'Gather questions, curate them, compare images, and keep a short title with the image.',
   generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: withBasePath('/icon-light-32x32.png'),
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: withBasePath('/icon-dark-32x32.png'),
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: withBasePath('/icon.svg'),
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: withBasePath('/apple-icon.png'),
+    icon: [{ url: withBasePath('/Coral_logo.png'), type: 'image/png' }],
+    apple: withBasePath('/Coral_logo.png'),
   },
 }
 

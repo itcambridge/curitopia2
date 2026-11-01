@@ -3,8 +3,8 @@
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
 import { MissingSupabaseEnv } from '@/components/auth/missing-env'
+import { BrandMark } from '@/components/brand-mark'
 import { coralButton, quietButton } from '@/components/studio/studio-ui'
 import { authReturnUrl } from '@/lib/paths'
 import { createClient } from '@/lib/supabase/client'
@@ -93,9 +93,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     <main className="min-h-screen bg-studio-cream px-6 py-16 text-studio-ink">
       <section className="mx-auto max-w-lg rounded-[30px] border border-studio-line bg-studio-paper p-8 shadow-studio-card">
         <div className="mb-6 flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-[14px] bg-studio-coral text-studio-ivory shadow-studio-stamp">
-            <Sparkles size={19} />
-          </div>
+          <BrandMark size="sm" />
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-studio-kicker">Field notes</p>
             <p className="font-serif text-[22px] font-semibold tracking-tight">curitopia</p>
