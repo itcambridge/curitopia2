@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/client'
 import type { QuestionBranch } from '@/lib/questions/types'
 
+export const branchMigrationNotice = 'Branches are not saved yet. The question relationship migration still needs to be applied. Neither question was changed.'
+
 function branchSaveMessage(error: { code?: string; message?: string }) {
   const message = error.message ?? ''
   if (error.code === '42P01' || error.code === 'PGRST205' || /question_branches/i.test(message) && /does not exist|schema cache|could not find/i.test(message)) {
-    return 'Branches are not saved yet. The question relationship migration still needs to be applied. Neither question was changed.'
+    return branchMigrationNotice
   }
   if (error.code === '23505') return 'Those questions are already linked.'
   if (error.code === '23514') return 'A question cannot be linked to itself.'

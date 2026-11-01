@@ -71,7 +71,6 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
         <section className="flex min-w-0 flex-col rounded-[30px] border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">
           <div className="order-1 mb-6">
             <Eyebrow>The question garden</Eyebrow>
-            <p className="mt-2 max-w-xl text-sm text-studio-body">Seeds are newly captured questions. Shoots are questions you choose to explore further. Branches are connections between questions. Blossoms are visual concepts grown from one or more questions.</p>
           </div>
           <div className="order-3 xl:order-2">
             <QuestionGarden
@@ -125,7 +124,6 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
                 Plant <ArrowUpRight size={16} />
               </button>
             </div>
-            <p className="mt-2 text-xs text-studio-note-on">Enter plants the question and adds a question mark when one is missing.</p>
             {error && <p role="alert" className="mt-3 text-sm text-studio-coral">{error}</p>}
           </form>
           {questions.length > 0 && (

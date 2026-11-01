@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Pause, Pencil, Trash2 } from 'lucide-react'
+import { Check, Pause, Pencil, Trash2, Undo2 } from 'lucide-react'
 import { branchPartners, correctOriginal, duplicateGroups, foldedQuestions, linkQuestions, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition } from '@/lib/questions/workspace'
 import type { QuestionRecord, Workspace } from '@/lib/questions/types'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, Notice, coralButton, iconButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, Notice, coralButton, iconButton, iconCoralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 
 export function CurateStage({ workspace, onChange }: { workspace: Workspace; onChange: (workspace: Workspace) => void }) {
   const groups = duplicateGroups(workspace)
@@ -20,7 +20,7 @@ export function CurateStage({ workspace, onChange }: { workspace: Workspace; onC
     <div className="flex min-w-0 flex-col gap-8">
       <header>
         <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Keep what is worth carrying.</h2>
-        <p className="mt-3 max-w-2xl text-sm text-studio-body">{waiting.length} gathered, {retained.length} retained, {parked.length} parked, {discarded.length} discarded. Parking and discarding leave the wording here. Nothing is removed by a suggestion.</p>
+        <p className="mt-3 max-w-2xl text-sm text-studio-body">{waiting.length} gathered, {retained.length} retained, {parked.length} parked, {discarded.length} discarded.</p>
         <StageMark stage="curate" placement="content" />
       </header>
       {groups.length > 0 && (
@@ -127,7 +127,9 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
           </button>
         )}
         {item.disposition !== 'retained' && !discarded && (
-          <button type="button" className={coralButton} onClick={() => onChange(setDisposition(workspace, item.id, 'retained'))}>Keep</button>
+          <button type="button" className={iconCoralButton} aria-label="Keep" title="Keep" onClick={() => onChange(setDisposition(workspace, item.id, 'retained'))}>
+            <Check size={16} aria-hidden="true" />
+          </button>
         )}
         {!parked && !discarded && (
           <button type="button" className={iconButton} aria-label="Park" title="Park" onClick={() => onChange(setDisposition(workspace, item.id, 'parked'))}>
@@ -140,7 +142,9 @@ function QuestionRow({ fieldId, item, workspace, onChange }: { fieldId: string; 
           </button>
         )}
         {(parked || discarded) && (
-          <button type="button" className={coralButton} onClick={() => onChange(restoreQuestion(workspace, item.id))}>Restore</button>
+          <button type="button" className={iconCoralButton} aria-label="Restore" title="Restore" onClick={() => onChange(restoreQuestion(workspace, item.id))}>
+            <Undo2 size={16} aria-hidden="true" />
+          </button>
         )}
       </div>
       {partners.length > 0 && (

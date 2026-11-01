@@ -54,8 +54,7 @@ export function DistilStage({
     <div className="flex min-w-0 flex-col gap-8">
       <header>
         <Eyebrow>4 · Distil</Eyebrow>
-        <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Name the image, not the sentence.</h2>
-        <p className="mt-3 max-w-2xl text-sm text-studio-body">A concept keeps one image, a one- or two-word title, and the questions that informed it. Nothing is stored in the account until you save it here.</p>
+        <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Keyword titles help to summarise concepts</h2>
         <StageMark stage="distil" placement="content" />
       </header>
       {(anchor || concept) && image ? (
@@ -73,11 +72,7 @@ export function DistilStage({
           saving={saving}
           savedConceptId={savedConceptId}
         />
-      ) : (
-        <div className={panelClass}>
-          <p className="max-w-xl text-studio-body">Use an image in Visualise, name it here, then save the concept to your library. A concept already saved can be opened from the list below.</p>
-        </div>
-      )}
+      ) : null}
       <section className="min-w-0">
         <h3 className="mb-3 font-serif text-2xl">Retained concepts</h3>
         {workspace.concepts.length === 0 ? <p className="text-sm text-studio-body">None yet.</p> : (
@@ -284,7 +279,6 @@ function Composer({
           <button type="button" className={quietButton} disabled={suggesting || saving || !informing.trim()} onClick={() => { void askForTitles() }}>
             {suggesting ? 'Suggesting titles…' : suggestions.length > 0 ? 'Suggest different titles' : 'Suggest titles'}
           </button>
-          <p className="mt-2 text-sm text-studio-body">Suggestions are temporary. Choosing one fills the title field. It does not save the concept or change the image.</p>
           {suggestError && <p role="alert" className="mt-2 text-sm text-studio-coral">{suggestError}</p>}
           {suggestNotice && !suggestError && <p role="status" className="mt-2 text-sm text-studio-body">{suggestNotice}</p>}
           {suggestions.length > 0 && (
@@ -303,11 +297,6 @@ function Composer({
             </div>
           )}
         </div>
-        <p className="text-sm text-studio-body">
-          {usingNewImage
-            ? 'Saving stores this image and its source-question links in the signed-in account. Nothing is stored until you use the button.'
-            : 'Saving writes the title and source-question links to the concept already in this account.'}
-        </p>
         {saving && (
           <p role="status" className="text-sm text-studio-body">
             {concept?.imagePath

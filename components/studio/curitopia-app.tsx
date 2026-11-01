@@ -9,7 +9,14 @@ import { useAccountWorkspace } from '@/components/studio/use-account-workspace'
 import { VisualiseStage } from '@/components/studio/visualise-stage'
 import type { StageId } from '@/lib/questions/types'
 import { withBasePath } from '@/lib/paths'
+import { branchMigrationNotice } from '@/lib/questions/supabase-branches'
 import { workspaceCounts } from '@/lib/questions/workspace'
+
+function noticeForStage(stage: StageId, error: string | null) {
+  if (!error || stage !== 'gather') return error
+  const rest = error.split(branchMigrationNotice).join(' ').replace(/\s+/g, ' ').trim()
+  return rest || null
+}
 
 export function CuritopiaApp({ curiosityId }: { curiosityId: string }) {
   const account = useAccountWorkspace(curiosityId)
@@ -18,9 +25,11 @@ export function CuritopiaApp({ curiosityId }: { curiosityId: string }) {
     account.write({ ...account.workspace, stage })
   }
 
+  const notice = noticeForStage(account.workspace.stage, account.storeError)
+
   return (
     <StudioShell stage={account.workspace.stage} counts={workspaceCounts(account.workspace)} onStage={openStage} email={account.email} curiosityName={account.curiosityName} onSignOut={() => { void account.signOut() }}>
-      {account.storeError && <p role="alert" className="mb-4 text-sm">{account.storeError}</p>}
+      {notice && <p role="alert" className="mb-4 text-sm">{notice}</p>}
       {!account.ready ? <p className="text-sm text-studio-muted">Opening the workspace…</p> : account.missingCuriosity ? (
         <p className="text-sm">This curiosity is not in your account. <a className="font-semibold underline-offset-2 hover:underline" href={withBasePath('/')}>Return to your curiosities</a></p>
       ) : (
