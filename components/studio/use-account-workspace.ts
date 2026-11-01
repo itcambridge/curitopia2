@@ -12,6 +12,7 @@ import { curiosityDraftRepository } from '@/lib/questions/store'
 import { listQuestions } from '@/lib/questions/supabase-questions'
 import { createClient } from '@/lib/supabase/client'
 import type { ConceptRecord, QuestionBranch, QuestionRecord, Workspace } from '@/lib/questions/types'
+import { studioPath } from '@/lib/paths'
 import { emptyWorkspace } from '@/lib/questions/workspace'
 
 export function useAccountWorkspace(curiosityId: string) {
@@ -227,7 +228,7 @@ export function useAccountWorkspace(curiosityId: string) {
     show(emptyWorkspace())
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/sign-in')
+    router.push(studioPath('/sign-in'))
     router.refresh()
   }
 

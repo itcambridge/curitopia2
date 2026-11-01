@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { NextRequest } from 'next/server.js'
-import { authReturnUrl, externalRedirectPath, sessionRedirectPath, withBasePath } from './paths.ts'
+import { authReturnUrl, externalRedirectPath, sessionRedirectPath, studioPath, withBasePath } from './paths.ts'
 import { readBasePath, resolveConfiguredBasePath } from './base-path.mjs'
 
 const saved = process.env.NEXT_PUBLIC_BASE_PATH
@@ -20,6 +20,10 @@ try {
   assert.equal(withBasePath('https://api.openai.com/v1/images/generations'), 'https://api.openai.com/v1/images/generations')
   assert.equal(withBasePath('https://example.supabase.co/storage/v1/object/sign/concept-images/a.png'), 'https://example.supabase.co/storage/v1/object/sign/concept-images/a.png')
   assert.equal(withBasePath('data:image/png;base64,abc'), 'data:image/png;base64,abc')
+  assert.equal(studioPath('/'), '/42')
+  assert.equal(studioPath('/sign-in'), '/42/sign-in')
+  assert.equal(studioPath('/?curiosity=abc'), '/42?curiosity=abc')
+  assert.equal(studioPath('/42/sign-in'), '/42/sign-in')
 
   useBase('/42')
   assert.equal(readBasePath('/42'), '/42')
@@ -31,12 +35,16 @@ try {
   assert.equal(withBasePath('/?curiosity=abc'), '/42/?curiosity=abc')
   assert.equal(withBasePath('/42/sign-in'), '/42/sign-in')
   assert.equal(authReturnUrl('https://curitopia.com/'), 'https://curitopia.com/42/sign-in')
+  assert.equal(studioPath('/'), '/')
+  assert.equal(studioPath('/sign-in'), '/sign-in')
+  assert.equal(studioPath('/?curiosity=abc'), '/?curiosity=abc')
   assert.equal(withBasePath('https://api.openai.com/v1/chat/completions'), 'https://api.openai.com/v1/chat/completions')
   assert.throws(() => readBasePath('42'), /NEXT_PUBLIC_BASE_PATH/)
   assert.throws(() => readBasePath('/42/'), /NEXT_PUBLIC_BASE_PATH/)
   assert.throws(() => readBasePath('https://curitopia.com/42'), /NEXT_PUBLIC_BASE_PATH/)
 
   assert.equal(sessionRedirectPath('/', false), '/sign-in')
+  assert.equal(sessionRedirectPath('/site', false), null)
   assert.equal(sessionRedirectPath('/sign-in', false), null)
   assert.equal(sessionRedirectPath('/sign-up', false), null)
   assert.equal(sessionRedirectPath('/api/images', false), null)
@@ -52,9 +60,16 @@ try {
   assert.equal(externalRedirectPath('/library', false, '/42', '/42'), '/sign-in')
   assert.equal(externalRedirectPath('/sign-in', true, '/42', '/42'), '/')
   assert.equal(externalRedirectPath('/sign-in', false, '', ''), null)
-  assert.equal(externalRedirectPath('/', false, '', ''), '/sign-in')
+  assert.equal(externalRedirectPath('/', false, '', ''), null)
+  assert.equal(externalRedirectPath('/', true, '', ''), null)
+  assert.equal(externalRedirectPath('/site', false, '', ''), null)
+  assert.equal(externalRedirectPath('/42', false, '', ''), '/42/sign-in')
+  assert.equal(externalRedirectPath('/42/sign-in', false, '', ''), null)
+  assert.equal(externalRedirectPath('/42/sign-in', true, '', ''), '/42')
+  assert.equal(externalRedirectPath('/42/api/consider', false, '', ''), null)
+  assert.equal(externalRedirectPath('/', false, '/42', ''), '/42/sign-in')
   assert.equal(externalRedirectPath('/api/consider', false, '', ''), null)
-  assert.equal(externalRedirectPath('/sign-in', true, '', ''), '/')
+  assert.equal(externalRedirectPath('/sign-in', true, '', ''), '/42')
 
   assert.equal(resolveConfiguredBasePath({ envValue: '/42', phase: 'phase-production-build', nodeEnv: 'production', manifestBasePath: '', command: 'build' }), '/42')
   assert.equal(resolveConfiguredBasePath({ envValue: '', phase: 'phase-production-build', nodeEnv: 'production', manifestBasePath: '/42', command: 'build' }), '')
@@ -87,9 +102,7 @@ try {
   const local = new NextRequest('http://localhost:3000/sign-in')
   assert.equal(local.nextUrl.pathname, '/sign-in')
   assert.equal(local.nextUrl.basePath, '')
-  const localHome = local.nextUrl.clone()
-  localHome.pathname = sessionRedirectPath(local.nextUrl.pathname, true) ?? localHome.pathname
-  assert.equal(localHome.href, 'http://localhost:3000/')
+  assert.equal(externalRedirectPath(local.nextUrl.pathname, true, '', local.nextUrl.basePath), '/42')
 } finally {
   useBase(saved)
 }

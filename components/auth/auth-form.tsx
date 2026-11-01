@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { MissingSupabaseEnv } from '@/components/auth/missing-env'
 import { BrandMark } from '@/components/brand-mark'
 import { coralButton, quietButton } from '@/components/studio/studio-ui'
-import { authReturnUrl } from '@/lib/paths'
+import { authReturnUrl, studioPath } from '@/lib/paths'
 import { createClient } from '@/lib/supabase/client'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 
@@ -58,7 +58,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           setError(authMessage(mode, signInError))
           return
         }
-        router.push('/')
+        router.push(studioPath('/'))
         router.refresh()
         return
       }
@@ -72,7 +72,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         return
       }
       if (data.session) {
-        router.push('/')
+        router.push(studioPath('/'))
         router.refresh()
         return
       }

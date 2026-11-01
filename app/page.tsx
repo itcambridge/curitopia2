@@ -1,30 +1,22 @@
-import { redirect } from 'next/navigation'
-import { MissingSupabaseEnv } from '@/components/auth/missing-env'
-import { CuriosityLanding } from '@/components/studio/curiosity-landing'
-import { CuritopiaApp } from '@/components/studio/curitopia-app'
-import { readPublicSupabaseEnv } from '@/lib/supabase/env'
-import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
+import { ConsultancyPage } from '@/components/consultancy/landing'
+import { consultancyMetadata } from '@/components/consultancy/metadata'
+import { CuritopiaEntry } from '@/components/studio/curitopia-entry'
 
-export default async function Page({
+const studioAtRoot = Boolean(process.env.NEXT_PUBLIC_BASE_PATH?.trim())
+
+export const metadata: Metadata = studioAtRoot
+  ? {
+      title: 'Curitopia',
+      description: 'Gather questions, curate them, compare images, and keep a short title with the image.',
+    }
+  : consultancyMetadata
+
+export default function Page({
   searchParams,
 }: {
   searchParams: Promise<{ curiosity?: string }>
 }) {
-  if (!readPublicSupabaseEnv()) return <MissingSupabaseEnv />
-  const supabase = await createClient()
-  let signedIn = false
-  try {
-    const { data, error } = await supabase.auth.getClaims()
-    signedIn = !error && Boolean(data?.claims)
-  } catch {
-    return (
-      <main className="min-h-screen bg-studio-cream px-6 py-16 text-studio-ink">
-        <p className="mx-auto max-w-lg text-sm">The account session could not be checked. Refresh the page and try again.</p>
-      </main>
-    )
-  }
-  if (!signedIn) redirect('/sign-in')
-  const { curiosity } = await searchParams
-  if (!curiosity) return <CuriosityLanding />
-  return <CuritopiaApp key={curiosity} curiosityId={curiosity} />
+  if (studioAtRoot) return <CuritopiaEntry searchParams={searchParams} />
+  return <ConsultancyPage />
 }

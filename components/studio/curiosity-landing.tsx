@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { BrandMark } from '@/components/brand-mark'
 import { Eyebrow, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
-import { withBasePath } from '@/lib/paths'
+import { studioPath, withBasePath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { createCuriosity, listCuriosities, renameCuriosity, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
 import { createClient } from '@/lib/supabase/client'
@@ -66,7 +66,7 @@ export function CuriosityLanding() {
     setError(null)
     try {
       const id = await createCuriosity(name)
-      router.push(`/?curiosity=${id}`)
+      router.push(studioPath(`/?curiosity=${id}`))
       router.refresh()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The curiosity could not be created.')
@@ -93,7 +93,7 @@ export function CuriosityLanding() {
   async function signOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/sign-in')
+    router.push(studioPath('/sign-in'))
     router.refresh()
   }
 
