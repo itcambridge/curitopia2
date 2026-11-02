@@ -125,6 +125,7 @@ export type Database = {
       }
       curiosities: {
         Row: {
+          cover_image_path: string | null
           created_at: string
           id: string
           name: string
@@ -133,6 +134,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cover_image_path?: string | null
           created_at?: string
           id: string
           name: string
@@ -141,6 +143,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cover_image_path?: string | null
           created_at?: string
           id?: string
           name?: string
