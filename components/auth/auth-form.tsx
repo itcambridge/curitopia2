@@ -137,9 +137,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </form>
         <p className="mt-6 text-sm text-studio-body">
           {signIn ? (
-            <>New here? <Link className={`${quietButton} ml-2 inline-block`} href="/sign-up">Create an account</Link></>
+            <>New here? <Link className={`${quietButton} ml-2 inline-block`} href={studioPath('/sign-up')}>Create an account</Link></>
           ) : (
-            <>Already have an account? <Link className={`${quietButton} ml-2 inline-block`} href="/sign-in">Sign in</Link></>
+            <>Already have an account? <Link className={`${quietButton} ml-2 inline-block`} href={studioPath('/sign-in')}>Sign in</Link></>
           )}
         </p>
       </section>

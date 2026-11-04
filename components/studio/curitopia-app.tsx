@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { CurateStage } from '@/components/studio/curate-stage'
 import { DistilStage } from '@/components/studio/distil-stage'
 import { GatherStage } from '@/components/studio/gather-stage'
@@ -8,7 +9,7 @@ import { StudioShell } from '@/components/studio/studio-shell'
 import { useAccountWorkspace } from '@/components/studio/use-account-workspace'
 import { VisualiseStage } from '@/components/studio/visualise-stage'
 import type { StageId } from '@/lib/questions/types'
-import { withBasePath } from '@/lib/paths'
+import { studioPath } from '@/lib/paths'
 import { branchMigrationNotice } from '@/lib/questions/supabase-branches'
 import { workspaceCounts } from '@/lib/questions/workspace'
 
@@ -31,7 +32,7 @@ export function CuritopiaApp({ curiosityId }: { curiosityId: string }) {
     <StudioShell stage={account.workspace.stage} counts={workspaceCounts(account.workspace)} onStage={openStage} email={account.email} curiosityName={account.curiosityName} onSignOut={() => { void account.signOut() }}>
       {notice && <p role="alert" className="mb-4 text-sm">{notice}</p>}
       {!account.ready ? <p className="text-sm text-studio-muted">Opening the workspace…</p> : account.missingCuriosity ? (
-        <p className="text-sm">This curiosity is not in your account. <a className="font-semibold underline-offset-2 hover:underline" href={withBasePath('/')}>Return to your curiosities</a></p>
+        <p className="text-sm">This curiosity is not in your account. <Link className="font-semibold underline-offset-2 hover:underline" href={studioPath('/')}>Return to your curiosities</Link></p>
       ) : (
         <>
           {account.workspace.stage === 'gather' && <GatherStage workspace={account.workspace} onChange={account.write} saveIssue={account.storeError} />}

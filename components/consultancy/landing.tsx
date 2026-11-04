@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import { consultantName, consultantTitle, contactEmail, navigation, projects, qualifications, results, services, stages } from '@/components/consultancy/content'
+import { SiteBanner } from '@/components/site-banner'
 import { withBasePath } from '@/lib/paths'
 
-const sectionClass = 'scroll-mt-28 border-t border-studio-line px-5 py-20 sm:px-8 sm:py-28'
+const sectionClass = 'scroll-mt-40 border-t border-studio-line px-5 py-20 sm:px-8 sm:py-28'
 const copyClass = 'max-w-2xl text-lg leading-relaxed text-studio-body'
 const cardClass = 'flex h-full flex-col border border-studio-line bg-studio-paper p-6 sm:p-8'
 
@@ -21,6 +22,7 @@ export function ConsultancyPage() {
       </a>
       <header id="top" className="sticky top-0 z-20 border-b border-studio-line bg-studio-cream/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-4 sm:px-8">
+          <SiteBanner alt="curitopia" />
           <div className="flex items-baseline justify-between gap-6">
             <a href="#top" className="font-serif text-xl tracking-tight">
               {consultantName}
@@ -122,7 +124,7 @@ export function ConsultancyPage() {
             </SectionIntro>
             <div className="mt-12 grid gap-4 lg:grid-cols-2">
               {projects.map((project) => (
-                <article key={project.id} id={project.id} className={`${cardClass} scroll-mt-28`}>
+                <article key={project.id} id={project.id} className={`${cardClass} scroll-mt-40`}>
                   <h3 className="font-serif text-2xl tracking-tight sm:text-3xl">{project.title}</h3>
                   <p className="mt-4 leading-relaxed text-studio-body">{project.summary}</p>
                   <ul className="mt-5 space-y-2 text-sm leading-relaxed text-studio-body">
@@ -186,10 +188,10 @@ export function ConsultancyPage() {
           </div>
         </section>
 
-        <section id="curitopia" className="scroll-mt-28 bg-studio-ink px-5 py-20 text-studio-cream sm:px-8 sm:py-28" aria-labelledby="curitopia-heading">
+        <section id="curitopia" className="scroll-mt-40 bg-studio-ink px-5 py-20 text-studio-cream sm:px-8 sm:py-28" aria-labelledby="curitopia-heading">
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[auto_minmax(0,1fr)]">
             <Image
-              src={withBasePath('/Coral_logo.png')}
+              src={withBasePath('/Coral-logo.png')}
               alt=""
               width={96}
               height={96}

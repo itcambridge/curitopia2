@@ -1,15 +1,20 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ImagePlus } from 'lucide-react'
-import { BrandMark } from '@/components/brand-mark'
+import { SiteBanner } from '@/components/site-banner'
 import { Eyebrow, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
-import { studioPath, withBasePath } from '@/lib/paths'
+import { studioPath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { clearCuriosityCover, createCuriosity, listCuriosities, renameCuriosity, setCuriosityCover, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
 import { createClient } from '@/lib/supabase/client'
 import type { StageId } from '@/lib/questions/types'
+
+function curiosityPath(id: string) {
+  return studioPath(`/?curiosity=${encodeURIComponent(id)}`)
+}
 
 const stageLabel: Record<StageId, string> = {
   gather: 'Gather',
@@ -72,7 +77,7 @@ export function CuriosityLanding() {
     setError(null)
     try {
       const id = await createCuriosity(name)
-      router.push(studioPath(`/?curiosity=${id}`))
+      router.push(curiosityPath(id))
       router.refresh()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The curiosity could not be created.')
@@ -137,14 +142,12 @@ export function CuriosityLanding() {
   return (
     <main className="min-h-screen bg-studio-cream text-studio-ink">
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10">
-        <header className="mb-10 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <BrandMark />
-            <h1 className="font-serif text-[1.7rem] font-semibold leading-none tracking-tight">curitopia</h1>
-          </div>
-          <div className="text-right text-xs text-studio-body">
-            <p className="truncate">{email ?? 'Signed in'}</p>
-            <button type="button" onClick={() => { void signOut() }} className="mt-2 font-semibold text-studio-ink underline-offset-2 hover:underline">Sign out</button>
+        <header className="mb-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <h1 className="sr-only">curitopia</h1>
+          <SiteBanner />
+          <div className="ml-auto min-w-0 text-right text-xs text-studio-body">
+            <p className="max-w-48 truncate sm:max-w-xs">{email ?? 'Signed in'}</p>
+            <button type="button" onClick={() => { void signOut() }} className="mt-1 font-semibold text-studio-ink underline-offset-2 hover:underline">Sign out</button>
           </div>
         </header>
         <div className="mb-10 max-w-xl">
@@ -191,8 +194,8 @@ export function CuriosityLanding() {
                   </form>
                 ) : (
                   <>
-                    <a
-                      href={withBasePath(`/?curiosity=${item.id}`)}
+                    <Link
+                      href={curiosityPath(item.id)}
                       aria-label={`Open ${item.name}`}
                       className="absolute inset-0 z-0 rounded-[30px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral"
                     />

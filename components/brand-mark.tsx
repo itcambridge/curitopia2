@@ -10,7 +10,7 @@ export function BrandMark({ size = 'md' }: { size?: keyof typeof sizes }) {
   const mark = sizes[size]
   return (
     <Image
-      src={withBasePath('/Coral_logo.png')}
+      src={withBasePath('/Coral-logo.png')}
       alt=""
       width={mark.pixels}
       height={mark.pixels}

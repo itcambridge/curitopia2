@@ -23,6 +23,9 @@ try {
   assert.equal(studioPath('/'), '/42')
   assert.equal(studioPath('/sign-in'), '/42/sign-in')
   assert.equal(studioPath('/?curiosity=abc'), '/42?curiosity=abc')
+  assert.equal(studioPath('/?curiosity=abc&kept=1'), '/42?curiosity=abc&kept=1')
+  assert.equal(studioPath('/?curiosity=a%20b#garden'), '/42?curiosity=a%20b#garden')
+  assert.equal(studioPath('/sign-in?next=/library#notes'), '/42/sign-in?next=/library#notes')
   assert.equal(studioPath('/42/sign-in'), '/42/sign-in')
 
   useBase('/42')
@@ -38,6 +41,8 @@ try {
   assert.equal(studioPath('/'), '/')
   assert.equal(studioPath('/sign-in'), '/sign-in')
   assert.equal(studioPath('/?curiosity=abc'), '/?curiosity=abc')
+  assert.equal(studioPath('/?curiosity=abc&kept=1#garden'), '/?curiosity=abc&kept=1#garden')
+  assert.equal(studioPath('/sign-up?next=/library#notes'), '/sign-up?next=/library#notes')
   assert.equal(withBasePath('https://api.openai.com/v1/chat/completions'), 'https://api.openai.com/v1/chat/completions')
   assert.throws(() => readBasePath('42'), /NEXT_PUBLIC_BASE_PATH/)
   assert.throws(() => readBasePath('/42/'), /NEXT_PUBLIC_BASE_PATH/)
