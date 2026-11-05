@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronRight, Play, Sparkles } from 'lucide-react'
 import { QuestionGarden } from '@/components/studio/question-garden'
-import { addQuestion, branchPartners, correctOriginal, foldedQuestions, plantedQuestion, questionPlace } from '@/lib/questions/workspace'
+import { useScreenDraft } from '@/components/studio/leave-guard'
+import { addQuestion, branchPartners, correctOriginal, foldedQuestions, openVisualise, plantedQuestion, questionPlace, visualiseQuestions, visualiseTarget } from '@/lib/questions/workspace'
 import type { StageId, Workspace } from '@/lib/questions/types'
 import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, inkButton, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 
 const shelfDots = ['bg-studio-coral', 'bg-studio-violet', 'bg-studio-mint', 'bg-studio-grove']
 
-export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Workspace; onChange: (workspace: Workspace) => void; saveIssue: string | null }) {
+export function GatherStage({ workspace, onChange, saveIssue, branchNotice = null }: { workspace: Workspace; onChange: (workspace: Workspace) => void; saveIssue: string | null; branchNotice?: string | null }) {
   const [text, setText] = useState('')
   const submitted = useRef<{ id: string; text: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -18,9 +19,12 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
   const [error, setError] = useState<string | null>(null)
   const field = useRef<HTMLInputElement>(null)
   const questions = workspace.questions.filter((item) => !item.mergedIntoId)
+  const visualisable = new Set(visualiseQuestions(workspace).map((item) => item.id))
   const linked = new Set(workspace.branches.flatMap((branch) => [branch.questionLowId, branch.questionHighId]))
   const shelf = shelfPreview(questions)
   const invitation = nextInvitation(workspace)
+  const editing = questions.find((item) => item.id === editingId)
+  useScreenDraft(text.trim() !== '' || Boolean(editing && correction.trim() !== editing.originalText.trim()))
 
   function add(value: string) {
     const original = plantedQuestion(value)
@@ -51,6 +55,11 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
 
   function open(stage: StageId) {
     onChange({ ...workspace, stage })
+  }
+
+  function visualise(questionId: string) {
+    const next = openVisualise(workspace, questionId)
+    if (next !== workspace) onChange(next)
   }
 
   return (
@@ -126,6 +135,7 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
             </div>
             {error && <p role="alert" className="mt-3 text-sm text-studio-coral">{error}</p>}
           </form>
+          {branchNotice ? <p role="status" className="order-4 mt-6 text-sm leading-relaxed text-studio-body">{branchNotice}</p> : null}
           {questions.length > 0 && (
             <ul aria-label="Captured questions" className={`order-4 mt-8 border-t border-studio-line pt-6 ${questionListClass}`}>
               {questions.map((item) => {
@@ -164,13 +174,25 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
                     ) : (
                       <>
                         <p className="mt-1 break-words font-serif text-2xl leading-snug">{item.originalText}</p>
-                        <button
-                          type="button"
-                          className="mt-2 text-sm text-studio-grove underline-offset-4 hover:underline"
-                          onClick={() => { setEditingId(item.id); setCorrection(item.originalText) }}
-                        >
-                          Correct the capture
-                        </button>
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                          {visualisable.has(item.id) && (
+                            <button
+                              type="button"
+                              className={quietButton}
+                              aria-label={`Visualise: ${item.originalText}`}
+                              onClick={() => visualise(item.id)}
+                            >
+                              Visualise
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="text-sm text-studio-grove underline-offset-4 hover:underline"
+                            onClick={() => { setEditingId(item.id); setCorrection(item.originalText) }}
+                          >
+                            Correct the capture
+                          </button>
+                        </div>
                       </>
                     )}
                     {folded.length > 0 && (
@@ -201,7 +223,14 @@ export function GatherStage({ workspace, onChange, saveIssue }: { workspace: Wor
             <h3 className="mt-2 max-w-[16rem] font-serif text-3xl leading-tight">{invitation.title}</h3>
             <button
               type="button"
-              onClick={() => invitation.stage ? open(invitation.stage) : field.current?.focus()}
+              onClick={() => {
+                if (invitation.questionId) {
+                  visualise(invitation.questionId)
+                  return
+                }
+                if (invitation.stage) open(invitation.stage)
+                else field.current?.focus()
+              }}
               className="mt-8 flex items-center gap-2 text-sm font-semibold underline decoration-studio-grove underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-ink"
             >
               {invitation.action} <ArrowUpRight size={15} />
@@ -249,19 +278,13 @@ function shelfPreview(questions: Workspace['questions']) {
   return [...retained, ...others].slice(0, 4)
 }
 
-function nextInvitation(workspace: Workspace): { eyebrow: string; title: string; action: string; stage: StageId | null } {
-  const open = workspace.questions.filter((item) => !item.mergedIntoId)
-  if (open.length === 0) {
-    return { eyebrow: 'Begin here', title: 'Start with something you notice.', action: 'Plant a seed', stage: null }
-  }
-  if (open.some((item) => item.disposition === 'gathered')) {
-    return { eyebrow: 'Curate', title: 'Tend what catches your attention.', action: 'Open Curate', stage: 'curate' }
-  }
-  if (open.some((item) => item.disposition === 'retained')) {
-    return { eyebrow: 'Visualise', title: 'Make the invisible visible.', action: 'Open Visualise', stage: 'visualise' }
+function nextInvitation(workspace: Workspace): { eyebrow: string; title: string; action: string; questionId: string | null; stage: StageId | null } {
+  const target = visualiseTarget(workspace)
+  if (target) {
+    return { eyebrow: 'Visualise', title: 'What might this question look like?', action: 'Visualise', questionId: target.id, stage: 'visualise' }
   }
   if (workspace.concepts.length > 0) {
-    return { eyebrow: 'Library', title: 'Return to what is still unfolding.', action: 'Open the library', stage: 'library' }
+    return { eyebrow: 'Library', title: 'Return to what is still unfolding.', action: 'Open the library', questionId: null, stage: 'library' }
   }
-  return { eyebrow: 'Curate', title: 'Tend what catches your attention.', action: 'Open Curate', stage: 'curate' }
+  return { eyebrow: 'Begin here', title: 'Start with something you notice.', action: 'Plant a seed', questionId: null, stage: null }
 }

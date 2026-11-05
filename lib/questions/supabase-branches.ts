@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/client'
+import { branchMigrationNotice } from './branch-notice.ts'
 import type { QuestionBranch } from '@/lib/questions/types'
 
-export const branchMigrationNotice = 'Branches are not saved yet. The question relationship migration still needs to be applied. Neither question was changed.'
+export { branchMigrationNotice } from './branch-notice.ts'
 
 function branchSaveMessage(error: { code?: string; message?: string }) {
   const message = error.message ?? ''

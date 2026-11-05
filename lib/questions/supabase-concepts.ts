@@ -1,6 +1,6 @@
 import { readConceptImage } from '@/lib/questions/concept-image'
 import { linkChanges } from '@/lib/questions/concept-links'
-import type { ConceptRecord, ConceptSource, QuestionRecord } from '@/lib/questions/types'
+import type { ConceptRecord, ConceptSource, LibraryConcept, QuestionRecord } from '@/lib/questions/types'
 import { createClient } from '@/lib/supabase/client'
 
 const bucket = 'concept-images'
@@ -34,10 +34,10 @@ function conceptMessage(error: { code?: string; message?: string }, fallback: st
   return fallback
 }
 
-async function signedIn() {
+async function signedIn(action = 'saving a concept') {
   const supabase = createClient()
   const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) throw new Error('Sign in again before saving a concept.')
+  if (error || !data.user) throw new Error(`Sign in again before ${action}.`)
   return { supabase, userId: data.user.id }
 }
 
@@ -48,6 +48,19 @@ function toSource(row: LinkRow): ConceptSource {
     originalText: row.original_text_snapshot,
     consideredText: row.considered_text_snapshot,
   }
+}
+
+async function signedImageUrls(paths: string[]) {
+  const signed = new Map<string, string>()
+  if (paths.length === 0) return signed
+  const { supabase } = await signedIn()
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(paths, signedUrlSeconds)
+  if (error) throw new Error('The saved images could not be opened. The library was left unchanged.')
+  for (const item of data ?? []) {
+    if (item.error || !item.signedUrl) throw new Error('A saved image could not be opened. The library was left unchanged.')
+    signed.set(item.path ?? '', item.signedUrl)
+  }
+  return signed
 }
 
 function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string): ConceptRecord {
@@ -80,20 +93,34 @@ export async function listConcepts(curiosityId: string) {
   if (linkError) throw new Error(conceptMessage(linkError, 'The library could not be loaded.'))
   const rows = conceptRows ?? []
   const links = linkRows ?? []
-  const signed = new Map<string, string>()
-  if (rows.length > 0) {
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrls(rows.map((row) => row.image_path), signedUrlSeconds)
-    if (error) throw new Error('The saved images could not be opened. The library was left unchanged.')
-    for (const item of data ?? []) {
-      if (item.error || !item.signedUrl) throw new Error('A saved image could not be opened. The library was left unchanged.')
-      signed.set(item.path ?? '', item.signedUrl)
-    }
-  }
+  const signed = await signedImageUrls(rows.map((row) => row.image_path))
   return rows.map((row) => {
     const sources = links.filter((link) => link.concept_id === row.id).map(toSource)
     const imageSrc = signed.get(row.image_path)
     if (!imageSrc) throw new Error('A saved image could not be opened. The library was left unchanged.')
     return toConcept(row, sources, imageSrc)
+  })
+}
+
+// Read-only collection for the Library. Do not pass the result to
+// syncConceptChanges or assign it to workspace.concepts. A concept's
+// curiosity_id cannot be changed, and the workspace writer saves one curiosity.
+export async function listAccountConcepts(): Promise<LibraryConcept[]> {
+  const { supabase, userId } = await signedIn('opening the library')
+  const [{ data: conceptRows, error: conceptError }, { data: linkRows, error: linkError }] = await Promise.all([
+    supabase.from('concepts').select('id, curiosity_id, title, for_considered_text, image_path, image_model, prompt_version, created_at, updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
+    supabase.from('concept_questions').select('id, concept_id, question_id, original_text_snapshot, considered_text_snapshot').eq('user_id', userId),
+  ])
+  if (conceptError) throw new Error(conceptMessage(conceptError, 'The library could not be loaded.'))
+  if (linkError) throw new Error(conceptMessage(linkError, 'The library could not be loaded.'))
+  const rows = conceptRows ?? []
+  const links = linkRows ?? []
+  const signed = await signedImageUrls(rows.map((row) => row.image_path))
+  return rows.map((row) => {
+    const sources = links.filter((link) => link.concept_id === row.id).map(toSource)
+    const imageSrc = signed.get(row.image_path)
+    if (!imageSrc) throw new Error('A saved image could not be opened. The library was left unchanged.')
+    return { ...toConcept(row, sources, imageSrc), curiosityId: row.curiosity_id }
   })
 }
 

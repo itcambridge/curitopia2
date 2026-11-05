@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { addQuestion, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, applyImageResult, workspaceCounts } from './workspace.ts'
+import { addQuestion, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, applyImageResult, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
 import { emptyWorkspace } from './workspace.ts'
 import { titleProblem } from './title.ts'
 import assert from 'node:assert/strict'
@@ -52,6 +52,46 @@ const restored = restoreQuestion(merged, source.id)
 assert.equal(restored.questions.find((item) => item.id === source.id)?.mergedIntoId, null)
 assert.equal(restored.questions.find((item) => item.id === source.id)?.disposition, 'gathered')
 
+const gatheredId = third.questions[0].id
+const retainedId = third.questions[1].id
+const parkedId = third.questions[2].id
+const mixed = {
+  ...third,
+  focusQuestionId: parkedId,
+  focusConceptId: 'concept-kept',
+  questions: third.questions.map((item) => {
+    if (item.id === retainedId) return { ...item, disposition: 'retained' as const }
+    if (item.id === parkedId) return { ...item, disposition: 'parked' as const }
+    return item
+  }),
+}
+assert.deepEqual(visualiseQuestions(mixed).map((item) => item.disposition), ['gathered', 'retained', 'parked'])
+const openedGathered = openVisualise(mixed, gatheredId)
+assert.equal(openedGathered.stage, 'visualise')
+assert.equal(openedGathered.focusQuestionId, gatheredId)
+assert.equal(openedGathered.focusConceptId, null)
+assert.equal(openedGathered.questions.find((item) => item.id === gatheredId)?.disposition, 'gathered')
+const openedRetained = openVisualise(mixed, retainedId)
+assert.equal(openedRetained.focusQuestionId, retainedId)
+assert.equal(openedRetained.questions.find((item) => item.id === retainedId)?.disposition, 'retained')
+const openedParked = openVisualise(mixed, parkedId)
+assert.equal(openedParked.focusQuestionId, parkedId)
+assert.equal(openedParked.questions.find((item) => item.id === parkedId)?.disposition, 'parked')
+assert.equal(visualiseTarget(mixed)?.id, parkedId)
+assert.equal(visualiseTarget({ ...mixed, focusQuestionId: null })?.id, gatheredId)
+
+const discarded = {
+  ...mixed,
+  questions: mixed.questions.map((item) => item.id === gatheredId ? { ...item, disposition: 'discarded' as const } : item),
+}
+assert.equal(visualiseQuestions(discarded).some((item) => item.id === gatheredId), false)
+assert.equal(openVisualise(discarded, gatheredId), discarded)
+assert.equal(visualiseQuestions(merged).some((item) => item.mergedIntoId), false)
+assert.equal(openVisualise(merged, source.id), merged)
+assert.equal(visualiseQuestions(linked).length, linked.questions.length)
+assert.equal(openVisualise(linked, left.id).questions.find((item) => item.id === left.id)?.mergedIntoId, null)
+assert.equal(openVisualise(linked, left.id).branches.length, 1)
+
 const parked = { ...third, questions: third.questions.map((item) => item.id === third.questions[2].id ? { ...item, disposition: 'parked' as const } : item) }
 assert.equal(workspaceCounts(parked).parked, 1)
 const back = restoreQuestion(parked, third.questions[2].id)
@@ -92,13 +132,23 @@ const stale = {
 }
 assert.equal(saveConcept(stale, considered.questions[2].id, 'After answer', [considered.questions[1].id]), stale)
 
+assert.equal(saveConcept(chosen, considered.questions[2].id, 'After', []).concepts[0]?.title, 'After')
+assert.equal(saveConcept(chosen, considered.questions[2].id, 'one two three', []), chosen)
+assert.equal(titleProblem('one two three'), 'Use one or two words.')
+assert.equal(titleProblem('After'), null)
+assert.equal(titleProblem('After answer'), null)
+
 const kept = saveConcept(chosen, considered.questions[2].id, 'After answer', [considered.questions[1].id])
 assert.equal(kept.concepts.length, 1)
 assert.deepEqual(kept.concepts[0].questionIds, [considered.questions[2].id, considered.questions[1].id])
 assert.equal(kept.concepts[0].title, 'After answer')
+assert.equal(kept.concepts[0].forConsideredText, 'What remains unresolved after an answer arrives?')
+assert.notEqual(kept.concepts[0].forConsideredText, considered.questions[2].originalText)
+assert.equal(kept.concepts[0].anchorQuestionId, considered.questions[2].id)
 assert.equal(kept.concepts[0].imageSource, 'demo')
 assert.equal(kept.drafts.length, 0)
-assert.equal(titleProblem('one two three'), 'Use one or two words.')
+assert.equal(kept.stage, 'gather')
+assert.equal(kept.focusConceptId, kept.concepts[0].id)
 
 const legacy = migrateLegacyQuestions([{
   id: 'legacy-1',
@@ -116,6 +166,26 @@ assert.equal(legacy.concepts.length, 1)
 assert.equal(legacy.concepts[0].questionIds.length, 1)
 assert.equal(legacy.concepts[0].imageSource, 'demo')
 assert.equal('imageSrc' in legacy.questions[0], false)
+
+const gatherView = readFileSync(new URL('../../components/studio/gather-stage.tsx', import.meta.url), 'utf8')
+assert.equal(gatherView.includes('Visualise: ${item.originalText}'), true)
+assert.equal(gatherView.includes('Open Curate'), false)
+assert.equal(gatherView.includes('openVisualise'), true)
+const visualiseView = readFileSync(new URL('../../components/studio/visualise-stage.tsx', import.meta.url), 'utf8')
+assert.equal(visualiseView.includes('visualiseQuestions'), true)
+assert.equal(visualiseView.includes("disposition === 'retained' || item.disposition === 'gathered'"), false)
+assert.equal(visualiseView.includes('/api/images'), true)
+assert.equal(visualiseView.includes('/api/titles'), true)
+assert.equal(visualiseView.includes('Suggest titles'), true)
+assert.equal(visualiseView.includes("stage: 'distil'"), false)
+assert.equal(visualiseView.includes("stage: 'library'"), true)
+const suggestStart = visualiseView.indexOf('async function askForTitles')
+const suggestEnd = visualiseView.indexOf('function saveSelected')
+const suggestBody = visualiseView.slice(suggestStart, suggestEnd)
+assert.equal(suggestStart >= 0 && suggestEnd > suggestStart, true)
+assert.equal(suggestBody.includes('setTitle'), false)
+assert.equal(suggestBody.includes('/api/images'), false)
+assert.equal(suggestBody.includes('saveConcept'), false)
 
 const migration = readFileSync(new URL('../../supabase/migrations/20261030200000_question_branches.sql', import.meta.url), 'utf8')
 assert.equal(migration.includes('create table public.question_branches'), true)

@@ -1,124 +1,265 @@
-# Curitopia Product Architecture
+# Curitopia V2 — Product Architecture
 
-**Status:** Working architecture for V2. Experience and tone follow `Curitopia_Garden_Experience_Framework.md`. Scope, the image-quality rubric, and the title rubric live in `PRODUCT_VISION.md`.  
-**Persistence:** The deployed account model is `supabase/migrations/20261026000000_initial_v2_schema.sql`. `supabase/migrations/20261028173000_curiosities.sql` adds named curiosities and has not been applied. Questions and visual concepts are many-to-many inside one curiosity. A concept stays in the Library when a source question is edited, parked, or removed. Optional themes are `themes` and `theme_questions`. There is no table relating two concepts. `docs/schema-inventory/proposals/v2-revised-schema-proposal.md` is the earlier image-on-question sketch and is not a migration.  
+**Status:** Updated working architecture for the continuous exploration model. Product intent and quality criteria are in `PRODUCT_VISION.md`; experience principles are in `Curitopia_Garden_Experience_Framework.md`.  
 **Journeys and entities:** `USER_JOURNEYS.md`, `ENTITY_RELATIONSHIP_MODEL.md`.  
-**Earlier schema drafts** in `docs/schema-inventory/proposals/` are historical. They are not deployable.
-
-This document does not authorise application changes, new SQL, or any edit to V1.
+**Important:** This is an architecture specification, not approval to apply SQL, change the hosted database, alter V1, or deploy application changes.
 
 ## 1. Design driver
 
-An account can hold many curiosities. Each curiosity is one garden, and the four stages are how a person moves through that garden. The Library of Curiosities shows the concepts kept in the open curiosity, not a score and not a finished state.
+Curitopia is a visual-thinking environment. A person captures questions, visualises one when they choose, and brings saved concepts together to discover relationships and new questions. The product should optimise for the moment when one representation changes how the person understands another.
 
-1. **Gather.** Capture questions without losing the original wording.
-2. **Curate.** Keep, park, discard, restore, or merge, with provenance intact.
-3. **Visualise.** Develop a considered question and explicitly compare a small set of images.
-4. **Distil.** Name the chosen image with one or two words and remember which questions informed it. A title is part of the concept, not a caption. Suggestions, when they exist, are not the saved title.
-5. **Return.** Reopen the concept from the Library, retitle it, reinterpret it, or develop it. A later Connect activity can bring two concepts together. That return is not a completion ceremony.
+The application is not organised as a staged pipeline. Its primary surfaces are:
 
-A table, a step, or a stored state earns a place by serving that cycle or by being an optional support that does not sit in front of it. Themes are optional. The Lab, meaning investigations, is the optional deeper support and is not a stage. Story export is neither.
+1. **Garden:** capture and revisit questions within a curiosity.
+2. **Visualise:** a contextual action from a question, for generating and selecting a visual interpretation.
+3. **Library of Curiosities:** an account-wide collection of saved concepts, for revisiting, comparing, and recording connections.
 
-The garden expresses evolving curiosity. Counts are counts of items. They are not a score, a streak, or a questions-per-minute gauge.
+There are no dedicated Curate or Distil stages. Curate's useful behaviours, if retained, are lightweight question-management actions in the Garden. Distil's useful behaviour is an inline title field in the save interaction. Neither is a required step.
 
-## 2. Principles
+A person can stop after capture, reject all image candidates, save a concept, compare existing concepts, or follow a new question. No action implies completion.
 
-1. **The original wording survives consideration and merges.** The considered question is a second text. A merge keeps every source wording.
-2. **A concept is the kept artefact.** It holds one meaningful image, a title of one or two words, the wording that image was made for, and links to the questions that informed it. The image makes the idea tangible. The title makes it memorable and connectable. One word is valid. A generic title that does not add meaning to the image is a failed title. One question may inform many concepts. One concept may draw on many questions. It is not an attachment on a question or on a Lab item.
-3. **Saved does not mean completed.** A concept in the Library can be revisited, retitled, reinterpreted, connected, and developed. Editing, parking, or removing a source leaves the concept open. The product has no completed-concept state. Retitling updates the existing concept. It does not create another, and a newer model must not rename it unasked.
-4. **Candidates are temporary.** They last for the comparison. They are not Library records. If the considered question changes, the set stays tied to the wording that was sent.
-5. **Quality is a prompt, model, and interface problem.** The concept record remembers which model and prompt version produced a kept image. It does not score images, it does not store rejected ones, and it does not store unused title suggestions.
-6. **The Lab is optional.** A question can be visualised with no theme and no investigation. Opening the Lab is not required before an image.
-7. **Evidence and speculation stay distinct inside an investigation.** That distinction matters when the Lab exists. It does not gate image generation. An image is not an observation, a test, or a discovery. A Lab item of kind `concept` is a written note, not a blossom in the Library.
-8. **Private by default.** Questions, concepts, themes, investigations, and image files belong to the signed-in person. Export or sharing is a later decision.
-9. **No scored growth.** The garden does not wither, penalise a pause, or rank the person. Quickfire, Focus, hiding, priority, and a questions-per-minute table are not part of the model.
-10. **The person owns the work directly.** An exploration container, a mode, a central question, and a backdrop image are not part of the model.
+## 2. Architectural principles
 
-## 3. Product surfaces
+1. **Question capture is independent.** Preserve original text and allow direct exploration without curation, themes, or investigation.
+2. **Visualisation is contextual and explicit.** It is launched from a question. Opening a page does not generate images.
+3. **Natural selection.** Candidate images remain temporary; only a user-selected image with a valid title becomes a saved concept.
+4. **Concepts are independent records.** Do not store an image as a field on one question. Preserve many-to-many provenance to source questions.
+5. **Concept cards are composed at presentation time.** Keep original image bytes unchanged; render title and represented question as accessible text overlays.
+6. **Comparison is central.** Allow the user to select concepts from different curiosities and view them side by side with their context.
+7. **Connections are user-authored.** The user chooses the pair and decides what, if anything, to record.
+8. **No automatic interpretation.** AI may help only when requested; suggestions are not conclusions.
+9. **Saved is not complete.** Concepts can be revisited, retitled, reinterpreted, compared, and connected.
+10. **Private by default.** Preserve owner isolation, RLS, private storage, and server-side secrets.
+11. **Additive change.** Preserve existing V2 data and do not remove legacy columns until their use and migration history are audited.
 
-These are responsibilities. Stage navigation is persistent, and every stage can be opened without finishing another.
+## 3. Product surfaces and responsibilities
 
-The shell keeps the warm editorial system: cream and paper, coral accent, serif display, field-notes voice. The garden metaphor is the continuity. Control labels stay plain.
+### Garden
 
-### Workspace
+The Garden shows a person's curiosities and their questions. A curiosity is a persistent context, not a task, session, or stage. Questions retain their original wording and any optional considered wording.
 
-One place for the cycle. It shows the current garden in ordinary counts: questions gathered, questions retained, concepts in the Library. Saved questions and concepts belong to the signed-in account. Candidate images do not.
+Responsibilities:
+- Create, rename, open, and switch curiosities.
+- Capture raw questions quickly.
+- Keep questions visible and easy to revisit.
+- Open Visualise directly from a question.
+- Retain lightweight edit/park/restore/remove actions only where useful.
+- Preserve existing branch behaviour between independent questions where it exists; keep it distinct from merge semantics.
 
-### Gather, Curate, Visualise, Distil
+The Garden must not force a Keep/Park/Discard curation ceremony before Visualise. Existing `disposition` values are persisted data and must not be deleted as part of a UI refactor. Their ongoing user-facing role should be assessed separately.
 
-The four work areas in `PRODUCT_VISION.md` section 3. Gather is fast and list-centred. Curate is selective and reversible. Visualise is image-led. Distil is the composition of image, title, and source questions. The title field is always editable. Suggest titles offers three one- or two-word candidates when the person asks. Those candidates are temporary. Saving is the only way one of them becomes the concept title.
+### Visualise
+
+Visualise is a contextual workspace opened from a question. It may include an optional question-refinement action, a prompt context display, image generation, and candidate selection.
+
+Responsibilities:
+- Show the original question and the exact generation wording.
+- Allow the person to use the original wording or refine it without overwriting the capture.
+- Generate a small set of distinct image interpretations after an explicit action.
+- Compare candidates at a useful size.
+- Keep candidates temporary.
+- Allow reject/regenerate/leave-without-save.
+- Offer Save for a selected candidate, with title entry inline.
+
+No separate Distil page or route exists in the target UX. A selected image does not automatically become a Library record.
+
+### Save concept interaction
+
+Saving is the point at which a candidate becomes a concept.
+
+Required inputs:
+- Selected original artwork.
+- User-confirmed title satisfying the existing one- or two-word rule.
+- Exact wording used to generate the image (`for_considered_text`).
+- Source-question links and wording snapshots.
+- Image model and prompt version metadata.
+
+Optional input:
+- An explicit request for title suggestions. Suggestions are temporary and user-selected or edited; they never overwrite manual text.
+
+The title field appears in the save interaction. If the image has no valid title, saving is blocked with a clear inline validation message, but manual entry is always available. A title request failure does not block saving a manually entered valid title.
 
 ### Library of Curiosities
 
-The collection of concepts. It shows the image and the title at a size that can be recognized, and on open the wording the image was made for and the questions that still inform it. It is an open, evolving collection of mental objects, not a pile of image files and not a knowledge graph. It does not hold every captured question, and it has no achievement state. A concept remains open after it is saved, including after a source question changes or goes away. A future Connect surface may start here, by the person choosing two concepts. That surface is not in this release.
+The Library is an account-wide view over saved concepts, not restricted to the currently open curiosity. It can filter or group by curiosity while still allowing the person to compare concepts from different curiosities.
+
+Responsibilities:
+- Show concept cards with title at top, artwork centrally, and generation question at bottom.
+- Keep the original image file unchanged; use application-rendered overlays.
+- Show all contributing source questions and wording snapshots in concept details.
+- Support retitling the same concept.
+- Select two concepts for side-by-side comparison.
+- Let the user explicitly record an insight/connection or create a new question from it.
+- Keep the collection open-ended; never display completion states.
+
+### Side-by-side comparison
+
+Comparison should initially focus on two concepts at a time. The selected concepts may belong to different curiosities.
+
+The comparison surface displays each concept's image, title, and represented question. Users can swap/reorder the two, revisit source-question details, and optionally use reflection prompts. The experience must not assume the relationship is visual similarity: it may be a conceptual connection, contrast, tension, analogy, or a new question.
+
+The comparison itself can be transient. If the person leaves without recording anything, no database write is required. A saved connection is a separate explicit action and is not implemented. The current comparison keeps the selected pair and any reflection in memory only. The person can turn that reflection into an ordinary question in a curiosity they choose. That uses the existing question insert and does not move, copy, or connect the compared concepts.
+
+## 4. Concept presentation contract
+
+Each saved concept is represented in the interface as:
+
+```text
+┌──────────────────────────────────────────┐
+│                 TITLE                    │  ← one or two words
+│                                          │
+│                                          │
+│             ORIGINAL ARTWORK             │
+│                                          │
+│                                          │
+│       Exact question represented         │  ← generation wording
+└──────────────────────────────────────────┘
+```
+
+This is a presentation contract, not a new raster format or table.
+
+- `concepts.title` supplies the top overlay.
+- `concepts.image_path` supplies the original artwork.
+- `concepts.for_considered_text` supplies the bottom question overlay.
+- `concept_questions` supplies contributing-question provenance and snapshots.
+
+Render overlays using application typography/DOM or an equivalent accessible presentation layer. Do not ask the image model to render the title or question. Do not modify the stored original image when showing it in the app. For a future download/share image, create a separate flattened export from the original plus overlays; do not replace the source file.
+
+If a legacy concept lacks a usable `for_considered_text`, the UI must show an honest fallback such as “Question not recorded” or hide the question overlay with a clear indication. It must not invent or silently substitute a later question.
+
+## 5. Data boundaries and existing V2 model
+
+The supplied entity model describes the initial V2 account model. It identifies these core records:
+
+- `questions`: owner, curiosity, original text, optional considered text, disposition, and legacy merge pointer.
+- `concepts`: owner, curiosity, title, `for_considered_text`, original image storage path, model, and prompt version.
+- `concept_questions`: many-to-many provenance from a concept to questions, including wording snapshots.
+- `themes` and `theme_questions`: optional question grouping.
+- `curiosities`: named user workspaces, subject to the migration-status caveat below.
+
+One question may inform many concepts. One concept may be informed by many questions. A concept does not require its source question to remain live; provenance snapshots keep the historical context. Editing or parking a source question does not rewrite a saved concept.
+
+### Migration-status caveat
+
+The supplied `ENTITY_RELATIONSHIP_MODEL.md` states that `supabase/migrations/20261028173000_curiosities.sql` adds curiosities and had not been applied at the time that document was written. Subsequent Curitopia 2 work includes curiosity cover images. Do not rely on that old status without checking the current repository and hosted Supabase migration history. No migration status is inferred or changed by this document update.
+
+The prior proposal that stored images directly on `questions` is withdrawn and must not be used. V1 is outside this repository and remains untouched.
+
+## 6. Proposed concept-connection model
+
+`concept_questions` describes provenance between a concept and its source questions. It must not be repurposed to mean that two concepts are connected.
+
+The target product supports an explicit user-recorded relationship between two existing concepts. A minimal additive model to review is:
+
+### `concept_connections` — proposed, not deployed
+
+| Field | Purpose |
+|---|---|
+| `id` | Connection identifier |
+| `user_id` | Owner; both concepts must belong to this user |
+| `concept_a_id` | First concept in the pair |
+| `concept_b_id` | Second concept in the pair |
+| `note` | Optional user-authored explanation or observation |
+| `created_at` / `updated_at` | Record timestamps |
+
+Model rules to review before implementation:
+- A connection is undirected: A–B is the same pair as B–A.
+- A concept cannot be connected to itself.
+- Store each pair once per owner (canonical ID ordering or an equivalent uniqueness strategy).
+- The two concepts must belong to the same user, but they may belong to different curiosities.
+- The note is optional and user-authored. AI suggestions are not stored unless the person adopts or edits them.
+- Deleting a connection must not delete either concept.
+- Deleting a concept must remove or safely detach connections involving it; choose explicit FK behaviour in the migration design.
+- RLS must enforce owner access and prevent cross-owner links.
+
+A question created from a connection is a new, ordinary question in a curiosity chosen by the person. Whether to store a direct `resulting_question_id` on the connection is an open implementation detail; do not add it until the navigation and deletion behaviour are designed.
+
+This proposal is sufficient to guide a schema review. It is not approval to create a migration, and the first UI comparison can be validated without persistent connection records.
+
+## 7. Question relationships and legacy state
+
+The older data model records merge using `questions.merged_into_id`. A merge is not the same as a branch between two independent questions. Curitopia 2 has also used a Branch interaction to create a saved link between separate questions. Inspect current source and deployed migrations to identify its actual persistence representation before modifying it. Never overload `merged_into_id` for an independent branch.
+
+The existing question `disposition` values (`gathered`, `retained`, `parked`, `discarded`) are not stages. They are persisted legacy state. The new UX must not require a disposition change before a question can be visualised. Do not remove or reinterpret stored values without a separate data audit.
+
+The `stage` field mentioned on curiosity records is legacy navigation state if present. It should no longer drive a required stage-based journey. Do not drop it in the same change as the UX refactor; first confirm actual use and migration state.
+
+## 8. Optional supporting capabilities
 
 ### Themes
 
-Optional grouping of questions, already included in the initial schema as `themes` and `theme_questions`. A theme is not a required stage. Manual first. A later suggestion must be explicit and reversible. Membership does not copy question text. Dissolving a theme leaves the questions and any concepts.
+`themes` and `theme_questions` remain optional groupings. They do not own images or concepts and are not prerequisites for any primary interaction.
 
 ### The Lab
 
-A later surface for deliberate thinking across questions: notes, hypotheses, tests, observations, and discoveries, plus a written item kind `concept` that is not a visual concept. One investigation can relate to several questions. Items do not carry images. The Lab supports the garden. It is not the way into Visualise.
+Investigations remain a possible later feature. They may contain notes, hypotheses, tests, observations, discoveries, and written thoughts. A Lab item of kind `concept` is not a Library visual concept and does not own an image. The Lab is not a primary navigation step or a gateway to image generation or concept comparison.
 
-The entity sketch is in `ENTITY_RELATIONSHIP_MODEL.md`. The Lab is not in the deployed schema. That schema does include questions, concepts, and optional themes.
+### Storytelling
 
-### Later storytelling
+Any future storytelling should be built from saved concepts and their composed title/question presentation. It is not a reason to preserve an older slide/MP4 architecture.
 
-If it is built, it arranges visual concepts that already have an image and a title. It is not specified in this release. The previous Story model — a browser-only slide draft and a locally encoded silent MP4 — is not a requirement to preserve.
+## 9. AI boundaries
 
-## 4. Repository state
+- No model call is implied by navigation, typing in the Garden, viewing the Library, opening a concept, or selecting a pair.
+- Question help receives only the relevant question text and minimum context. The original capture is never overwritten automatically.
+- Image generation receives the exact question to be represented and, where useful, the original wording as secondary context. Do not send the full workspace or unrelated concepts.
+- Title suggestions are requested explicitly from the save interaction. They are separate from image generation and do not incur an image-generation request.
+- Comparison perspectives are requested only after the user asks. Send only the selected concepts and necessary question context. Do not provide unrelated workspace data.
+- AI output is a suggestion. The person accepts, edits, rejects, or ignores it.
+- Do not describe AI output as a fact, proof, experiment, observation, or discovery unless it has been independently established.
+- Keep provider secrets server-side. The browser uses the signed-in user's session; do not use a service-role key in client code.
+- If the configured text model's image-input capability is not verified for the selected file format, do not send the image. Wording-only fallback must remain functional.
 
-The V2 application is the four-stage workspace and the Library for a signed-in account. Saved questions and saved concepts come from that account. Candidate images, and any future title suggestions, stay temporary until the person saves a concept. An earlier home screen counted questions per minute and offered an experiment action. That screen is not the specification. The questions-per-minute gauge stays out of the product.
+## 10. Quality and test strategy
 
-V1, including its Supabase project, is outside this repository and is not a source of rows or files for V2.
+Tests need to cover both persistence correctness and the new discovery experience.
 
-## 5. Data boundaries
+### Garden and question tests
 
-The deployed columns are in `supabase/migrations/20261026000000_initial_v2_schema.sql` and explained in `docs/schema-inventory/proposals/v2-initial-schema-proposal.md`. Candidate drafts can still sit in the browser. Saved concepts do not.
+- Empty or whitespace-only capture is rejected.
+- Original text is preserved exactly.
+- Question refinement does not overwrite original text without an explicit user action.
+- A question can be visualised without prior keep/curate/theme/Lab steps.
+- A question can remain in the Garden when no image is saved.
+- Park/restore and existing Branch behaviour work without blocking Visualise.
 
-- **Question** is owned by the person. It holds live `original_text`, optional `considered_text`, and `disposition` of `gathered`, `retained`, `parked`, or `discarded`. A merge is `merged_into_id`, not a fifth disposition. Editing those texts does not rewrite a concept. The prototype does not hard-delete questions.
-- **Visual concept** is an independent Library record: `image_path`, a one- or two-word `title`, `image_model`, `prompt_version`, and `for_considered_text`. It has no completed state, no anchor column, and no required surviving question. Saving another chosen image creates another concept, so one question can inform many. A demo fixture in the browser can have a data URL and no model. Those fixtures are not rows. There is no column for a title suggestion.
-- **Concept link** is `concept_questions`. It stores snapshots of the source question's original and considered wording. Parking leaves the link. Removing the question sets `question_id` to null and leaves the concept, the image path, and the snapshots.
-- **Theme** is an optional label. `themes` and `theme_questions` join a theme and a question that share an owner. A question needs no theme. Theme names are unique per owner, ignoring case and surrounding spaces. There is no description column and no theme screen yet. A duplicate should be shown as "You already have a theme with this name."
-- **Kept image file** lives in the private bucket `concept-images`, at `{user_id}/{concept_id}/{filename}`. The limit is 8 MiB, for PNG, JPEG, or WebP. Only the image the person saves is uploaded. A failed save removes the new object through the Storage API when it can, and reports a cleanup failure when it cannot. The application does not delete `storage.objects` with SQL. There is no thumbnail bucket. Replacing the image on an existing concept is not the current save path.
-- **Investigation, investigation link, and investigation item** are the later Lab. Item kinds stay `concept`, `note`, `hypothesis`, `test`, `observation`, and `discovery`. Items have no image path. The kind `concept` here is not a Library visual concept.
-- **Absent on purpose:** explorations, focus images, investigation thumbnails, story tables, story buckets, a `visions` table, hidden and priority flags, Quickfire/Focus columns, a questions-per-minute table, candidate-image rows, title-suggestion rows, any completed-concept flag, and any link from one concept to another. The last absence is a future design, not a decision that concepts must stay isolated. See section 7.
+### Visualise and save tests
 
-Row level security is enabled for `authenticated` and scoped by `auth.uid()`. The browser uses the signed-in JWT. It does not use a service-role client. Writing this section does not authorise new SQL.
+- No image generation occurs on page open or question capture.
+- Generation requires an explicit action.
+- Candidates are visibly distinct and large enough to judge.
+- Rejected candidates are not stored as concepts or uploaded to the private Library bucket.
+- Save requires a selected image and a valid one- or two-word title.
+- A failed title suggestion does not block manual save.
+- Retitling updates the existing concept.
+- Original image bytes are preserved; overlays do not mutate the stored file.
+- The title is displayed at the top and the exact generation wording at the bottom.
+- Editing a live source question does not rewrite the saved concept's represented wording or provenance snapshots.
 
-## 6. AI boundaries
+### Library and comparison tests
 
-- No model call is implied by navigation, by typing in Gather, by accepting a considered question, or by arriving in Distil with an image.
-- Send the smallest context the action needs. Question help sends the question text. Image generation sends the considered question and, as secondary tone, the original text. It is a separate images request. Title help must not use that request.
-- Do not send the rest of the workspace, theme names, or investigation items for those actions.
-- A proposal is written only after the person accepts it or edits it into place. Capture text is never overwritten by a proposal. A title suggestion is never written over a title the person has edited, and it is never saved for them.
-- Image and title generation must not invent empirical claims or present the picture as proof.
-- Model calls and secrets stay server-side. The client uses the signed-in session when an account exists.
-- Provider choice and whether that provider retains prompts or images are a product decision in `PRODUCT_VISION.md`. They are not settled by this architecture.
+- The Library can retrieve concepts across a user's curiosities.
+- The user can select two concepts from different curiosities.
+- Both images, titles, and generation questions remain visible together.
+- The pair can be swapped or exited without saving a connection.
+- A connection/note is persisted only after explicit user action and is owner-scoped once that schema is approved.
+- A new question from a comparison keeps its own wording and does not rewrite either concept.
+- There is no completion state or score.
 
-**Title help is a separate chat completion, requested from Distil.** It reads `OPENAI_TEXT_MODEL` when that is set, otherwise `OPENAI_MODEL`, and `OPENAI_API_KEY`. Question help still reads only `OPENAI_TEXT_MODEL`. Image generation is a different endpoint and a different cost. Title help does not call it.
+### Security and storage tests
 
-A title request sends the considered wording, the metaphor direction when the draft still has one, and the source questions. It also sends the selected image when the configured model is confirmed to accept image input and the file is a PNG, JPEG, WebP, or GIF. `gpt-6-luna` is confirmed for text and image input on chat completions. A demo SVG is not attached, and an unconfirmed model id is not given the image. The reply is parsed as three titles and checked with the same one- or two-word rule the database uses. Invalid suggestions are dropped. A timeout, a missing model, a malformed response, or fewer than three usable titles leaves the typed title unchanged and does not block a save. Another set of suggestions does not regenerate the image. Suggestions live in the screen until the person saves a title. They are not a table.
+Preserve the deployed model's ownership, RLS, composite foreign keys, private image paths, allowed MIME types, size limits, and Storage API cleanup behaviour. Verify live migration state before running persistence tests or changing policy. The source architecture's smoke checks are a starting point, not proof that a hosted test has passed.
 
-The rubric for images, and the six qualities of a title, are in `PRODUCT_VISION.md`. Architecture does not add a second rubric. AI title quality has not been tested.
+## 11. Release order
 
-## 7. Concept connections, not yet a schema
+1. Audit current code, routes, schema, migrations, storage, and tests.
+2. Replace stage navigation with Garden and Library; launch Visualise from questions.
+3. Implement concept-card title/question overlays while leaving source artwork unchanged.
+4. Move title entry and optional title help into the save action.
+5. Make the Library a user-wide collection and allow cross-curiosity selection.
+6. Build a two-concept comparison experience and validate it with real use.
+7. Add explicit connection recording after the proposed model has been reviewed and approved.
+8. Remove legacy Curate/Distil routes and unused code after confirming their data and useful behaviours are preserved.
+9. Defer theme screens, the Lab, broader canvases, and storytelling until they add demonstrable value.
 
-`concept_questions` records which questions informed a concept. It does not record a relationship between two concepts. Connect, in `USER_JOURNEYS.md`, is the future activity where a person chooses two concepts and explores a shared question, a similarity, a tension, or a new question. AI may suggest perspectives. The person accepts, edits, rejects, or records one, and may plant a question from it.
-
-No relationship types, join table, or migration are specified here. Designing that model is an open decision, taken when Connect is scheduled. Until then the Library can show concepts beside one another without storing a link between them.
-
-## 8. Initial release and tests
-
-The release boundary and the implementation order are in `PRODUCT_VISION.md`. In short: score images, keep the four-stage workspace honest, keep the deployed many-to-many concept tables, then theme screens when useful, then title suggestions after the text model is checked, then the Lab, then Connect after its relationship is designed, then any storytelling.
-
-Tests split the same way:
-
-- **Image and journey tests** use the rubric and the four-stage cycle. They can run before any V2 table exists.
-- **Persistence tests** are the smoke checks in `docs/schema-inventory/proposals/v2-initial-schema-proposal.md`. They cover ownership, the two question texts, merge and restore, a question informing more than one concept, a concept informed by more than one question, a concept that remains after a source is edited or removed, one- or two-word titles, optional theme membership, private storage, cleanup failure, and the absence of thumbnail storage and of a completed-concept status. They do not certify image quality, title-suggestion quality, or a concept-to-concept link. This document does not record them as a completed hosted run.
-
-## 9. Decisions still requiring a yes
-
-Established, proposed, and open decisions are maintained in `PRODUCT_VISION.md` section 10. This document does not keep a second copy. The open architectural decision that belongs here is section 7: how, if at all, a relationship between two concepts is stored. Do not add that table from this file.
-
-The previous assumption that one kept image is a set of columns on `questions` is not in force. Themes are in the deployed schema and are not a required journey step. Do not treat this file as approval to run new SQL.
+Do not use a product-document update as permission to run SQL or deploy. Do not treat a successful persistence test as proof that images or comparisons are meaningful.

@@ -123,6 +123,13 @@ export async function listCuriosities(): Promise<CuriosityList> {
   }
 }
 
+export async function listCuriosityNames() {
+  const { supabase, userId } = await signedIn()
+  const { data, error } = await supabase.from('curiosities').select('id, name').eq('user_id', userId).order('name', { ascending: true })
+  if (error) throw new Error(curiosityMessage(error, 'The curiosities could not be loaded.'))
+  return (data ?? []).flatMap((row) => row.id && row.name ? [{ id: row.id, name: row.name }] : [])
+}
+
 export async function getCuriosity(id: string): Promise<CuriositySummary | null> {
   const { supabase } = await signedIn()
   const { data, error } = await supabase

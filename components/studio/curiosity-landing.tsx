@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ImagePlus } from 'lucide-react'
-import { SiteBanner } from '@/components/site-banner'
+import { BrandBanner } from '@/components/site-banner'
 import { Eyebrow, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import { studioPath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
@@ -44,6 +44,7 @@ export function CuriosityLanding() {
   const [coverId, setCoverId] = useState<string | null>(null)
   const [coverBusy, setCoverBusy] = useState<'upload' | 'remove' | null>(null)
   const [coverWarning, setCoverWarning] = useState<string | null>(null)
+  const nameField = useRef<HTMLInputElement>(null)
 
   async function load() {
     const supabase = createClient()
@@ -65,6 +66,11 @@ export function CuriosityLanding() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!ready || window.location.hash !== '#new-curiosity') return
+    nameField.current?.focus()
+  }, [ready])
 
   async function create(event: FormEvent) {
     event.preventDefault()
@@ -141,15 +147,8 @@ export function CuriosityLanding() {
 
   return (
     <main className="min-h-screen bg-studio-cream text-studio-ink">
-      <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10">
-        <header className="mb-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <h1 className="sr-only">curitopia</h1>
-          <SiteBanner />
-          <div className="ml-auto min-w-0 text-right text-xs text-studio-body">
-            <p className="max-w-48 truncate sm:max-w-xs">{email ?? 'Signed in'}</p>
-            <button type="button" onClick={() => { void signOut() }} className="mt-1 font-semibold text-studio-ink underline-offset-2 hover:underline">Sign out</button>
-          </div>
-        </header>
+      <BrandBanner email={email} onSignOut={() => { void signOut() }} />
+      <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-8">
         <div className="mb-10 max-w-xl">
           <p className="font-serif text-4xl tracking-tight">Curi-toe·pia</p>
           <p className="mt-3 font-mono text-sm tracking-wide text-studio-body">[juːˈtəʊpɪə]</p>
@@ -159,11 +158,16 @@ export function CuriosityLanding() {
             an imagined place or state of things in which curiosity is practised.
           </p>
         </div>
-        <h2 className="mb-8 font-serif text-4xl leading-tight">Which curiosity shall we tend?</h2>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="font-serif text-4xl leading-tight">Which curiosity shall we tend?</h2>
+          <Link href={studioPath('/?library=all')} className={`${quietButton} w-full text-center sm:w-auto`}>Library of Curiosities</Link>
+        </div>
         <form onSubmit={(event) => { void create(event) }} className={`${panelClass} mb-6 flex flex-col gap-3 sm:flex-row sm:items-end`}>
           <label className="min-w-0 flex-1 text-sm font-semibold">
             Name a new curiosity
             <input
+              ref={nameField}
+              id="new-curiosity"
               value={name}
               onChange={(event) => setName(event.target.value)}
               className="mt-2 w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5 font-normal"

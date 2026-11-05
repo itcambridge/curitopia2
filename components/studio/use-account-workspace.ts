@@ -13,9 +13,10 @@ import { listQuestions } from '@/lib/questions/supabase-questions'
 import { createClient } from '@/lib/supabase/client'
 import type { ConceptRecord, QuestionBranch, QuestionRecord, Workspace } from '@/lib/questions/types'
 import { studioPath } from '@/lib/paths'
+import { stageAfterCuriosityOpen } from '@/lib/questions/curiosity-switch'
 import { emptyWorkspace } from '@/lib/questions/workspace'
 
-export function useAccountWorkspace(curiosityId: string) {
+export function useAccountWorkspace(curiosityId: string, reviseConceptId: string | null = null, openGarden = false) {
   const router = useRouter()
   const drafts = useRef(curiosityDraftRepository(curiosityId))
   const [workspace, setWorkspace] = useState<Workspace>(emptyWorkspace())
@@ -107,13 +108,28 @@ export function useAccountWorkspace(curiosityId: string) {
         }
         if (cancelled) return
         const resumed = applyAccount(local.workspace, questions, concepts, branches)
-        const next = { ...resumed, stage: isStageId(curiosity.stage) ? curiosity.stage : resumed.stage }
+        const savedStage = isStageId(curiosity.stage) ? curiosity.stage : resumed.stage
+        const revising = Boolean(reviseConceptId && concepts.some((concept) => concept.id === reviseConceptId))
+        let next = { ...resumed, stage: stageAfterCuriosityOpen(savedStage, openGarden, revising) }
+        let stageError: string | null = null
+        const reviseTarget = revising ? concepts.find((concept) => concept.id === reviseConceptId) : undefined
+        if (reviseTarget) {
+          next = { ...next, focusConceptId: reviseTarget.id, focusQuestionId: reviseTarget.anchorQuestionId }
+        }
+        if ((reviseTarget || (openGarden && savedStage !== 'gather')) && !cancelled) {
+          try {
+            await rememberCuriosityStage(curiosityId, next.stage)
+          } catch (error) {
+            stageError = error instanceof Error ? error.message : 'The place you left off could not be saved.'
+          }
+        }
+        if (cancelled) return
         setEmail(data.user?.email ?? null)
         publish(next)
         remoteReady.current = true
         confirmed.current = next
         setConceptsLoaded(!libraryError)
-        setStoreError([libraryError, branchError].filter(Boolean).join(' ') || null)
+        setStoreError([libraryError, branchError, stageError].filter(Boolean).join(' ') || null)
       } catch (error) {
         if (cancelled) return
         const next = applyAccount(local.workspace, [], [])
@@ -130,7 +146,7 @@ export function useAccountWorkspace(curiosityId: string) {
     return () => {
       cancelled = true
     }
-  }, [curiosityId])
+  }, [curiosityId, reviseConceptId])
 
   function write(next: Workspace | ((value: Workspace) => Workspace)) {
     const resolved = typeof next === 'function' ? next(current.current) : next
@@ -221,6 +237,14 @@ export function useAccountWorkspace(curiosityId: string) {
     })
   }
 
+  function holdDrafts() {
+    try {
+      drafts.current.persist({ ...current.current, concepts: keptLocalConcepts.current })
+    } catch {
+      // The account save for this curiosity still finishes on its own.
+    }
+  }
+
   async function signOut() {
     accountId.current = null
     confirmed.current = emptyWorkspace()
@@ -237,5 +261,5 @@ export function useAccountWorkspace(curiosityId: string) {
     setCuriosityName(name.trim())
   }
 
-  return { workspace, ready, email, curiosityName, missingCuriosity, storeError, saving, savedConceptId, conceptsLoaded, write, rename, signOut }
+  return { workspace, ready, email, curiosityName, missingCuriosity, storeError, saving, savedConceptId, conceptsLoaded, write, rename, signOut, holdDrafts }
 }

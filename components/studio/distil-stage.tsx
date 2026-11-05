@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { StageMark } from '@/components/studio/stage-mark'
+import { useScreenDraft } from '@/components/studio/leave-guard'
 import { Eyebrow, Notice, coralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 import { withBasePath } from '@/lib/paths'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
@@ -140,6 +141,9 @@ function Composer({
   const savedExtras = concept?.questionIds.filter((id) => id !== anchorId) ?? []
   const linksMatchSaved = savedExtras.length === related.length && savedExtras.every((id) => related.includes(id))
   const titleMatchesSaved = Boolean(concept && title.trim() && concept.title === cleanTitle(title))
+  const titleDirty = concept ? !titleMatchesSaved : title.trim() !== ''
+  const linksDirty = concept ? !linksMatchSaved : related.length > 0
+  useScreenDraft(titleDirty || linksDirty)
 
   useEffect(() => {
     setTitle(concept?.title ?? '')

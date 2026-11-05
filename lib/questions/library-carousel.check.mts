@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { conceptQuestionCopy, orderedConcepts, selectedConceptIndex, stepConceptIndex } from './library-carousel.ts'
+import { conceptCardQuestion, conceptQuestionCopy, orderedConcepts, questionNotRecorded, selectedConceptIndex, stepConceptIndex } from './library-carousel.ts'
 
 const concepts = [
   { id: 'older', updatedAt: '2026-01-01T00:00:00.000Z' },
@@ -64,9 +64,43 @@ assert.deepEqual(promptStaysHidden.questions, [
 const none = conceptQuestionCopy({ questionIds: [], sources: [] }, [])
 assert.deepEqual(none.questions, [])
 
+const card = conceptCardQuestion({
+  anchorQuestionId: 'q1',
+  questionIds: ['q1', 'q2'],
+  sources: [
+    { linkId: 'b', questionId: 'q2', originalText: 'How can I visualise below atoms?', consideredText: 'A prompt that must stay off the card.' },
+    { linkId: 'a', questionId: 'q1', originalText: 'Is magnetism a distortion in electromagnetic spacetime?', consideredText: 'A lone iron needle suspended in a dark glassy void.' },
+  ],
+}, [{ id: 'q1', originalText: 'A later edit of the live question' }])
+assert.equal(card, 'Is magnetism a distortion in electromagnetic spacetime?')
+assert.equal(card.includes('iron needle'), false)
+assert.equal(card.includes('later edit'), false)
+
+const detached = conceptCardQuestion({
+  anchorQuestionId: null,
+  questionIds: [],
+  sources: [
+    { linkId: 'gone', questionId: null, originalText: '  Earlier wording kept  ', consideredText: 'A scene description' },
+  ],
+}, [])
+assert.equal(detached, 'Earlier wording kept')
+
+const fromLive = conceptCardQuestion({
+  anchorQuestionId: 'q1',
+  questionIds: ['q1'],
+  sources: [],
+}, [{ id: 'q1', originalText: 'When should I phone Ekco Accounts?' }])
+assert.equal(fromLive, 'When should I phone Ekco Accounts?')
+
+const missing = conceptCardQuestion({ anchorQuestionId: null, questionIds: [], sources: [] }, [])
+assert.equal(missing, questionNotRecorded)
+
 const view = readFileSync(new URL('../../components/studio/library-view.tsx', import.meta.url), 'utf8')
 assert.equal(view.includes('images/generations'), false)
 assert.equal(view.includes('orderedConcepts'), true)
 assert.equal(view.includes('stepConceptIndex'), true)
 assert.equal(view.includes("stage: 'distil'"), true)
 assert.equal(view.includes('forConsideredText'), false)
+assert.equal(view.includes('consideredText'), false)
+assert.equal(view.includes('conceptCardQuestion'), true)
+assert.equal(view.includes('object-contain'), true)

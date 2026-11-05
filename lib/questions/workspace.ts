@@ -258,7 +258,6 @@ export function saveConcept(workspace: Workspace, anchorId: string, title: strin
     drafts: workspace.drafts.filter((itemDraft) => itemDraft.questionId !== anchorId),
     focusConceptId: concept.id,
     focusQuestionId: anchorId,
-    stage: 'distil' as const,
   }
 }
 
@@ -289,6 +288,23 @@ export function foldedQuestions(workspace: Workspace, id: string): QuestionRecor
 
 export function reviewQuestions(workspace: Workspace) {
   return workspace.questions.filter((item) => !item.mergedIntoId && item.disposition !== 'discarded')
+}
+
+// Gathered, retained, and parked questions can open Visualise.
+// Discarded questions and merge sources stay out. A branch does not affect this.
+export function visualiseQuestions(workspace: Workspace) {
+  return workspace.questions.filter((item) => !item.mergedIntoId && item.disposition !== 'discarded')
+}
+
+export function visualiseTarget(workspace: Workspace) {
+  const eligible = visualiseQuestions(workspace)
+  if (eligible.length === 0) return null
+  return eligible.find((item) => item.id === workspace.focusQuestionId) ?? eligible[0]
+}
+
+export function openVisualise(workspace: Workspace, questionId: string): Workspace {
+  if (!visualiseQuestions(workspace).some((item) => item.id === questionId)) return workspace
+  return { ...workspace, stage: 'visualise', focusQuestionId: questionId, focusConceptId: null }
 }
 
 export function duplicateGroups(workspace: Workspace) {

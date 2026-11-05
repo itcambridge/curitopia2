@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Bot, Check, ChevronLeft, ChevronRight, ImagePlus, Save } from 'lucide-react'
+import { Bot, Check, ChevronLeft, ChevronRight, ImagePlus } from 'lucide-react'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, Notice, iconButton, iconCoralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
+import { useScreenDraft } from '@/components/studio/leave-guard'
+import { Eyebrow, Notice, coralButton, iconButton, iconCoralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 import type { ImageSetResult } from '@/lib/providers/types'
 import { withBasePath } from '@/lib/paths'
-import { titleProblem } from '@/lib/questions/title'
-import { acceptConsidered, applyImageResult, draftFor, draftIsCurrent, questionPlace, rejectCandidate, restoreCandidate, saveConcept, selectCandidate } from '@/lib/questions/workspace'
+import { cleanTitle, titleProblem } from '@/lib/questions/title'
+import { acceptConsidered, applyImageResult, draftFor, draftIsCurrent, foldedQuestions, questionPlace, rejectCandidate, restoreCandidate, saveConcept, selectCandidate, visualiseQuestions } from '@/lib/questions/workspace'
 import type { QuestionRecord, StoredCandidate, Workspace } from '@/lib/questions/types'
 
-export function VisualiseStage({ workspace, curiosityId, saving, onChange }: { workspace: Workspace; curiosityId: string; saving: boolean; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
-  const choices = workspace.questions.filter((item) => !item.mergedIntoId && (item.disposition === 'retained' || item.disposition === 'gathered'))
+export function VisualiseStage({ workspace, curiosityId, saving, savedConceptId, onChange }: { workspace: Workspace; curiosityId: string; saving: boolean; savedConceptId: string | null; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
+  const choices = visualiseQuestions(workspace)
   const selected = choices.find((item) => item.id === workspace.focusQuestionId) ?? null
   const listRef = useRef<HTMLUListElement>(null)
   const selectedId = selected?.id ?? null
@@ -44,7 +45,7 @@ export function VisualiseStage({ workspace, curiosityId, saving, onChange }: { w
           aria-label="Questions to visualise"
           className={`${questionListClass} xl:sticky xl:top-10`}
         >
-          {choices.length === 0 && <li className={`${panelClass} w-full shrink-0 text-sm text-studio-body`}>Gather or retain a question before asking for an image.</li>}
+          {choices.length === 0 && <li className={`${panelClass} w-full shrink-0 text-sm text-studio-body`}>Plant a question before asking for an image.</li>}
           {choices.map((item) => {
             const current = item.id === selected?.id
             return (
@@ -62,7 +63,7 @@ export function VisualiseStage({ workspace, curiosityId, saving, onChange }: { w
             )
           })}
         </ul>
-        {selected ? <QuestionImages key={selected.id} question={selected} curiosityId={curiosityId} saving={saving} workspace={workspace} onChange={onChange} /> : null}
+        {selected ? <QuestionImages key={selected.id} question={selected} curiosityId={curiosityId} saving={saving} savedConceptId={savedConceptId} workspace={workspace} onChange={onChange} /> : null}
       </div>
     </div>
   )
@@ -72,21 +73,30 @@ function QuestionImages({
   question,
   curiosityId,
   saving,
+  savedConceptId,
   workspace,
   onChange,
 }: {
   question: QuestionRecord
   curiosityId: string
   saving: boolean
+  savedConceptId: string | null
   workspace: Workspace
   onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void
 }) {
   const [wording, setWording] = useState(question.consideredText ?? '')
   const [title, setTitle] = useState('')
+  const [related, setRelated] = useState<string[]>([])
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestNotice, setSuggestNotice] = useState<string | null>(null)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [justSavedId, setJustSavedId] = useState<string | null>(null)
   const [generated, setGenerated] = useState(false)
   const [busy, setBusy] = useState<'consider' | 'images' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const request = useRef(0)
+  const suggestRequest = useRef(0)
   const imageAbort = useRef<AbortController | null>(null)
   const draft = draftFor(workspace, question.id)
   const current = draftIsCurrent(question, draft)
@@ -96,8 +106,16 @@ function QuestionImages({
   const selected = draft?.candidates.find((candidate) => candidate.id === draft.selectedId && !draft.rejectedIds.includes(candidate.id)) ?? null
   const titleIssue = title.trim() ? titleProblem(title) : null
   const canSave = Boolean(current && selected && !titleProblem(title) && selected.source !== 'demo' && !saving && busy === null)
+  const justSaved = workspace.concepts.find((item) => item.id === justSavedId) ?? null
+  const relatedChoices = visualiseQuestions(workspace).filter((item) => item.id !== question.id)
+  const folded = foldedQuestions(workspace, question.id)
+  useScreenDraft(!wordingSaved || busy !== null || (!justSaved && (title.trim() !== '' || related.length > 0)))
 
   useEffect(() => () => { imageAbort.current?.abort() }, [])
+
+  useEffect(() => {
+    if (justSavedId && !workspace.concepts.some((item) => item.id === justSavedId)) setJustSavedId(null)
+  }, [workspace.concepts, justSavedId])
 
   async function askForProposal() {
     const id = request.current + 1
@@ -148,8 +166,16 @@ function QuestionImages({
         setError(body.error ?? 'The images did not come back. You can try again.')
         return
       }
-      onChange((current) => applyImageResult(current, question.id, body, sentText))
+      onChange((currentWorkspace) => applyImageResult(currentWorkspace, question.id, body, sentText))
       if (body.candidates.length === 0) setError(body.notice)
+      if (body.candidates.length > 0) {
+        setJustSavedId(null)
+        setTitle('')
+        setRelated([])
+        setSuggestions([])
+        setSuggestError(null)
+        setSuggestNotice(null)
+      }
     } catch (caught) {
       if (controller.signal.aborted || id !== request.current) return
       if (caught instanceof DOMException && caught.name === 'AbortError') return
@@ -159,9 +185,55 @@ function QuestionImages({
     }
   }
 
+  function suggestionQuestions() {
+    return [question.id, ...related].flatMap((id) => {
+      const item = workspace.questions.find((candidate) => candidate.id === id)
+      if (!item?.originalText.trim()) return []
+      return [{ originalText: item.originalText, consideredText: item.consideredText }]
+    })
+  }
+
+  async function askForTitles() {
+    if (suggesting || saving || !selected || !draft?.forConsideredText.trim()) return
+    const id = suggestRequest.current + 1
+    suggestRequest.current = id
+    setSuggesting(true)
+    setSuggestError(null)
+    try {
+      const response = await fetch(withBasePath('/api/titles'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          consideredText: draft.forConsideredText,
+          metaphor: selected.metaphor,
+          imageSrc: selected.src,
+          questions: suggestionQuestions(),
+        }),
+      })
+      const body = await response.json() as { titles?: unknown; notice?: unknown; error?: unknown }
+      if (id !== suggestRequest.current) return
+      const titles = Array.isArray(body.titles) ? body.titles.filter((item): item is string => typeof item === 'string') : []
+      if (!response.ok || typeof body.error === 'string' || titles.length !== 3) {
+        setSuggestNotice(null)
+        setSuggestError(typeof body.error === 'string' ? body.error : 'Titles could not be suggested. Your title was left unchanged.')
+        return
+      }
+      setSuggestError(null)
+      setSuggestions(titles)
+      setSuggestNotice(typeof body.notice === 'string' ? body.notice : 'Suggestions only. Nothing is saved until you save the concept.')
+    } catch {
+      if (id === suggestRequest.current) setSuggestError('Titles could not be suggested. Your title was left unchanged.')
+    } finally {
+      if (id === suggestRequest.current) setSuggesting(false)
+    }
+  }
+
   function saveSelected() {
     if (!canSave) return
-    onChange(saveConcept(workspace, question.id, title, []))
+    const next = saveConcept(workspace, question.id, title, related)
+    if (next === workspace) return
+    setJustSavedId(next.focusConceptId)
+    onChange(next)
   }
 
   return (
@@ -243,31 +315,105 @@ function QuestionImages({
           </div>
         )}
         <div className="mt-6 border-t border-studio-line pt-5">
-          <h3 className="font-serif text-2xl">Save concept</h3>
-          <label htmlFor="visualise-concept-title" className="mt-3 block text-sm font-semibold">One- or two-word title</label>
-          <div className="mt-2 flex items-center gap-2">
-            <input
-              id="visualise-concept-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Name the metaphor"
-              maxLength={40}
-              className="min-w-0 flex-1 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
-            />
-            <button
-              type="button"
-              onClick={saveSelected}
-              disabled={!canSave}
-              className={iconButton}
-              aria-label="Save concept"
-              title="Save concept"
-            >
-              <Save size={18} aria-hidden="true" />
-            </button>
-          </div>
-          {titleIssue ? <p className="mt-2 text-sm text-studio-coral">{titleIssue}</p> : null}
-          {selected?.source === 'demo' ? <p className="mt-2 text-sm text-studio-body">This is a demo fixture. It was not generated, and it cannot be stored in the account.</p> : null}
-          {saving ? <p className="mt-2 text-sm text-studio-body">Saving the image and its source-question links to this account…</p> : null}
+          {justSaved ? (
+            <div>
+              <h3 className="font-serif text-2xl">Saved</h3>
+              <img src={justSaved.imageSrc} alt="" className="mt-4 max-h-56 w-full rounded-2xl bg-studio-ink object-contain sm:max-h-72" />
+              <p className="mt-3 font-serif text-3xl leading-none">{justSaved.title}</p>
+              <p role="status" className="mt-3 text-sm text-studio-body">
+                {saving
+                  ? 'Saving the image and its source-question links to this account…'
+                  : savedConceptId === justSaved.id
+                    ? 'Saved to your library. This account has the image and its source-question links.'
+                    : `${justSaved.title} is in your library.`}
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <button type="button" className={`${coralButton} w-full sm:w-auto`} onClick={() => onChange({ ...workspace, stage: 'library', focusConceptId: justSaved.id, focusQuestionId: question.id })}>View in the library</button>
+                <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => onChange({ ...workspace, stage: 'gather', focusQuestionId: question.id })}>Return to the garden</button>
+              </div>
+              <p className="mt-3 text-sm text-studio-muted">You can generate another image for this question, or leave this one as it is.</p>
+            </div>
+          ) : (
+            <>
+              <h3 className="font-serif text-2xl">Save concept</h3>
+              {selected && current ? (
+                <img src={selected.src} alt="" className="mt-4 max-h-56 w-full rounded-2xl bg-studio-ink object-contain sm:max-h-72" />
+              ) : (
+                <p className="mt-3 text-sm text-studio-muted">Select an image to save it as a concept.</p>
+              )}
+              <div className="mt-4">
+                <p className="text-sm font-semibold">Question</p>
+                <p className="mt-1 break-words font-serif text-xl leading-snug">{question.originalText}</p>
+                {folded.length > 0 && (
+                  <ul className="mt-2 text-sm text-studio-muted">
+                    {folded.map((source) => <li key={source.id}>Merged wording kept: {source.originalText}</li>)}
+                  </ul>
+                )}
+                <p className="mt-2 text-sm text-studio-muted">The library card shows this question. The image prompt is kept with the concept and is not the card question.</p>
+              </div>
+              {relatedChoices.length > 0 && (
+                <fieldset className="mt-4">
+                  <legend className="text-sm font-semibold">Add a related question</legend>
+                  <p className="mt-1 text-sm text-studio-muted">Optional. The concept is saved with this question either way.</p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    {relatedChoices.map((item) => (
+                      <label key={item.id} className="flex items-start gap-2 text-sm text-studio-body">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={related.includes(item.id)}
+                          onChange={() => setRelated((currentIds) => currentIds.includes(item.id) ? currentIds.filter((id) => id !== item.id) : [...currentIds, item.id])}
+                        />
+                        <span className="min-w-0 break-words">{item.originalText}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+              <label htmlFor="visualise-concept-title" className="mt-4 block text-sm font-semibold">One- or two-word title</label>
+              <input
+                id="visualise-concept-title"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Name the metaphor"
+                maxLength={40}
+                aria-describedby={titleIssue || (selected && current && !title.trim()) ? 'visualise-title-issue' : undefined}
+                className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+              />
+              {selected && current && !title.trim() ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral">Add a one- or two-word title.</p> : null}
+              {titleIssue ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral">{titleIssue}</p> : null}
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className={`${quietButton} w-full sm:w-auto`}
+                  disabled={suggesting || saving || busy !== null || !selected || !current || !draft?.forConsideredText.trim()}
+                  onClick={() => { void askForTitles() }}
+                >
+                  {suggesting ? 'Suggesting titles…' : suggestions.length > 0 ? 'Suggest different titles' : 'Suggest titles'}
+                </button>
+                {suggestError && <p role="alert" className="mt-2 text-sm text-studio-coral">{suggestError}</p>}
+                {suggestNotice && !suggestError && <p role="status" className="mt-2 text-sm text-studio-body">{suggestNotice}</p>}
+                {suggestions.length > 0 && (
+                  <div role="group" aria-label="Title suggestions" className="mt-3 flex flex-wrap gap-2">
+                    {suggestions.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        aria-pressed={title.trim() ? cleanTitle(title) === item : false}
+                        className={title.trim() && cleanTitle(title) === item ? coralButton : quietButton}
+                        onClick={() => setTitle(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {selected?.source === 'demo' ? <p className="mt-2 text-sm text-studio-body">This is a demo fixture. It was not generated, and it cannot be stored in the account.</p> : null}
+              {saving ? <p className="mt-2 text-sm text-studio-body">Saving the image and its source-question links to this account…</p> : null}
+              <button type="button" className={`${coralButton} mt-4 w-full sm:w-auto`} disabled={!canSave} onClick={saveSelected}>Save concept</button>
+            </>
+          )}
         </div>
       </section>
     </div>

@@ -29,3 +29,30 @@ export function conceptQuestionCopy(
   const originals = fromSources.length > 0 ? fromSources : fromQuestions
   return { questions: [...new Set(originals)] }
 }
+
+export const questionNotRecorded = 'Question not recorded'
+
+// The card shows the person's original question, preferring the wording saved
+// with the concept. A later edit to the live question stays off the card.
+// The image prompt in considered text is not the question.
+export function conceptCardQuestion(
+  concept: Pick<ConceptRecord, 'anchorQuestionId' | 'sources' | 'questionIds'>,
+  questions: Pick<QuestionRecord, 'id' | 'originalText'>[],
+): string {
+  const anchorSource = concept.anchorQuestionId
+    ? concept.sources.find((source) => source.questionId === concept.anchorQuestionId)
+    : undefined
+  const anchorText = anchorSource?.originalText.trim()
+  if (anchorText) return anchorText
+  const snapshot = concept.sources.map((source) => source.originalText.trim()).find(Boolean)
+  if (snapshot) return snapshot
+  const ids = [
+    ...(concept.anchorQuestionId ? [concept.anchorQuestionId] : []),
+    ...concept.questionIds.filter((id) => id !== concept.anchorQuestionId),
+  ]
+  for (const id of ids) {
+    const text = questions.find((item) => item.id === id)?.originalText.trim()
+    if (text) return text
+  }
+  return questionNotRecorded
+}

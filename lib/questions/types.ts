@@ -69,6 +69,12 @@ export type ConceptRecord = {
   updatedAt: string
 }
 
+// A library read across curiosities. This is not a workspace concept: workspace
+// persistence saves concepts for one curiosity and cannot move them.
+export type LibraryConcept = ConceptRecord & {
+  curiosityId: string
+}
+
 export type Workspace = {
   stage: StageId
   focusQuestionId: string | null

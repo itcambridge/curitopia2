@@ -1,235 +1,255 @@
 # Curitopia Key User Journeys
 
-**Status:** Working journeys for V2. They describe intended behaviour.  
+**Status:** Updated journeys for the continuous exploration model.  
 **Experience framework:** `Curitopia_Garden_Experience_Framework.md`.  
-**Source of truth for scope and image quality:** `PRODUCT_VISION.md`.  
-**Entities:** `ENTITY_RELATIONSHIP_MODEL.md`. Saved concepts use the deployed `concepts` and `concept_questions` tables. A link between two concepts is not in that model.
+**Product scope and image quality:** `PRODUCT_VISION.md`.  
+**Technical boundaries and entities:** `PRODUCT_ARCHITECTURE.md`, `ENTITY_RELATIONSHIP_MODEL.md`.
 
-The primary journey is the four-stage cycle. Themes and the Lab are optional. None of these journeys depends on a V1 account or on V1 data. Saving a visual concept does not complete it.
+Curitopia is not a four-stage wizard. Its primary surfaces are the Garden, contextual Visualise, and the Library of Curiosities. A person can move between them freely. Saving a concept does not complete it. Comparing concepts does not require saving a connection.
 
 ## Shared rules
 
-- The original capture remains available after a considered question exists, and after a merge.
-- AI writes nothing until the person accepts, edits, or supplies the text themselves. Opening a page is not a request. Typing in Gather is not a request.
-- A person can leave any stage and open another. The cycle is not a wizard.
-- A theme is optional. The Lab is optional. A visual concept can be kept with neither.
-- A concept in the Library of Curiosities stays open. It can be retitled, reinterpreted, connected, and developed. Retitling updates that concept. It is not finished work.
-- A Lab item does not receive a copy of that image. An investigation item of kind `concept` is a written note, not a Library concept.
-- Hidden questions, priority, Quickfire, Focus, and a questions-per-minute gauge are not part of these journeys. Gather still allows many questions.
-- The workspace, the Library, and the image are private to the owner.
-- Candidate images last for the comparison. The kept file is the one the person selects for a concept.
-- Counts are counts. The garden does not score the person or wither when they pause.
+- A question's original wording remains available after optional refinement and after a merge.
+- A person can visualise a question directly, without keeping, curating, merging, theming, or investigating it first.
+- Opening a screen is not a request to an AI model. Capturing a question does not call a model or generate an image.
+- AI writes nothing until the person accepts, edits, or supplies the text themselves.
+- A person can stop at any point. A question that does not become an image remains part of the Garden.
+- Image candidates are temporary. Only the selected image becomes a saved concept.
+- A concept requires an image and a user-confirmed title of one or two words. Naming occurs inline during Save, not in a separate Distil stage.
+- The saved concept card shows its title at the top, artwork in the centre, and exact generation question at the bottom.
+- The title and question are application-rendered overlays; the original image stays unchanged.
+- The represented question is the wording sent to generate that image. Later edits to the live question do not silently alter the concept.
+- A concept may have several source questions. Its generation question remains the displayed primary question; additional provenance remains accessible.
+- The Library can compare concepts from different curiosities. The person chooses which concepts to compare.
+- A comparison can be left without saving anything. A recorded connection or note is explicit and user-directed.
+- The workspace, Library, questions, concepts, and stored images are private to their owner.
+- Counts are counts, not scores. The garden does not wither when a person pauses.
 
 ---
 
-## Journey 1 — From a raw question to a visual concept
+## Journey 1 — Capture a curiosity
 
 ### Intent
 
-The person wants to sow several unfinished thoughts, tend the ones that matter, see one of them as an image, and name that image. They can stop anywhere, and they can come back.
+The person wants to capture an unfinished thought quickly, without having to refine or categorise it first.
 
 ### Entry
 
-The list of curiosities after sign-in, or a curiosity already open.
+The Garden for an existing curiosity, or the list of curiosities after sign-in.
 
 ### Happy path
 
-1. They choose an existing curiosity or name a new one. Opening it restores that curiosity's saved questions and concepts, and the stage last stored for it. Another curiosity's questions are not on this screen.
-2. **Gather.** They write thoughts in their own words. Enter keeps each wording and clears the field. Curitopia does not rewrite a capture into a tidier question, and it does not generate an image.
-3. **Curate.** They keep what deserves attention, and park, discard, or restore the rest. If two wordings look alike, the screen can say so and must say when that hint is only a text match. A merge keeps both original wordings. Nothing is deleted by the hint.
-4. **Visualise.** They choose one question. They write a considered question, or ask for one proposal, then edit, accept, or ask again. The original text stays. When they ask for images, Curitopia shows a small set of full-size interpretations. The considered wording stays on screen.
-5. They compare the set and choose one image. That choice is the current draft. It is not saved. Hiding a candidate, or choosing a different one, does not save it either. If none is worth keeping, they ask for another set. The set they are looking at remains until the new one is ready. Accepting the considered question does not start this step.
-6. **Distil.** They arrive with the selected image, the considered wording it was made for, and the source questions. They can attach other questions that informed it. They write a title of one or two words. One word is valid. The title should carry the idea, not caption the picture.
-7. If they ask, Curitopia proposes three distinct one- or two-word titles. That help is specified in `PRODUCT_VISION.md`. Suggestions stay temporary. They can select one, edit it, ask for another set, or ignore them and type their own. Asking again does not generate another image.
-8. They explicitly save the concept to the Library. Curitopia keeps the image, the title they confirmed, the model, the prompt version, and the links to the source questions. The concept appears in the Library of Curiosities as something to return to. A suggestion that was never chosen is not stored.
-9. Later they reopen it, retitle it, connect another question, return to the list of curiosities, or leave it as it is. Retitling updates this concept. The Library does not mark it complete.
+1. The person opens an existing curiosity or creates a new one.
+2. They type a question in their own words.
+3. Pressing Enter adds the question and clears the input for another thought.
+4. The question appears in the Garden using its original wording.
+5. The person can capture more questions, open one to explore, or leave and return later.
 
 ### Guardrails
 
-- An empty or whitespace-only capture is not saved.
-- Help for the question sends this question's text, not the rest of the workspace.
-- Image generation requires a considered question and a fresh explicit action.
-- The image is an interpretation, not evidence and not a verdict on the question.
-- A title is one or two words. The interface and the database enforce that. A title suggestion that fails the check is discarded. It does not bypass the check, and it does not stop the person typing a valid title. A title is not saved without an image, and an image is not saved without a title and a considered question.
-- The title field is always available. A missing text model, a timeout, a malformed response, or a weak set of suggestions does not block a save.
-- Title suggestions are not the stored title. Opening Distil does not request them, does not fill the field, and does not save the concept.
-- Requesting titles does not regenerate the image and does not call image generation.
-- Retitling a saved concept updates that concept. It does not create a duplicate, and a later model does not rename it unasked.
-- Rejected candidates are not written into the Library and are not stored in the private bucket.
-- If the considered question changes after a set was generated, the screen says the images were made for the earlier wording.
-- Editing a source after a concept is saved leaves the current image and title in place. It does not delete the concept, and it does not rewrite the wording the image was made for.
-- Keeping another image adds a concept. The current screen does not replace the image on an existing concept. Whether replacement should exist is open in `PRODUCT_VISION.md`.
-- Correcting the original wording is a separate action from editing the considered question.
-- One question may inform many concepts, and one concept may include many questions. Editing, parking, or removing a source leaves every concept it informed in the Library, with the wording each image was made for. Unmerging does not pretend the other sources were never linked.
+- Empty or whitespace-only captures are not saved.
+- Capture does not trigger AI refinement or image generation.
+- Curitopia does not rewrite the capture into a tidier question.
+- No Keep, Park, Discard, Merge, Theme, or Lab action is required before visualisation.
+- Lightweight question management may be available, but it does not become a curation stage.
 
 ### What good looks like
 
-- The person can reach a concept without creating a theme or opening the Lab.
-- The original thought is still visible beside the considered question.
-- The image is recognizable in the Library and named by a title they can remember.
-- They can gather more questions after saving, without the concept being treated as finished.
-- On the review set in `PRODUCT_VISION.md`, the result meets the rubric for relevance, distinctiveness, stock avoidance, title, and time to a result they would keep.
-
-### Validate with the reviewer
-
-- Did the considered question become clearer without abandoning the original thought?
-- Did any image change how the question feels, or did the set look like stock illustration?
-- Was the title a memorable handle on the idea, or a shortened caption that could fit any similar image?
-- Did the Library feel like a place to return, or like a pile of finished work?
-- Where did the wait or an extra click make them want to stop?
+- A person can capture several thoughts without losing momentum.
+- The wording still sounds like the person who wrote it.
+- The Garden feels like a safe place for unfinished thoughts, not a list of work to complete.
 
 ---
 
-## Journey 2 — Group questions with a theme
+## Journey 2 — Visualise a question and save a concept
 
 ### Intent
 
-The person has several questions and wants a light way to see a cluster, without copying questions or blocking Journey 1.
+The person wants to explore what a question might look like, select an image that helps them think about it, and preserve that visual concept if it is worth returning to.
 
 ### Entry
 
-The workspace, once theme screens are available. `themes` and `theme_questions` are already part of the initial schema. Using them is optional.
+A question in the Garden, or an existing question opened from another part of the app.
 
 ### Happy path
 
-1. The person creates a theme with a short name.
-2. They link existing questions to it. Each question stays itself, including both texts and any concept that cites it.
-3. A question can remain ungrouped, or it can sit in more than one theme.
-4. They open a question from the theme and continue Journey 1 if it does not yet have an image.
-5. They rename or delete the theme later. Questions and concepts remain.
+1. The person chooses **Visualise** from a question.
+2. Curitopia shows the original question. The person may use it unchanged or optionally refine the wording. The original capture remains intact.
+3. Curitopia makes clear which exact wording will be sent to image generation.
+4. The person explicitly requests images.
+5. Curitopia returns a small set of full-size candidate interpretations that should differ in concept or metaphor.
+6. The person compares the candidates. They can select one, reject the set and request another, or leave without saving.
+7. If one image is worth keeping, the person selects it and chooses **Save concept**.
+8. The save interaction presents a title field. The person writes a title of one or two words, or explicitly asks for optional title suggestions and adopts/edits one. The person's final wording is authoritative.
+9. Curitopia validates the title and saves the original selected artwork, the title, the exact generation wording, model/prompt metadata, and links to the source questions.
+10. The saved concept appears in the Library with its title rendered at the top, original artwork in the centre, and exact generation question at the bottom.
+11. The person may continue exploring, return to the Garden, compare the new concept with another, or leave.
 
 ### Guardrails
 
-- Linking is manual until a later suggestion exists. If a suggestion exists, it is explicit and reversible.
-- Deleting a theme removes the memberships and the theme.
-- A theme does not own an image. The visual concept does.
-- An empty theme is allowed.
+- Image generation requires a fresh explicit action.
+- A considered question is optional refinement, not a separate stage. If the existing implementation still requires it, assess that dependency before removing it; do not silently change the text sent to generation.
+- The exact wording that generated the image is retained as the concept's represented question.
+- The generated image is an interpretation, not evidence or a verdict on the question.
+- A title is one or two words, with one word valid and two the maximum. Enforce the existing 40-character/one-ordinary-space database rule.
+- A title is required to save a concept; an invalid or blank title produces inline validation. Manual title entry remains available even if AI title help fails.
+- Title suggestions are optional and requested only by the person. They are not stored until adopted and saved.
+- Title help does not call image generation.
+- The model must not render title/question text into the source image. The application creates text overlays.
+- The source image file remains unchanged. A future flattened export is a separate derivative.
+- Rejected candidates are not Library concepts and are not uploaded to the concept storage bucket.
+- Saving another selected image creates another concept unless a separately approved replace interaction is implemented.
+- Editing, parking, or removing a source question does not rewrite or delete an existing concept.
 
 ### What good looks like
 
-- A cluster is visible without a second copy of any question.
-- Grouping is reversible and optional.
-- Journey 1 still works for a question that has no theme.
-
-### Open, without blocking the experience
-
-- Whether a theme needs a description as well as a name. The working sketch stores a name.
-- Whether theme suggestions should exist later.
+- The person can go from a raw question to image candidates without an administrative stage.
+- The images feel like thoughtful interpretations rather than stock illustrations.
+- The person can reject all images without being made to feel that the question failed.
+- The saved concept is self-contained: its title and represented question travel with the artwork.
+- The title is memorable and meaningful beside other concepts.
 
 ---
 
-## Journey 3 — Open the Lab
+## Journey 3 — Compare concepts and discover a connection
 
 ### Intent
 
-The person wants to think further about one uncertainty that several questions share, and to keep notes, hypotheses, tests, observations, and discoveries in one place.
+The person has two concepts and wants to see what becomes visible when they are considered together. The concepts may represent different questions and may belong to different curiosities.
 
-This journey is the optional Lab. It is not a stage of Gather, Curate, Visualise, or Distil. It is not required before an image. Its tables are not in any approved database release. The shape below is a sketch so the Lab does not have to be rediscovered, and so it is not mistaken for the Library.
+### Entry
 
-### Example
-
-Questions already in the workspace, whether or not they inform a visual concept:
-
-- "Can dream memories be distorted after waking?"
-- "Why do familiar places recur in dreams?"
-- "How reliable is my memory of a dream?"
-
-The person investigates dream memory once and links all three. Any blossom already in the Library stays a visual concept. The Lab does not absorb it.
+The Library of Curiosities.
 
 ### Happy path
 
-1. From a question or a concept, the person opens the Lab and gives the investigation a short title. This is "Open the Lab" and "Test your hunch," not a fifth required stage.
-2. The investigation shows its linked questions and can link others that belong to the same person.
-3. They add items of the kinds they need, in any order. A note is enough. A test is not mandatory. A written item of kind `concept` is a thought in the Lab, not an image in the Library.
-4. They open the same investigation from any linked question and see the same items.
-5. They unlink a question without deleting the investigation or the items.
-6. Each linked question still has its own original text and considered text. A visual concept that cites those questions keeps its own image and title. The investigation does not take ownership of that image.
+1. The person selects two concepts from the Library. Curitopia does not choose the pair for them.
+2. Curitopia places the concepts side by side at a useful size.
+3. Each concept displays its title at the top, original artwork in the centre, and the original user-authored question at the bottom. The image-generation prompt is not shown as that question.
+4. The person looks at the concepts together. They may notice a resemblance, shared structure, analogy, tension, contradiction, dependency, or a completely new idea.
+5. They can swap or reorder the concepts and inspect the source questions that informed each.
+6. Optional reflection prompts may be offered, such as:
+   - What do you notice when these are together?
+   - What does one make you notice about the other?
+   - Where might these ideas overlap?
+   - What is different or in tension?
+   - What new question appears only when you consider both?
+7. The person can leave the comparison without recording anything. Looking and thinking is a complete use of the feature.
+8. The reflection written beside the comparison is not stored. If they want to preserve what emerged as a relationship between the two concepts, that waits until connection persistence is implemented.
+9. They may turn the reflection into a new question and choose which existing curiosity receives it. Curitopia saves that question only when they confirm.
 
 ### Guardrails
 
-- A question can belong to more than one investigation.
-- An investigation can link to more than one question. The database sketch allows an investigation with no linked questions; the interface starts from a question or a concept and creates the first link.
-- Links across owners are rejected.
-- Item kinds keep their meanings. A hypothesis is not shown as a discovery. An image is not an item kind.
-- Items have no thumbnail and no image file.
-- Unlinking a question does not delete shared items. Removing a source question does not delete a visual concept or its image file. The concept stays in the Library.
-- There is no direct link from a theme to an investigation. Starting from a theme means linking the questions the person selects.
+- This is a comparison of the concepts represented, not only an image-similarity feature.
+- The original title and question context stay visible throughout.
+- The user chooses the pair; no automatic ranking or pairing.
+- Do not tell the person that two concepts are scientifically or causally related merely because their images appear similar.
+- AI readings are suggestions, only on request. The user may accept, edit, reject, or ignore them.
+- A new note or connection is not saved until explicit confirmation.
+- A new question is the user's own wording and does not rewrite either source concept.
+- Concepts are not merged by comparison and are never marked completed.
+- The first version should make a two-concept comparison excellent. A larger canvas is a later decision.
 
 ### What good looks like
 
-- Shared notes exist once.
-- Each question remains a question.
-- Each visual concept remains in the Library, still open.
-- The person can see which questions the investigation covers.
-
-### Not in this journey
-
-- A stored note explaining why a link exists. The linked question is the explanation until a screen needs more.
-- V1 experiments. They stay in the V1 project.
-- Any requirement to pass through the Lab before Visualise.
+- The two concepts can be understood without returning to the conversation that created them.
+- Their images, titles, and generation questions are legible together.
+- The person notices something they had not previously considered.
+- Curitopia makes room for the person's insight rather than supplying a premature interpretation.
+- The comparison remains useful even when the person saves nothing.
 
 ---
 
-## Journey 4 — Connect two concepts
+## Journey 4 — Record a connection or plant a new question
+
+### Intent
+
+The person wants to preserve an insight that emerged from comparing two concepts, or use it to start another line of curiosity.
 
 ### Standing
 
-Future. Not a stage of the four-stage cycle, and not in the current database. `concept_questions` links a concept to questions. It does not link a concept to another concept. The relationship model is an open decision in `PRODUCT_VISION.md` and `PRODUCT_ARCHITECTURE.md`. This journey records the intended experience so it is not designed later as a knowledge graph or a task system.
-
-### Intent
-
-The person has two concepts they want to hold side by side. They want to see what, if anything, connects them: a shared question, an unexpected similarity, a tension, or a new question that appears only when the two are together.
-
-### Entry
-
-The Library of Curiosities, once the activity exists. Both concepts already have an image and a title. Neither is completed by being chosen.
-
-### Example
-
-Two concepts titled “Spacetime Fusion” and “Russian Blackholes” might be brought together to explore how physical models, cosmological ideas, and pictures of the universe sit near each other in this person’s curiosity. That is an illustration of the activity. It does not assert a scientific relationship between those names.
+The experience is a core product direction. Persistent concept-to-concept connection storage is proposed in `ENTITY_RELATIONSHIP_MODEL.md` and is not yet part of the deployed schema described by the original architecture.
 
 ### Happy path
 
-1. The person chooses two concepts from the Library.
-2. Curitopia shows both images and titles, and the questions that informed each, including wording kept after a source question changed.
-3. The person can sit with the pair, or ask for a few possible readings. A reading might be a shared underlying question, a surprising similarity, a tension or contradiction, a relationship between ideas that looked unrelated, or a new question that emerges from the pair.
-4. Any model output is a suggestion. The person accepts it, edits it, rejects it, or writes their own note about the connection.
-5. They can plant a new question from what they noticed. That question enters Gather as their wording. It does not rewrite either concept.
-6. They can leave the pair with nothing recorded. Looking is a complete use of the activity.
+1. From a comparison, the person chooses **Record connection**.
+2. They may write an optional note describing what they see. A note is not mandatory; the person may simply save that the two concepts are connected.
+3. Curitopia stores the selected pair and the user's note only after explicit confirmation and only after the connection model is implemented.
+4. The connection can be opened from either concept, preserving the context of the pair.
+5. Alternatively, the person chooses **Turn into a question**, edits the wording they want to keep, and confirms. This is available now and does not create a connection.
+6. They choose the curiosity in which the new question belongs. The question becomes an ordinary Garden question with its own original wording.
+7. They can continue from that question into Visualise, or leave it for later.
 
 ### Guardrails
 
-- The person chooses the two concepts. The product does not decide which pair matters.
-- Suggestions do not dictate a conclusion, invent a fact, or present either image as evidence.
-- Accepting a suggestion does not mark either concept completed, and it does not merge the two concepts into one.
-- Recording a connection, when storage exists, is explicit. The shape of that record is not designed yet.
-- The activity stays exploratory. It is not a map the person must maintain, and it is not a productivity board.
+- A comparison alone does not create a persistent connection.
+- The user's words are the source of truth for a saved observation.
+- AI suggestions are not saved unless the person adopts or edits them.
+- A resulting question does not silently become a source question for either existing concept.
+- The connection must not delete, merge, or otherwise mutate either concept.
+- A connection may span concepts from different curiosities, but it must remain within one account owner.
 
 ### What good looks like
 
-- Two memorable titles are enough to start. The person does not need the original conversation in front of them.
-- A connection can be declined without leaving debris in the Library.
-- A new question, if they plant one, is theirs.
+- The person can preserve a relationship without maintaining a complex knowledge graph.
+- A connection always points back to the two concepts that prompted it.
+- A new question can start a new exploration while retaining the user's authorship.
 
 ---
 
-## Journey removed from this release
+## Journey 5 — Return to a concept
 
-The previous journey "Create a Story directly from Curiosity" — selecting slides, generating per-slide artwork, and exporting a silent portrait MP4 — is not a V2 journey. Story drafts, a story table, and a story bucket are not part of the release.
+### Intent
 
-If storytelling returns, it should be designed against visual concepts and their titles, and accepted as a new journey. It should not be copied forward from the old workflow in order to have feature parity.
+The person wants to revisit an idea after time has passed, perhaps with new context or a different question in mind.
+
+### Happy path
+
+1. They open the Library and find a concept by its title, image, curiosity, or other available organisation.
+2. The concept card shows its title and represented question with the original artwork.
+3. They open details to see its source questions and wording snapshots.
+4. They may retitle the concept, compare it with another, open a source question, or leave it unchanged.
+5. If they retitle it, the same concept is updated. The image and provenance are retained.
+6. If they want a different image, they explicitly create another concept or use a replacement interaction only if one is separately approved.
+
+### Guardrails
+
+- The Library is account-wide; concepts from multiple curiosities can be discovered and compared.
+- A concept remains available if a source question is edited, parked, or removed.
+- The exact generation question is not rewritten from the current live question.
+- No concept is marked complete, archived as a reward, or scored.
+- A later AI model must not retitle a saved concept without the person's action.
+
+---
+
+## Journey 6 — Optional supporting capabilities
+
+### Themes
+
+A person may group questions with a theme. Themes are optional and never required to visualise or compare concepts. Grouping does not copy question text or change concept provenance.
+
+### Branching questions
+
+A person may link two independent questions when they notice a relationship. Branching must remain distinct from merging. The current persistence implementation must be confirmed before changing its data model.
+
+### The Lab
+
+A person may later open an optional investigation across questions and keep notes, hypotheses, tests, observations, and discoveries. The Lab does not own Library images and is not required before Visualise or concept comparison.
 
 ---
 
 ## Invariants
 
-1. **One primary cycle.** Gather, Curate, Visualise, Distil, and return through the Library. Themes, the Lab, and a future Connect activity sit beside that cycle. Connect is not a fifth required stage.
-2. **The Library is a collection of open concepts, not a finish line.** A concept is an image, a one- or two-word title, and its question provenance. Concepts are never completed.
-3. **No silent mutation.** Considering, grouping, linking, and regenerating do not overwrite the original capture. Replacing an image is an explicit save.
-4. **Provenance.** Merged questions keep their original wordings. A question may inform many concepts, and a concept may cite many questions. The concept keeps the wording its image was made for after a source is edited, parked, or removed. Those snapshots live on `concept_questions`. A relationship between two concepts is not stored.
-5. **Privacy.** Owner boundaries are enforced on the server for rows and for the image file, once an account exists. Model calls send only the text the action needs.
-6. **Distinct Lab meanings,** when that release exists. Image generation does not write those item kinds.
-7. **Explicit AI.** No generation from merely opening or leaving a view, or from capturing a question.
-8. **The garden is not a score.** No questions-per-minute gauge, no withering, no completed-concept progress.
-9. **Accessible controls.** Icon-only controls have accessible names, keyboard access, visible focus, and tooltips.
-10. **Stopping is allowed.** A capture with no considered question, a considered question with no image, a parked question, an ungrouped question, and an investigation with no test are all valid.
+1. **No stage wizard.** Garden, contextual Visualise, and the Library are surfaces, not mandatory steps.
+2. **No curation gate.** A question can be explored without being retained, merged, themed, or investigated first.
+3. **A question can remain a question.** Not generating or saving an image is a valid outcome.
+4. **The concept is the saved visual artefact.** It contains one selected original image, a one- or two-word title, the exact generation question, and question provenance.
+5. **Composition is separate from artwork.** Title and question are rendered as overlays; the original source image is unchanged.
+6. **Comparison is central.** The user chooses the pair and sees each image, title, and represented question together.
+7. **A connection is explicit.** Viewing two concepts together does not persist a relationship. The user decides what to record.
+8. **Provenance survives.** Editing or removing a live question does not rewrite an existing concept's generation wording or provenance snapshots.
+9. **No silent mutation.** AI does not overwrite captures, titles, notes, or connections without explicit user action.
+10. **Privacy.** Owner boundaries and private image storage are enforced server-side.
+11. **No score or completion.** No questions-per-minute gauge, streaks, withering, completed-concept state, or progress penalty.
+12. **Accessible controls.** Overlaid text has sufficient contrast and remains available to assistive technology. Icon-only controls have accessible names, keyboard access, visible focus, and tooltips.
+13. **Stopping is allowed.** A capture with no image, a rejected candidate set, an unrecorded comparison, a parked question, or an investigation with no test are all valid.
