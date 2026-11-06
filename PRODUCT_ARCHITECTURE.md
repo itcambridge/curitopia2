@@ -14,7 +14,7 @@ The application is not organised as a staged pipeline. Its primary surfaces are:
 2. **Visualise:** a contextual action from a question, for generating and selecting a visual interpretation.
 3. **Library of Curiosities:** an account-wide collection of saved concepts, for revisiting, comparing, and recording connections.
 
-There are no dedicated Curate or Distil stages. Curate's useful behaviours, if retained, are lightweight question-management actions in the Garden. Distil's useful behaviour is an inline title field in the save interaction. Neither is a required step.
+There are no dedicated Curate or Distil stages. Question parking, discard, restore, and branching live in the Garden. Retitling a saved concept and editing its contributing questions live in the Library. A stored curiosity stage of `curate` opens the Garden, and a stored stage of `distil` opens the Library. New navigation writes only `gather`, `visualise`, or `library`.
 
 A person can stop after capture, reject all image candidates, save a concept, compare existing concepts, or follow a new question. No action implies completion.
 
@@ -81,7 +81,7 @@ The title field appears in the save interaction. If the image has no valid title
 
 ### Library of Curiosities
 
-The Library is an account-wide view over saved concepts, not restricted to the currently open curiosity. It can filter or group by curiosity while still allowing the person to compare concepts from different curiosities.
+The Library reads the signed-in user's concepts. Library scope chooses All curiosities or one curiosity, and that choice is independent of the curiosity open in the Garden. Browsing and comparison both follow Library scope. All curiosities can place concepts from different curiosities side by side. One curiosity limits both comparison slots, search, and replacement to that curiosity. Changing Library scope keeps an open pair only when both concepts still belong to the new scope. A concept outside that scope leaves the comparison, and the remaining concept stays selected when there are still at least two concepts to choose from. A curiosity with fewer than two saved concepts explains that comparison is not available there.
 
 Responsibilities:
 - Show concept cards with title at top, artwork centrally, and generation question at bottom.
@@ -94,7 +94,7 @@ Responsibilities:
 
 ### Side-by-side comparison
 
-Comparison should initially focus on two concepts at a time. The selected concepts may belong to different curiosities.
+Comparison should initially focus on two concepts at a time. When Library scope is All curiosities, the selected concepts may belong to different curiosities. When Library scope is one curiosity, both concepts belong to it.
 
 The comparison surface displays each concept's image, title, and represented question. Users can swap/reorder the two, revisit source-question details, and optionally use reflection prompts. The experience must not assume the relationship is visual similarity: it may be a conceptual connection, contrast, tension, analogy, or a new question.
 
@@ -239,7 +239,8 @@ Tests need to cover both persistence correctness and the new discovery experienc
 ### Library and comparison tests
 
 - The Library can retrieve concepts across a user's curiosities.
-- The user can select two concepts from different curiosities.
+- The user can select two concepts from different curiosities when Library scope is All curiosities.
+- A single-curiosity Library scope limits selection, search, and replacement to that curiosity. Changing Library scope drops a concept that is no longer in scope.
 - Both images, titles, and generation questions remain visible together.
 - The pair can be swapped or exited without saving a connection.
 - A connection/note is persisted only after explicit user action and is owner-scoped once that schema is approved.

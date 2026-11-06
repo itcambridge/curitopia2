@@ -8,7 +8,7 @@ const studioAtRoot = Boolean(process.env.NEXT_PUBLIC_BASE_PATH?.trim())
 export const metadata: Metadata = studioAtRoot
   ? {
       title: 'Curitopia',
-      description: 'Gather questions, curate them, compare images, and keep a short title with the image.',
+      description: 'Capture questions, turn them into images, and keep a library of concepts.',
     }
   : consultancyMetadata
 

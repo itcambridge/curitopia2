@@ -13,7 +13,7 @@ import { listQuestions } from '@/lib/questions/supabase-questions'
 import { createClient } from '@/lib/supabase/client'
 import type { ConceptRecord, QuestionBranch, QuestionRecord, Workspace } from '@/lib/questions/types'
 import { studioPath } from '@/lib/paths'
-import { stageAfterCuriosityOpen } from '@/lib/questions/curiosity-switch'
+import { stageAfterCuriosityOpen, surfaceStage } from '@/lib/questions/curiosity-switch'
 import { emptyWorkspace } from '@/lib/questions/workspace'
 
 export function useAccountWorkspace(curiosityId: string, reviseConceptId: string | null = null, openGarden = false) {
@@ -149,7 +149,8 @@ export function useAccountWorkspace(curiosityId: string, reviseConceptId: string
   }, [curiosityId, reviseConceptId])
 
   function write(next: Workspace | ((value: Workspace) => Workspace)) {
-    const resolved = typeof next === 'function' ? next(current.current) : next
+    const requested = typeof next === 'function' ? next(current.current) : next
+    const resolved = requested.stage === surfaceStage(requested.stage) ? requested : { ...requested, stage: surfaceStage(requested.stage) }
     const pendingConceptSave = !conceptsEqual(current.current.concepts, resolved.concepts)
     current.current = resolved
     setWorkspace(resolved)

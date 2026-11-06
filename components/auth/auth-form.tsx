@@ -102,7 +102,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         <h1 className="font-serif text-4xl tracking-tight">{signIn ? 'Return to the garden.' : 'Open a place for your questions.'}</h1>
         <p className="mt-3 text-sm leading-relaxed text-studio-body">
           {signIn
-            ? 'Sign in to gather and curate the questions saved to this account.'
+            ? 'Sign in to the questions and concepts saved to this account.'
             : 'Create an account with email and a password. Questions stay with this account.'}
         </p>
         <form onSubmit={submit} className="mt-6 space-y-4">

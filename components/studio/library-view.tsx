@@ -4,12 +4,13 @@ import { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ComparisonSelect, ConceptComparison } from '@/components/studio/concept-comparison'
+import { ConceptEditor } from '@/components/studio/concept-editor'
 import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import { studioPath } from '@/lib/paths'
 import { conceptCardQuestion, conceptQuestionCopy, orderedConcepts, selectedConceptIndex, stepConceptIndex } from '@/lib/questions/library-carousel'
-import type { ComparisonPair } from '@/lib/questions/comparison'
-import { emptyLibraryMessage, libraryConceptsForFocus, libraryCuriosityName, libraryFocusChoices, libraryOriginLabel, workspaceFocusForLibraryConcept } from '@/lib/questions/library-focus'
+import { reconcileComparisonScope, type ComparisonPair } from '@/lib/questions/comparison'
+import { allCuriositiesFocus, emptyLibraryMessage, libraryConceptsForFocus, libraryCuriosityName, libraryFocusChoices, libraryOriginLabel, workspaceFocusForLibraryConcept } from '@/lib/questions/library-focus'
 import { listAccountConcepts } from '@/lib/questions/supabase-concepts'
 import { listCuriosityNames } from '@/lib/questions/supabase-curiosities'
 import type { ConceptRecord, LibraryConcept, Workspace } from '@/lib/questions/types'
@@ -24,6 +25,10 @@ export function LibraryView({
   openCuriosityName = null,
   initialFocus,
   returnHref = null,
+  requestedEditId = null,
+  onEditClosed,
+  saving = false,
+  savedConceptId = null,
 }: {
   workspace: Workspace
   onChange: (workspace: Workspace) => void
@@ -31,6 +36,10 @@ export function LibraryView({
   openCuriosityName?: string | null
   initialFocus: string
   returnHref?: string | null
+  requestedEditId?: string | null
+  onEditClosed?: () => void
+  saving?: boolean
+  savedConceptId?: string | null
 }) {
   const focusId = useId()
   const [focus, setFocus] = useState(initialFocus)
@@ -40,6 +49,8 @@ export function LibraryView({
   const [error, setError] = useState<string | null>(null)
   const [picks, setPicks] = useState<string[] | null>(null)
   const [pair, setPair] = useState<ComparisonPair | null>(null)
+  const [scopeNotice, setScopeNotice] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(requestedEditId)
   const conceptStamp = workspace.concepts.map((concept) => `${concept.id}:${concept.updatedAt}:${concept.title}:${concept.questionIds.join(',')}`).join('|')
   const concepts = orderedConcepts(libraryConceptsForFocus(records ?? [], focus))
   const selectedIndex = selectedConceptIndex(concepts, activeId)
@@ -74,9 +85,35 @@ export function LibraryView({
     }
   }, [conceptStamp])
 
+  useEffect(() => {
+    setEditingId(requestedEditId)
+  }, [requestedEditId])
+
   function selectFocus(next: string) {
+    const scoped = libraryConceptsForFocus(records ?? [], next)
+    const allowed = new Set(scoped.map((concept) => concept.id))
+    const label = next === allCuriositiesFocus ? null : libraryCuriosityName(next, names) ?? (next === openCuriosityId ? openCuriosityName : null)
+    const nextComparison = reconcileComparisonScope(pair, picks, allowed, scoped.length, label)
     setFocus(next)
     setActiveId(null)
+    if (nextComparison.mode === 'idle') {
+      setScopeNotice(null)
+      return
+    }
+    if (nextComparison.mode === 'pair') {
+      setPair(nextComparison.pair)
+      setScopeNotice(null)
+      return
+    }
+    if (nextComparison.mode === 'select') {
+      setPair(null)
+      setPicks(nextComparison.picks)
+      setScopeNotice(nextComparison.notice)
+      return
+    }
+    setPair(null)
+    setPicks(null)
+    setScopeNotice(nextComparison.notice)
   }
 
   function choose(index: number) {
@@ -95,14 +132,20 @@ export function LibraryView({
   function revise(concept: LibraryConcept) {
     const mirror = workspaceFocusForLibraryConcept(workspace.concepts, concept, openCuriosityId)
     if (!mirror) return
-    onChange({ ...workspace, stage: 'distil', focusConceptId: mirror.focusConceptId, focusQuestionId: mirror.focusQuestionId })
+    setPair(null)
+    setPicks(null)
+    setEditingId(concept.id)
+    if (mirror.focusConceptId === workspace.focusConceptId) return
+    onChange({ ...workspace, stage: 'library', focusConceptId: mirror.focusConceptId, focusQuestionId: mirror.focusQuestionId })
   }
+
+  const editing = editingId ? records?.find((concept) => concept.id === editingId) ?? workspace.concepts.find((concept) => concept.id === editingId) ?? null : null
 
   return (
     <div className="min-w-0">
       <header className={pair || picks ? 'mb-3' : 'mb-8'}>
         {pair || picks ? null : <Eyebrow>Library</Eyebrow>}
-        <h2 className={`font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl ${pair || picks ? 'sr-only' : 'mt-2'}`}>
+        <h2 className={`font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl ${pair || picks || editing ? 'sr-only' : 'mt-2'}`}>
           Concepts worth
           <br />
           <em className="text-studio-coral">looking at again.</em>
@@ -119,40 +162,53 @@ export function LibraryView({
               <option key={option.id} value={option.id}>{option.name}</option>
             ))}
           </select>
-          {records && records.length > 1 && pair === null && picks === null ? (
-            <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => { setPicks([]); setPair(null) }}>Compare</button>
+          {concepts.length > 1 && pair === null && picks === null ? (
+            <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => { setScopeNotice(null); setPicks([]); setPair(null) }}>Compare</button>
           ) : null}
         </div>
         {pair || picks ? null : <StageMark stage="library" placement="content" />}
       </header>
       {error && records !== null ? <p role="alert" className="mb-4 text-sm">{error}</p> : null}
+      {scopeNotice && !picks ? <p role="status" className="mb-4 text-sm text-studio-body">{scopeNotice}</p> : null}
       {error && records === null ? (
         <div className={panelClass}>
           <p className="max-w-xl text-studio-body">{error} Refresh the page to try again. Nothing was removed from the account.</p>
         </div>
       ) : records === null ? (
         <p className="text-sm text-studio-muted">Opening the library…</p>
+      ) : editing ? (
+        <ConceptEditor
+          concept={editing}
+          workspace={workspace}
+          onChange={onChange}
+          onClose={() => { setEditingId(null); onEditClosed?.() }}
+          saving={saving}
+          savedConceptId={savedConceptId}
+        />
       ) : pair ? (
         <ConceptComparison
-          concepts={records}
+          concepts={concepts}
           names={names}
           questions={workspace.questions}
           workspace={workspace}
           pair={pair}
+          scopeLabel={focus === allCuriositiesFocus ? null : focusName}
           openCuriosityId={openCuriosityId}
           onPair={setPair}
           onChange={onChange}
-          onClose={() => setPair(null)}
+          onClose={() => { setPair(null); setScopeNotice(null) }}
         />
       ) : picks ? (
         <ComparisonSelect
-          concepts={records}
+          concepts={concepts}
           names={names}
           questions={workspace.questions}
           picks={picks}
+          scopeLabel={focus === allCuriositiesFocus ? null : focusName}
+          notice={scopeNotice}
           onPicks={setPicks}
-          onReady={(next) => { setPair(next); setPicks(null) }}
-          onCancel={() => setPicks(null)}
+          onReady={(next) => { setPair(next); setPicks(null); setScopeNotice(null) }}
+          onCancel={() => { setPicks(null); setScopeNotice(null) }}
         />
       ) : concepts.length === 0 ? (
         <div className={panelClass}>
@@ -382,9 +438,9 @@ function ConceptDetail({
         </div>
       )}
       {reviseHref ? (
-        <Link href={reviseHref} className={`${quietButton} mt-4 inline-block`}>Revise in Distil</Link>
+        <Link href={reviseHref} className={`${quietButton} mt-4 inline-block`}>Edit concept</Link>
       ) : (
-        <button type="button" className={`${quietButton} mt-4`} onClick={onRevise}>Revise in Distil</button>
+        <button type="button" className={`${quietButton} mt-4`} onClick={onRevise}>Edit concept</button>
       )}
     </div>
   )

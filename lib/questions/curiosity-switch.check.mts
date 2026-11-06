@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { curiosityDraftKey } from './curiosity.ts'
-import { createCuriosityChoice, curiosityGardenPath, curiositySwitchChoices, stageAfterCuriosityOpen } from './curiosity-switch.ts'
+import { createCuriosityChoice, curiosityGardenPath, curiositySwitchChoices, stageAfterCuriosityOpen, surfaceStage } from './curiosity-switch.ts'
 
 const antiEgo = '11111111-1111-4111-8111-111111111111'
 const nature = '22222222-2222-4222-8222-222222222222'
@@ -21,9 +21,18 @@ assert.notEqual(curiosityDraftKey(antiEgo), curiosityDraftKey(nature))
 
 assert.equal(stageAfterCuriosityOpen('visualise', true, false), 'gather')
 assert.equal(stageAfterCuriosityOpen('library', true, false), 'gather')
-assert.equal(stageAfterCuriosityOpen('distil', false, false), 'distil')
-assert.equal(stageAfterCuriosityOpen('visualise', true, true), 'distil')
-assert.equal(stageAfterCuriosityOpen('curate', false, true), 'distil')
+assert.equal(stageAfterCuriosityOpen('gather', false, false), 'gather')
+assert.equal(stageAfterCuriosityOpen('curate', false, false), 'gather')
+assert.equal(stageAfterCuriosityOpen('visualise', false, false), 'visualise')
+assert.equal(stageAfterCuriosityOpen('distil', false, false), 'library')
+assert.equal(stageAfterCuriosityOpen('library', false, false), 'library')
+assert.equal(stageAfterCuriosityOpen('visualise', true, true), 'library')
+assert.equal(stageAfterCuriosityOpen('curate', false, true), 'library')
+assert.equal(surfaceStage('gather'), 'gather')
+assert.equal(surfaceStage('curate'), 'gather')
+assert.equal(surfaceStage('visualise'), 'visualise')
+assert.equal(surfaceStage('distil'), 'library')
+assert.equal(surfaceStage('library'), 'library')
 
 const shell = readFileSync(new URL('../../components/studio/studio-shell.tsx', import.meta.url), 'utf8')
 const switcher = readFileSync(new URL('../../components/studio/curiosity-switcher.tsx', import.meta.url), 'utf8')

@@ -10,18 +10,18 @@ import { studioPath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { clearCuriosityCover, createCuriosity, listCuriosities, renameCuriosity, setCuriosityCover, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
 import { createClient } from '@/lib/supabase/client'
+import { surfaceStage } from '@/lib/questions/curiosity-switch'
 import type { StageId } from '@/lib/questions/types'
 
 function curiosityPath(id: string) {
   return studioPath(`/?curiosity=${encodeURIComponent(id)}`)
 }
 
-const stageLabel: Record<StageId, string> = {
-  gather: 'Gather',
-  curate: 'Curate',
-  visualise: 'Visualise',
-  distil: 'Distil',
-  library: 'Library',
+function placeName(stage: StageId) {
+  const surface = surfaceStage(stage)
+  if (surface === 'visualise') return 'Visualise'
+  if (surface === 'library') return 'Library'
+  return 'Garden'
 }
 
 const activityFormat = new Intl.DateTimeFormat('en-GB', {
@@ -209,7 +209,7 @@ export function CuriosityLanding() {
                         <div className="min-w-0">
                           <h3 className="truncate font-serif text-2xl">{item.name}</h3>
                           <p className="mt-1 text-sm text-studio-body">
-                            {stageLabel[item.stage]} · {item.questionCount} {item.questionCount === 1 ? 'question' : 'questions'} · {item.conceptCount} {item.conceptCount === 1 ? 'concept' : 'concepts'}
+                            {placeName(item.stage)} · {item.questionCount} {item.questionCount === 1 ? 'question' : 'questions'} · {item.conceptCount} {item.conceptCount === 1 ? 'concept' : 'concepts'}
                           </p>
                           <p className="mt-1 text-xs text-studio-muted">Last tended {activityFormat.format(new Date(item.updatedAt))}</p>
                         </div>

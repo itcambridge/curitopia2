@@ -16,6 +16,8 @@ export function ComparisonSelect({
   names,
   questions,
   picks,
+  scopeLabel,
+  notice,
   onPicks,
   onReady,
   onCancel,
@@ -24,6 +26,8 @@ export function ComparisonSelect({
   names: { id: string; name: string }[]
   questions: QuestionRecord[]
   picks: string[]
+  scopeLabel: string | null
+  notice: string | null
   onPicks: (picks: string[]) => void
   onReady: (pair: ComparisonPair) => void
   onCancel: () => void
@@ -52,7 +56,8 @@ export function ComparisonSelect({
         <h2 className="font-serif text-3xl tracking-tight sm:text-4xl">Choose two concepts</h2>
         <button type="button" className={quietButton} onClick={onCancel}>Cancel</button>
       </div>
-      <p className="mt-3 max-w-xl text-sm leading-relaxed text-studio-body">Choose any saved concepts. The list includes every curiosity, whichever one Show is set to.</p>
+      <p className="mt-3 max-w-xl text-sm leading-relaxed text-studio-body">{scopeLabel ? `Choose two concepts from ${scopeLabel}.` : 'Choose two concepts. They can come from any of your curiosities.'}</p>
+      {notice ? <p role="status" className="mt-3 max-w-xl text-sm text-studio-body">{notice}</p> : null}
       <ol className="mt-4 grid grid-cols-2 gap-2">
         {[0, 1].map((slot) => {
           const concept = chosen[slot]
@@ -85,6 +90,7 @@ export function ConceptComparison({
   questions,
   workspace,
   pair,
+  scopeLabel,
   openCuriosityId,
   onPair,
   onChange,
@@ -95,6 +101,7 @@ export function ConceptComparison({
   questions: QuestionRecord[]
   workspace: Workspace
   pair: ComparisonPair
+  scopeLabel: string | null
   openCuriosityId: string | null
   onPair: (pair: ComparisonPair) => void
   onChange: (workspace: Workspace) => void
@@ -191,6 +198,7 @@ export function ConceptComparison({
             <h3 className="font-serif text-2xl">Choose a concept for the {replacing} side</h3>
             <button type="button" className={quietButton} onClick={() => { setReplacing(null); setQuery('') }}>Cancel</button>
           </div>
+          <p className="mt-2 text-sm text-studio-body">{scopeLabel ? `Concepts from ${scopeLabel}.` : 'Concepts from every curiosity.'}</p>
           <label className="mt-4 block text-sm font-semibold">
             Search
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, question, or curiosity" className="mt-2 w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5 font-normal" />

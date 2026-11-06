@@ -115,7 +115,7 @@ A question in the Garden, or an existing question opened from another part of th
 
 ### Intent
 
-The person has two concepts and wants to see what becomes visible when they are considered together. The concepts may represent different questions and may belong to different curiosities.
+The person has two concepts and wants to see what becomes visible when they are considered together. The concepts may represent different questions. They may belong to different curiosities when Library scope is All curiosities. When Library scope is one curiosity, both concepts come from that curiosity.
 
 ### Entry
 
@@ -123,7 +123,7 @@ The Library of Curiosities.
 
 ### Happy path
 
-1. The person selects two concepts from the Library. Curitopia does not choose the pair for them.
+1. The person chooses a Library scope, then selects two concepts from the concepts that choice includes. Curitopia does not choose the pair. If Library scope changes, a concept that no longer belongs to that scope leaves the comparison. A pair that still belongs stays open. A curiosity with fewer than two saved concepts explains that there is nothing there to compare, and Library scope can be returned to All curiosities.
 2. Curitopia places the concepts side by side at a useful size.
 3. Each concept displays its title at the top, original artwork in the centre, and the original user-authored question at the bottom. The image-generation prompt is not shown as that question.
 4. The person looks at the concepts together. They may notice a resemblance, shared structure, analogy, tension, contradiction, dependency, or a completely new idea.
@@ -143,6 +143,7 @@ The Library of Curiosities.
 - This is a comparison of the concepts represented, not only an image-similarity feature.
 - The original title and question context stay visible throughout.
 - The user chooses the pair; no automatic ranking or pairing.
+- Comparison follows the selected Library scope. Cross-curiosity comparison is available when All curiosities is selected.
 - Do not tell the person that two concepts are scientifically or causally related merely because their images appear similar.
 - AI readings are suggestions, only on request. The user may accept, edit, reject, or ignore them.
 - A new note or connection is not saved until explicit confirmation.

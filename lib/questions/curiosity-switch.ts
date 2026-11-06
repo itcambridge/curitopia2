@@ -18,10 +18,19 @@ export function curiositySwitchChoices(
   return choices
 }
 
+// Stored curiosities may still say curate or distil. The screen uses three
+// destinations, and those are the only stages new navigation writes.
+export function surfaceStage(stage: StageId): 'gather' | 'visualise' | 'library' {
+  if (stage === 'visualise') return 'visualise'
+  if (stage === 'distil' || stage === 'library') return 'library'
+  return 'gather'
+}
+
 // A switch from the selector opens that curiosity's Garden. A direct link
-// resumes the stage that curiosity last saved. Revising a concept still opens Distil.
+// resumes the saved stage, mapped onto Garden, Visualise, or Library.
+// Opening a concept for editing resumes in the Library.
 export function stageAfterCuriosityOpen(savedStage: StageId, openGarden: boolean, revising: boolean): StageId {
-  if (revising) return 'distil'
+  if (revising) return 'library'
   if (openGarden) return 'gather'
-  return savedStage
+  return surfaceStage(savedStage)
 }

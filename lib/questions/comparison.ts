@@ -31,6 +31,53 @@ export function filterComparisonConcepts<T>(concepts: T[], query: string, textFo
   return concepts.filter((concept) => textFor(concept).toLowerCase().includes(needle))
 }
 
+export type ComparisonScopeResult =
+  | { mode: 'idle' }
+  | { mode: 'pair'; pair: ComparisonPair }
+  | { mode: 'select'; picks: string[]; notice: string | null }
+  | { mode: 'browse'; notice: string }
+
+export function comparisonScopeNotice(scopeLabel: string | null) {
+  if (scopeLabel) return `Choose concepts from ${scopeLabel}.`
+  return 'Choose concepts from the library now in view.'
+}
+
+export function comparisonTooFewNotice(scopeLabel: string | null) {
+  if (scopeLabel) return `${scopeLabel} does not have enough saved concepts to compare. Choose All curiosities to compare across the library.`
+  return 'There are not enough saved concepts to compare yet.'
+}
+
+// Library Show decides which concepts may be compared. A pair stays only when
+// both concepts remain in the new scope. One remaining concept returns to
+// selection. Fewer than two concepts in scope leaves comparison entirely.
+export function reconcileComparisonScope(
+  pair: ComparisonPair | null,
+  picks: string[] | null,
+  allowedIds: ReadonlySet<string>,
+  availableCount: number,
+  scopeLabel: string | null,
+): ComparisonScopeResult {
+  if (!pair && !picks) return { mode: 'idle' }
+  if (availableCount < 2) return { mode: 'browse', notice: comparisonTooFewNotice(scopeLabel) }
+  if (pair) {
+    const left = allowedIds.has(pair.leftId)
+    const right = allowedIds.has(pair.rightId)
+    if (left && right) return { mode: 'pair', pair }
+    return {
+      mode: 'select',
+      picks: [pair.leftId, pair.rightId].filter((id) => allowedIds.has(id)),
+      notice: comparisonScopeNotice(scopeLabel),
+    }
+  }
+  const current = picks ?? []
+  const kept = current.filter((id) => allowedIds.has(id))
+  return {
+    mode: 'select',
+    picks: kept,
+    notice: kept.length === current.length ? null : comparisonScopeNotice(scopeLabel),
+  }
+}
+
 export function questionFromReflection(text: string): { ok: false; error: string } | { ok: true; text: string } {
   const planted = plantedQuestion(text)
   if (!planted) return { ok: false, error: 'Write the question you want to keep.' }
