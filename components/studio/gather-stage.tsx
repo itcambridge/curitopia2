@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronRight, Play, Sparkles } from 'lucide-react'
 import { QuestionGarden } from '@/components/studio/question-garden'
+import { conceptRemainsVisible, questionDispositionMap } from '@/lib/questions/library-carousel'
 import { useScreenDraft } from '@/components/studio/leave-guard'
 import { addQuestion, branchPartners, correctOriginal, foldedQuestions, linkQuestions, openVisualise, plantedQuestion, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition, visualiseQuestions, visualiseTarget } from '@/lib/questions/workspace'
 import type { ConceptRecord, QuestionRecord, StageId, Workspace } from '@/lib/questions/types'
@@ -86,7 +87,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
           <div className="order-3 xl:order-2">
             <QuestionGarden
               questions={activeQuestions}
-              concepts={workspace.concepts}
+              concepts={workspace.concepts.filter((concept) => conceptRemainsVisible(concept, questionDispositionMap(workspace.questions)))}
               links={workspace.branches}
               linked={linked}
               onFocus={(id) => revealQuestion(id)}
@@ -356,7 +357,8 @@ function nextInvitation(workspace: Workspace): { eyebrow: string; title: string;
   if (target) {
     return { eyebrow: 'Visualise', title: 'What might this question look like?', action: 'Visualise', questionId: target.id, stage: 'visualise' }
   }
-  if (workspace.concepts.length > 0) {
+  const visibleConcepts = workspace.concepts.filter((concept) => conceptRemainsVisible(concept, questionDispositionMap(workspace.questions)))
+  if (visibleConcepts.length > 0) {
     return { eyebrow: 'Library', title: 'Return to what is still unfolding.', action: 'Open the library', questionId: null, stage: 'library' }
   }
   return { eyebrow: 'Begin here', title: 'Start with something you notice.', action: 'Plant a seed', questionId: null, stage: null }

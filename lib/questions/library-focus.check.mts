@@ -78,6 +78,7 @@ const accountBody = conceptsSource.slice(accountStart, conceptsSource.indexOf('f
 assert.equal(accountStart > conceptsSource.indexOf('export async function listConcepts'), true)
 assert.match(conceptsSource, /export async function listConcepts\(curiosityId: string\)[\s\S]*?\.eq\('curiosity_id', curiosityId\)/)
 assert.equal(accountBody.includes(".eq('curiosity_id'"), false)
+assert.equal(accountBody.includes('disposition'), false)
 assert.equal(accountBody.includes(".eq('user_id', userId)"), true)
 assert.equal(accountBody.includes('service_role'), false)
 assert.equal(accountBody.includes('createServiceRole'), false)

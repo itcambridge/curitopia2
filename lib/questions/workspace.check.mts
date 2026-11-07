@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { addQuestion, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, applyImageResult, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
+import { conceptRemainsVisible, questionDispositionMap } from './library-carousel.ts'
+import { addQuestion, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, setDisposition, applyImageResult, updateConcept, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
 import { emptyWorkspace } from './workspace.ts'
 import { titleProblem } from './title.ts'
 import assert from 'node:assert/strict'
@@ -149,6 +150,39 @@ assert.equal(kept.concepts[0].imageSource, 'demo')
 assert.equal(kept.drafts.length, 0)
 assert.equal(kept.stage, 'gather')
 assert.equal(kept.focusConceptId, kept.concepts[0].id)
+
+const anchorId = considered.questions[2].id
+const contributorId = considered.questions[1].id
+const discardedSource = setDisposition(kept, anchorId, 'discarded')
+assert.equal(discardedSource.questions.find((item) => item.id === anchorId)?.disposition, 'discarded')
+assert.equal(discardedSource.questions.length, kept.questions.length)
+assert.equal(visualiseQuestions(discardedSource).some((item) => item.id === anchorId), false)
+assert.equal(discardedSource.concepts, kept.concepts)
+assert.equal(discardedSource.concepts[0].title, 'After answer')
+assert.equal(discardedSource.concepts[0].imageSrc, kept.concepts[0].imageSrc)
+assert.equal(discardedSource.concepts[0].forConsideredText, kept.concepts[0].forConsideredText)
+assert.equal(discardedSource.concepts.length, 1)
+assert.equal(conceptRemainsVisible(discardedSource.concepts[0], questionDispositionMap(discardedSource.questions)), false)
+assert.equal(workspaceCounts(discardedSource).concepts, 0)
+const onlyContributor = setDisposition(kept, contributorId, 'discarded')
+assert.equal(onlyContributor.concepts, kept.concepts)
+assert.equal(conceptRemainsVisible(onlyContributor.concepts[0], questionDispositionMap(onlyContributor.questions)), true)
+assert.equal(workspaceCounts(onlyContributor).concepts, 1)
+const discardedContributor = setDisposition(discardedSource, contributorId, 'discarded')
+assert.equal(discardedContributor.concepts, kept.concepts)
+const retitled = updateConcept(discardedContributor, kept.concepts[0].id, 'After answer', [contributorId])
+assert.deepEqual(retitled.concepts[0].questionIds, [anchorId, contributorId])
+assert.equal(retitled.concepts[0].imageSrc, kept.concepts[0].imageSrc)
+assert.equal(retitled.concepts.length, 1)
+const restoredConcept = restoreQuestion(discardedContributor, anchorId)
+assert.equal(restoredConcept.questions.find((item) => item.id === anchorId)?.disposition, 'gathered')
+assert.equal(restoredConcept.concepts.length, 1)
+assert.equal(restoredConcept.concepts[0].id, kept.concepts[0].id)
+assert.equal(restoredConcept.concepts[0].title, 'After answer')
+assert.equal(restoredConcept.concepts[0].imageSrc, kept.concepts[0].imageSrc)
+assert.equal(restoredConcept.concepts[0].forConsideredText, kept.concepts[0].forConsideredText)
+assert.equal(conceptRemainsVisible(restoredConcept.concepts[0], questionDispositionMap(restoredConcept.questions)), true)
+assert.equal(workspaceCounts(restoredConcept).concepts, 1)
 
 const legacy = migrateLegacyQuestions([{
   id: 'legacy-1',

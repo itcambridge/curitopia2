@@ -57,6 +57,13 @@ function toRecord(row: {
   }
 }
 
+export async function listQuestionDispositions(): Promise<{ id: string; disposition: Disposition }[]> {
+  const { supabase, userId } = await signedInUserId()
+  const { data, error } = await supabase.from('questions').select('id, disposition').eq('user_id', userId)
+  if (error) throw new Error(questionSaveMessage(error))
+  return (data ?? []).flatMap((row) => isDisposition(row.disposition) ? [{ id: row.id, disposition: row.disposition }] : [])
+}
+
 export async function listQuestions(curiosityId: string) {
   const supabase = createClient()
   const { data, error } = await supabase

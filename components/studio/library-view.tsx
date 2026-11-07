@@ -8,11 +8,12 @@ import { ConceptEditor } from '@/components/studio/concept-editor'
 import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
 import { studioPath } from '@/lib/paths'
-import { conceptCardQuestion, conceptQuestionCopy, orderedConcepts, selectedConceptIndex, stepConceptIndex } from '@/lib/questions/library-carousel'
+import { carouselOffset, conceptCardQuestion, conceptQuestionCopy, conceptRemainsVisible, orderedConcepts, questionDispositionMap, selectedConceptIndex, stepConceptIndex } from '@/lib/questions/library-carousel'
 import { reconcileComparisonScope, type ComparisonPair } from '@/lib/questions/comparison'
-import { allCuriositiesFocus, emptyLibraryMessage, libraryConceptsForFocus, libraryCuriosityName, libraryFocusChoices, libraryOriginLabel, workspaceFocusForLibraryConcept } from '@/lib/questions/library-focus'
+import { allCuriositiesFocus, emptyLibraryMessage, hiddenLibraryMessage, libraryConceptsForFocus, libraryCuriosityName, libraryFocusChoices, libraryOriginLabel, workspaceFocusForLibraryConcept } from '@/lib/questions/library-focus'
 import { listAccountConcepts } from '@/lib/questions/supabase-concepts'
 import { listCuriosityNames } from '@/lib/questions/supabase-curiosities'
+import { listQuestionDispositions } from '@/lib/questions/supabase-questions'
 import type { ConceptRecord, LibraryConcept, Workspace } from '@/lib/questions/types'
 
 const navButton = 'grid size-11 place-items-center rounded-full border border-studio-line bg-studio-paper text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
@@ -45,6 +46,7 @@ export function LibraryView({
   const [focus, setFocus] = useState(initialFocus)
   const [activeId, setActiveId] = useState<string | null>(workspace.focusConceptId)
   const [records, setRecords] = useState<LibraryConcept[] | null>(null)
+  const [questionRows, setQuestionRows] = useState<{ id: string; disposition: string }[]>([])
   const [names, setNames] = useState<{ id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [picks, setPicks] = useState<string[] | null>(null)
@@ -52,7 +54,11 @@ export function LibraryView({
   const [scopeNotice, setScopeNotice] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(requestedEditId)
   const conceptStamp = workspace.concepts.map((concept) => `${concept.id}:${concept.updatedAt}:${concept.title}:${concept.questionIds.join(',')}`).join('|')
-  const concepts = orderedConcepts(libraryConceptsForFocus(records ?? [], focus))
+  const questionStamp = workspace.questions.map((question) => `${question.id}:${question.disposition}`).join('|')
+  const dispositions = questionDispositionMap(questionRows, workspace.questions)
+  const visibleRecords = (records ?? []).filter((concept) => conceptRemainsVisible(concept, dispositions))
+  const concepts = orderedConcepts(libraryConceptsForFocus(visibleRecords, focus))
+  const scopedCount = libraryConceptsForFocus(records ?? [], focus).length
   const selectedIndex = selectedConceptIndex(concepts, activeId)
   const selected = selectedIndex >= 0 ? concepts[selectedIndex] : null
   const spread = useCoverSpread()
@@ -69,10 +75,15 @@ export function LibraryView({
     let cancelled = false
     async function load() {
       try {
-        const [nextConcepts, nextNames] = await Promise.all([listAccountConcepts(), listCuriosityNames()])
+        const [nextConcepts, nextNames, nextQuestions] = await Promise.all([
+          listAccountConcepts(),
+          listCuriosityNames(),
+          listQuestionDispositions(),
+        ])
         if (cancelled) return
         setRecords(nextConcepts)
         setNames(nextNames)
+        setQuestionRows(nextQuestions)
         setError(null)
       } catch (reason) {
         if (cancelled) return
@@ -83,14 +94,14 @@ export function LibraryView({
     return () => {
       cancelled = true
     }
-  }, [conceptStamp])
+  }, [conceptStamp, questionStamp])
 
   useEffect(() => {
     setEditingId(requestedEditId)
   }, [requestedEditId])
 
   function selectFocus(next: string) {
-    const scoped = libraryConceptsForFocus(records ?? [], next)
+    const scoped = libraryConceptsForFocus(visibleRecords, next)
     const allowed = new Set(scoped.map((concept) => concept.id))
     const label = next === allCuriositiesFocus ? null : libraryCuriosityName(next, names) ?? (next === openCuriosityId ? openCuriosityName : null)
     const nextComparison = reconcileComparisonScope(pair, picks, allowed, scoped.length, label)
@@ -139,7 +150,44 @@ export function LibraryView({
     onChange({ ...workspace, stage: 'library', focusConceptId: mirror.focusConceptId, focusQuestionId: mirror.focusQuestionId })
   }
 
-  const editing = editingId ? records?.find((concept) => concept.id === editingId) ?? workspace.concepts.find((concept) => concept.id === editingId) ?? null : null
+  const visibleKey = concepts.map((concept) => concept.id).join('|')
+  useEffect(() => {
+    if (records === null || (!pair && !picks)) return
+    const allowed = new Set(concepts.map((concept) => concept.id))
+    const label = focus === allCuriositiesFocus ? null : focusName
+    const next = reconcileComparisonScope(pair, picks, allowed, concepts.length, label)
+    if (next.mode === 'pair') {
+      if (pair && next.pair.leftId === pair.leftId && next.pair.rightId === pair.rightId) return
+      setPair(next.pair)
+      setScopeNotice(null)
+      return
+    }
+    if (next.mode === 'idle') {
+      if (!pair && !picks && !scopeNotice) return
+      setPair(null)
+      setPicks(null)
+      setScopeNotice(null)
+      return
+    }
+    if (next.mode === 'select') {
+      const same = picks !== null && picks.length === next.picks.length && picks.every((id, index) => id === next.picks[index]) && pair === null && scopeNotice === next.notice
+      if (same) return
+      setPair(null)
+      setPicks(next.picks)
+      setScopeNotice(next.notice)
+      return
+    }
+    if (pair === null && picks === null && scopeNotice === next.notice) return
+    setPair(null)
+    setPicks(null)
+    setScopeNotice(next.notice)
+  }, [visibleKey, records, pair, picks, focus, focusName, concepts, scopeNotice])
+
+  const editing = editingId
+    ? visibleRecords.find((concept) => concept.id === editingId)
+      ?? workspace.concepts.find((concept) => concept.id === editingId && conceptRemainsVisible(concept, dispositions))
+      ?? null
+    : null
 
   return (
     <div className="min-w-0">
@@ -212,7 +260,7 @@ export function LibraryView({
         />
       ) : concepts.length === 0 ? (
         <div className={panelClass}>
-          <p className="max-w-xl text-studio-body">{emptyLibraryMessage(focus, focusName)}</p>
+          <p className="max-w-xl text-studio-body">{scopedCount > 0 ? hiddenLibraryMessage() : emptyLibraryMessage(focus, focusName)}</p>
           {returnHref ? (
             <Link href={returnHref} className={`${coralButton} mt-4 inline-block`}>Return to your curiosities</Link>
           ) : (
@@ -263,7 +311,7 @@ export function LibraryView({
             }}
           >
             {concepts.map((concept, index) => {
-              const offset = index - selectedIndex
+              const offset = carouselOffset(index, selectedIndex, concepts.length)
               if (Math.abs(offset) > 1) return null
               const current = offset === 0
               return (
@@ -413,11 +461,11 @@ function ConceptDetail({
       <p aria-live="polite" className="sr-only">{concept.title}. {question}</p>
       {origin ? <p className="text-balance break-words text-sm text-studio-body">{origin}</p> : null}
       <div className="mt-3 flex items-center justify-center gap-3">
-        <button type="button" className={navButton} aria-label="Show the previous concept" disabled={index <= 0} onClick={() => onMove(-1)}>
+        <button type="button" className={navButton} aria-label="Show the previous concept" disabled={count < 2} onClick={() => onMove(-1)}>
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
         <p className="min-w-16 font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">{index + 1} of {count}</p>
-        <button type="button" className={navButton} aria-label="Show the next concept" disabled={index >= count - 1} onClick={() => onMove(1)}>
+        <button type="button" className={navButton} aria-label="Show the next concept" disabled={count < 2} onClick={() => onMove(1)}>
           <ChevronRight size={20} aria-hidden="true" />
         </button>
       </div>

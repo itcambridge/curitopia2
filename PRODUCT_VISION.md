@@ -211,6 +211,7 @@ Change one of prompt, model, or comparison layout at a time. If the product late
 - The text overlays are application-rendered, not part of the generated source file.
 - The Library shows a recognisable concept and supports side-by-side comparison with other concepts.
 - Editing, parking, or removing a source question does not delete the concept or change the wording the image represents.
+- Discarding the originating question hides its saved concepts from the Library until that question is restored. The concept, image, title, and question snapshot remain stored. Discarding an additional contributing question does not hide the concept.
 - Saving another selected image creates another concept unless an explicit replacement interaction is later approved. Existing concepts are not silently replaced.
 
 ## 10. Behaviour around AI

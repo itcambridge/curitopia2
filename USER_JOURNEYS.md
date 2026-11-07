@@ -99,7 +99,7 @@ A question in the Garden, or an existing question opened from another part of th
 - The source image file remains unchanged. A future flattened export is a separate derivative.
 - Rejected candidates are not Library concepts and are not uploaded to the concept storage bucket.
 - Saving another selected image creates another concept unless a separately approved replace interaction is implemented.
-- Editing, parking, or removing a source question does not rewrite or delete an existing concept.
+- Editing, parking, or removing a source question does not rewrite or delete an existing concept. Discarding the originating question hides its saved concepts from the Library until that question is restored. Discarding an additional contributing question leaves the concept visible. Neither action deletes the concept, its image, or its provenance.
 
 ### What good looks like
 
@@ -216,7 +216,7 @@ The person wants to revisit an idea after time has passed, perhaps with new cont
 ### Guardrails
 
 - The Library is account-wide; concepts from multiple curiosities can be discovered and compared.
-- A concept remains available if a source question is edited, parked, or removed.
+- A concept remains available if a source question is edited, parked, or removed. It leaves the Library only while its originating question is discarded, and it returns when that question is restored.
 - The exact generation question is not rewritten from the current live question.
 - No concept is marked complete, archived as a reward, or scored.
 - A later AI model must not retitle a saved concept without the person's action.

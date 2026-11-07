@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { conceptCardQuestion, conceptQuestionCopy, orderedConcepts, questionNotRecorded, selectedConceptIndex, stepConceptIndex } from './library-carousel.ts'
+import { carouselOffset, conceptCardQuestion, conceptQuestionCopy, conceptRemainsVisible, orderedConcepts, originatingQuestionId, questionDispositionMap, questionNotRecorded, selectedConceptIndex, stepConceptIndex } from './library-carousel.ts'
 
 const concepts = [
   { id: 'older', updatedAt: '2026-01-01T00:00:00.000Z' },
@@ -17,14 +17,22 @@ assert.equal(selectedConceptIndex(ordered, 'missing'), 0)
 assert.equal(selectedConceptIndex(ordered, 'middle'), 2)
 assert.equal(selectedConceptIndex(ordered.slice(0, 1), 'missing'), 0)
 
-assert.equal(stepConceptIndex(0, 4, -1), 0)
-assert.equal(stepConceptIndex(3, 4, 1), 3)
+assert.equal(stepConceptIndex(0, 4, -1), 3)
+assert.equal(stepConceptIndex(3, 4, 1), 0)
 assert.equal(stepConceptIndex(1, 4, 1), 2)
-assert.equal(stepConceptIndex(1, 2, -1), 0)
-assert.equal(stepConceptIndex(0, 2, 1), 1)
+assert.equal(stepConceptIndex(0, 2, -1), 1)
+assert.equal(stepConceptIndex(1, 2, 1), 0)
 assert.equal(stepConceptIndex(0, 1, 1), 0)
 assert.equal(stepConceptIndex(0, 1, -1), 0)
 assert.equal(stepConceptIndex(0, 0, 1), -1)
+assert.equal(stepConceptIndex(0, 0, -1), -1)
+assert.equal(carouselOffset(0, 3, 4), 1)
+assert.equal(carouselOffset(3, 0, 4), -1)
+assert.equal(carouselOffset(1, 0, 2), 1)
+assert.equal(carouselOffset(0, 1, 2), -1)
+assert.equal(carouselOffset(0, 0, 1), 0)
+assert.equal(ordered.map((concept) => concept.id)[stepConceptIndex(0, ordered.length, -1)], 'older')
+assert.equal(ordered.map((concept) => concept.id)[stepConceptIndex(ordered.length - 1, ordered.length, 1)], 'newer')
 
 const copy = conceptQuestionCopy({
   questionIds: ['q1', 'q2', 'q3', 'q4', 'q5'],
@@ -99,9 +107,74 @@ const view = readFileSync(new URL('../../components/studio/library-view.tsx', im
 assert.equal(view.includes('images/generations'), false)
 assert.equal(view.includes('orderedConcepts'), true)
 assert.equal(view.includes('stepConceptIndex'), true)
+assert.equal(view.includes('carouselOffset'), true)
+assert.equal(view.includes('ArrowLeft'), true)
+assert.equal(view.includes('ArrowRight'), true)
+assert.equal(view.includes('disabled={count < 2}'), true)
+assert.equal(view.includes('prefers-reduced-motion'), true)
+const comparison = readFileSync(new URL('../../components/studio/concept-comparison.tsx', import.meta.url), 'utf8')
+assert.equal(comparison.includes('stepConceptIndex'), false)
+assert.equal(comparison.includes('carouselOffset'), false)
 assert.equal(view.includes('Edit concept'), true)
 assert.equal(view.includes("stage: 'distil'"), false)
 assert.equal(view.includes('forConsideredText'), false)
 assert.equal(view.includes('consideredText'), false)
 assert.equal(view.includes('conceptCardQuestion'), true)
 assert.equal(view.includes('object-contain'), true)
+assert.equal(view.includes('conceptRemainsVisible'), true)
+assert.equal(view.includes('listQuestionDispositions'), true)
+assert.equal(view.includes('questionStamp'), true)
+
+const prompt = 'A lone iron needle suspended in a dark glassy void.'
+const saved = {
+  anchorQuestionId: null,
+  forConsideredText: prompt,
+  sources: [
+    { questionId: 'extra', consideredText: 'A later contributor prompt' },
+    { questionId: 'origin', consideredText: prompt },
+  ],
+}
+assert.equal(originatingQuestionId(saved), 'origin')
+const active = questionDispositionMap([], [
+  { id: 'origin', disposition: 'gathered' },
+  { id: 'extra', disposition: 'discarded' },
+])
+assert.equal(conceptRemainsVisible(saved, active), true)
+const originDiscarded = questionDispositionMap([], [
+  { id: 'origin', disposition: 'discarded' },
+  { id: 'extra', disposition: 'gathered' },
+])
+assert.equal(conceptRemainsVisible(saved, originDiscarded), false)
+const restored = questionDispositionMap([{ id: 'origin', disposition: 'discarded' }], [{ id: 'origin', disposition: 'gathered' }])
+assert.equal(conceptRemainsVisible(saved, restored), true)
+
+const detachedConcept = {
+  anchorQuestionId: null,
+  forConsideredText: prompt,
+  sources: [{ questionId: null, consideredText: prompt }],
+}
+assert.equal(originatingQuestionId(detachedConcept), null)
+assert.equal(conceptRemainsVisible(detachedConcept, originDiscarded), true)
+
+const ambiguous = {
+  anchorQuestionId: null,
+  forConsideredText: prompt,
+  sources: [
+    { questionId: 'first', consideredText: 'One scene' },
+    { questionId: 'second', consideredText: 'Another scene' },
+  ],
+}
+assert.equal(originatingQuestionId(ambiguous), null)
+assert.equal(conceptRemainsVisible(ambiguous, questionDispositionMap([], [
+  { id: 'first', disposition: 'discarded' },
+  { id: 'second', disposition: 'discarded' },
+])), true)
+
+const remembered = {
+  anchorQuestionId: 'origin',
+  forConsideredText: prompt,
+  sources: [],
+}
+assert.equal(originatingQuestionId(remembered), 'origin')
+assert.equal(conceptRemainsVisible(remembered, originDiscarded), false)
+assert.equal(conceptRemainsVisible(remembered, restored), true)

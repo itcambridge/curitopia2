@@ -31,6 +31,10 @@ export function emptyLibraryMessage(focus: string, curiosityName: string | null)
   return 'This curiosity has no saved concepts yet.'
 }
 
+export function hiddenLibraryMessage() {
+  return 'Concepts from discarded questions stay out of the library until those questions are restored.'
+}
+
 // Carousel position may be mirrored into the open workspace only when that
 // concept is already one of its records. A concept from another curiosity must
 // stay out of workspace.concepts.

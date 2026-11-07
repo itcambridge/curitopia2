@@ -1,5 +1,6 @@
 import type { ImageSetResult } from '../providers/types'
 import { groupSimilarIds } from './duplicates.ts'
+import { conceptRemainsVisible, questionDispositionMap } from './library-carousel.ts'
 import { cleanTitle, titleProblem } from './title.ts'
 import type { CandidateDraft, ConceptRecord, Disposition, QuestionBranch, QuestionRecord, StageId, StoredCandidate, Workspace } from './types'
 
@@ -222,9 +223,10 @@ export function conceptForAnchor(workspace: Workspace, anchorQuestionId: string)
   return workspace.concepts.find((concept) => concept.anchorQuestionId === anchorQuestionId) ?? null
 }
 
-function relatedIds(workspace: Workspace, anchorId: string, extraIds: string[]) {
+function relatedIds(workspace: Workspace, anchorId: string, extraIds: string[], retainedIds: string[] = []) {
   const allowed = new Set(workspace.questions.filter((item) => !item.mergedIntoId && item.disposition !== 'discarded').map((item) => item.id))
-  const ids = [anchorId, ...extraIds.filter((id) => id !== anchorId && allowed.has(id))]
+  const retained = new Set(retainedIds)
+  const ids = [anchorId, ...extraIds.filter((id) => id !== anchorId && (allowed.has(id) || retained.has(id)))]
   return [...new Set(ids)]
 }
 
@@ -273,7 +275,7 @@ export function updateConcept(workspace: Workspace, conceptId: string, title: st
           ...concept,
           title: cleanTitle(title),
           questionIds: concept.anchorQuestionId
-            ? relatedIds(workspace, concept.anchorQuestionId, extraIds)
+            ? relatedIds(workspace, concept.anchorQuestionId, extraIds, concept.questionIds)
             : concept.questionIds,
           updatedAt: now(),
         }
@@ -321,7 +323,7 @@ export function workspaceCounts(workspace: Workspace) {
     discarded: open.filter((item) => item.disposition === 'discarded').length,
     merged: workspace.questions.filter((item) => item.mergedIntoId).length,
     images: workspace.drafts.filter((draft) => draft.candidates.length > 0).length,
-    concepts: workspace.concepts.length,
+    concepts: workspace.concepts.filter((concept) => conceptRemainsVisible(concept, questionDispositionMap(workspace.questions))).length,
     questions: open.length,
   }
 }

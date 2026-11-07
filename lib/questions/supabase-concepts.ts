@@ -1,5 +1,6 @@
 import { readConceptImage } from '@/lib/questions/concept-image'
 import { linkChanges } from '@/lib/questions/concept-links'
+import { originatingQuestionId } from '@/lib/questions/library-carousel'
 import type { ConceptRecord, ConceptSource, LibraryConcept, QuestionRecord } from '@/lib/questions/types'
 import { createClient } from '@/lib/supabase/client'
 
@@ -64,7 +65,12 @@ async function signedImageUrls(paths: string[]) {
 }
 
 function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string): ConceptRecord {
-  const live = sources.filter((source) => source.questionId)
+  const live = sources.flatMap((source) => source.questionId ? [source.questionId] : [])
+  const anchorQuestionId = originatingQuestionId({
+    anchorQuestionId: null,
+    forConsideredText: row.for_considered_text,
+    sources,
+  })
   return {
     id: row.id,
     title: row.title,
@@ -75,8 +81,8 @@ function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string):
     model: row.image_model,
     promptVersion: row.prompt_version,
     forConsideredText: row.for_considered_text,
-    anchorQuestionId: live[0]?.questionId ?? null,
-    questionIds: live.flatMap((source) => source.questionId ? [source.questionId] : []),
+    anchorQuestionId,
+    questionIds: anchorQuestionId ? [anchorQuestionId, ...live.filter((id) => id !== anchorQuestionId)] : live,
     sources,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
