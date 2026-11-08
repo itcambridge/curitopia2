@@ -1,3 +1,4 @@
+import { metaphorDirections } from '../providers/prompts.ts'
 import type { ImageSetResult } from '../providers/types'
 import { groupSimilarIds } from './duplicates.ts'
 import { conceptRemainsVisible, questionDispositionMap } from './library-carousel.ts'
@@ -152,6 +153,84 @@ export function draftFor(workspace: Workspace, questionId: string) {
 
 export function draftIsCurrent(item: QuestionRecord, draft: CandidateDraft | null) {
   return Boolean(draft && item.consideredText && draft.forConsideredText === item.consideredText)
+}
+
+function storedCandidate(candidate: ImageSetResult['candidates'][number]): StoredCandidate {
+  return {
+    id: candidate.id,
+    label: candidate.label,
+    metaphor: candidate.metaphor,
+    src: candidate.src,
+    source: candidate.source,
+  }
+}
+
+function orderedCandidates(candidates: StoredCandidate[]) {
+  const order = metaphorDirections.map((direction) => direction.id)
+  return [...candidates].sort((left, right) => order.indexOf(left.id as typeof order[number]) - order.indexOf(right.id as typeof order[number]))
+}
+
+export function beginImageSet(workspace: Workspace, questionId: string, forConsideredText: string): Workspace {
+  const item = question(workspace, questionId)
+  const prompt = forConsideredText.trim()
+  if (!item || item.consideredText?.trim() !== prompt) return workspace
+  const draft: CandidateDraft = {
+    questionId,
+    forConsideredText: prompt,
+    model: null,
+    promptVersion: null,
+    reportedCostUsd: null,
+    notice: '',
+    candidates: [],
+    selectedId: null,
+    rejectedIds: [],
+  }
+  return {
+    ...workspace,
+    focusQuestionId: questionId,
+    drafts: [draft, ...workspace.drafts.filter((itemDraft) => itemDraft.questionId !== questionId)],
+  }
+}
+
+// Adds one finished image to the set for the prompt that requested it.
+// A late result for a different prompt or question is ignored. A failed result adds nothing.
+export function addImageCandidate(workspace: Workspace, questionId: string, result: ImageSetResult, forConsideredText: string): Workspace {
+  const item = question(workspace, questionId)
+  const prompt = forConsideredText.trim()
+  const incoming = result.candidates[0]
+  if (!item || item.consideredText?.trim() !== prompt || !incoming?.src) return workspace
+  const existing = draftFor(workspace, questionId)
+  const base: CandidateDraft = existing && existing.forConsideredText === prompt
+    ? existing
+    : {
+        questionId,
+        forConsideredText: prompt,
+        model: null,
+        promptVersion: null,
+        reportedCostUsd: null,
+        notice: '',
+        candidates: [],
+        selectedId: null,
+        rejectedIds: [],
+      }
+  const stored = storedCandidate(incoming)
+  const spent = base.reportedCostUsd == null && result.reportedCostUsd == null
+    ? null
+    : (base.reportedCostUsd ?? 0) + (result.reportedCostUsd ?? 0)
+  const draft: CandidateDraft = {
+    ...base,
+    model: result.model ?? base.model,
+    promptVersion: result.promptVersion ?? base.promptVersion,
+    reportedCostUsd: spent,
+    notice: result.stoppedBecause === 'complete' ? base.notice : result.notice,
+    candidates: orderedCandidates([...base.candidates.filter((candidate) => candidate.id !== stored.id), stored]),
+    rejectedIds: base.rejectedIds.filter((id) => id !== stored.id),
+  }
+  return {
+    ...workspace,
+    focusQuestionId: questionId,
+    drafts: [draft, ...workspace.drafts.filter((itemDraft) => itemDraft.questionId !== questionId)],
+  }
 }
 
 export function applyImageResult(workspace: Workspace, questionId: string, result: ImageSetResult, forConsideredText: string) {

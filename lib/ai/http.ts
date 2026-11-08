@@ -1,6 +1,7 @@
 import { beginAiTurn, considerWouldCallProvider, imagesWouldCallProvider, titlesWouldCallProvider, type AiEndpoint, type AiSession } from './policy.ts'
 import { configuredTextModel, requestTitleSuggestions } from '../providers/title-suggestions.ts'
-import type { ImageSetResult } from '../providers/types.ts'
+import { isMetaphorId } from '../providers/prompts.ts'
+import type { ImageSetResult, MetaphorId } from '../providers/types.ts'
 import { acceptTitleSuggestions, inspectTitleSuggestions, titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
 
 const questionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -58,12 +59,12 @@ export async function considerHttp(
 export async function imagesHttp(
   request: Request,
   gate: Gate,
-  interpret: (considered: string, signal?: AbortSignal) => Promise<ImageSetResult>,
+  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId) => Promise<ImageSetResult>,
 ) {
   const auth = await gate.authenticate('images', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { consideredText?: unknown }
+  let body: { consideredText?: unknown; direction?: unknown; runId?: unknown }
   try {
     body = await request.json()
   } catch {
@@ -73,10 +74,17 @@ export async function imagesHttp(
   if (!consideredText || consideredText.length > 2000) {
     return Response.json({ error: 'Save a considered question before asking for images.' }, { status: 400 })
   }
+  if (body.direction !== undefined && !isMetaphorId(body.direction)) {
+    return Response.json({ error: 'Choose one of the available visual directions.' }, { status: 400 })
+  }
+  const direction = isMetaphorId(body.direction) ? body.direction : undefined
+  if (body.runId !== undefined && (typeof body.runId !== 'string' || !questionIdPattern.test(body.runId))) {
+    return Response.json({ error: 'The image run could not be recognised. Nothing was sent.' }, { status: 400 })
+  }
   const turn = startTurn(auth.userId, 'images', imagesWouldCallProvider())
   if (turn instanceof Response) return turn
   try {
-    return Response.json(await interpret(consideredText, request.signal))
+    return Response.json(await interpret(consideredText, request.signal, direction))
   } finally {
     turn?.()
   }

@@ -55,11 +55,15 @@ Visualise is a contextual workspace opened from a question. It may include an op
 Responsibilities:
 - Show the original question and the exact generation wording.
 - Allow the person to use the original wording or refine it without overwriting the capture.
-- Generate a small set of distinct image interpretations after an explicit action.
+- Generate 1, 2, or 4 distinct image interpretations after an explicit action. The default is 1 image until the person chooses otherwise. The last choice is stored in this browser, not in the account.
+- Request each image separately. Show the first finished image immediately, then add each later image as it returns. One provider call is in flight at a time.
 - Compare candidates at a useful size.
 - Keep candidates temporary.
+- Keep successful images when one image fails, and let that image be requested again on its own.
 - Allow reject/regenerate/leave-without-save.
 - Offer Save for a selected candidate, with title entry inline.
+
+The Visualise screen sends one `POST /api/images` for each requested image, with the accepted prompt, one metaphor direction (`tension`, `trace`, `scale`, or `relation`), and the id of that generation run. The route can still generate every direction inside one request when no direction is sent, but the screen does not use that batch. The account accepts one image request at a time, so the screen waits for each image to finish before requesting the next. The first image is therefore shown on its own, and a later image does not compete with it. While a request is open, the screen counts down from 30 seconds for that image only. The remaining time is taken from the clock at the start of that request, so a hidden browser tab does not make the count drift. The count stops when the request succeeds, fails, or is discarded, and a returned image is shown immediately. At zero the number stops, the screen says “Taking a little longer than usual…”, and generation continues. Spending is left to the OpenAI account. Saving the selected image does not start any further image in that run. A request already sent may still finish and be charged; its result is not applied to the saved concept or put back into the draft.
 
 No separate Distil page or route exists in the target UX. A selected image does not automatically become a Library record.
 
@@ -227,6 +231,7 @@ Tests need to cover both persistence correctness and the new discovery experienc
 
 - No image generation occurs on page open or question capture.
 - Generation requires an explicit action.
+- A new browser starts at 1 image. Choosing 2 or 4 is remembered for the next request. Each image is requested on its own, shown when it returns, and a failed image can be retried without removing the images that succeeded. A result for a different prompt is ignored.
 - Candidates are visibly distinct and large enough to judge.
 - Rejected candidates are not stored as concepts or uploaded to the private Library bucket.
 - Save requires a selected image and a valid one- or two-word title.

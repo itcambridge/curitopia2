@@ -209,6 +209,8 @@ Change one of prompt, model, or comparison layout at a time. If the product late
 - The title is entered in the save interaction; there is no Distil screen.
 - The saved concept card renders the title at the top and the represented question at the bottom, with the original artwork between them.
 - The text overlays are application-rendered, not part of the generated source file.
+- The person can ask for 1, 2, or 4 images. A first visit starts with one image, and the last choice is remembered in the browser. One image is a complete way to see an idea; four images remain available for a wider range of interpretations. While an image is being created, a countdown from 30 seconds shows the usual wait. A finished image appears at once, even if the countdown has time left. Past zero, the screen says it is taking a little longer than usual and keeps waiting. Each later image starts its own countdown.
+- The first finished image appears as soon as it is ready. Later images arrive one at a time. One failed image does not discard the others.
 - The Library shows a recognisable concept and supports side-by-side comparison with other concepts.
 - Editing, parking, or removing a source question does not delete the concept or change the wording the image represents.
 - Discarding the originating question hides its saved concepts from the Library until that question is restored. The concept, image, title, and question snapshot remain stored. Discarding an additional contributing question does not hide the concept.

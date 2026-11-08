@@ -1,8 +1,5 @@
 import type { ReportedUsage } from '@/lib/providers/types'
 
-export const spendCeilingUsd = 1.5
-export const maxImageCalls = 4
-
 const textInputPerToken = 5 / 1_000_000
 const imageInputPerToken = 8 / 1_000_000
 const imageOutputPerToken = 30 / 1_000_000
@@ -38,8 +35,4 @@ export function readReportedUsage(value: unknown): ReportedUsage {
     imageInputUsd: (imageInputTokens ?? 0) * imageInputPerToken,
     imageOutputUsd: (outputImageTokens ?? 0) * imageOutputPerToken,
   }
-}
-
-export function aboveSpendCeiling(spentUsd: number) {
-  return spentUsd > spendCeilingUsd
 }

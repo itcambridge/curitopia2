@@ -35,7 +35,7 @@ export type ImageSetResult = {
   notice: string
   candidates: ImageCandidate[]
   reportedCostUsd: number | null
-  stoppedBecause: 'complete' | 'error' | 'ceiling'
+  stoppedBecause: 'complete' | 'error'
   model: string | null
   promptVersion: string | null
 }

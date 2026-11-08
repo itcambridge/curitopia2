@@ -23,6 +23,10 @@ export const metaphorDirections: { id: MetaphorId; label: string; instruction: s
   },
 ]
 
+export function isMetaphorId(value: unknown): value is MetaphorId {
+  return typeof value === 'string' && metaphorDirections.some((direction) => direction.id === value)
+}
+
 const q09 = 'How can someone be present among others and still be unreached?'
 
 export function imagePrompt(considered: string, instruction: string) {

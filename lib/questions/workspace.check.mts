@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
+import { shouldApplyReturnedImage } from '../providers/image-run.ts'
 import { conceptRemainsVisible, questionDispositionMap } from './library-carousel.ts'
-import { addQuestion, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, setDisposition, applyImageResult, updateConcept, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
+import { addQuestion, addImageCandidate, beginImageSet, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, setDisposition, applyImageResult, updateConcept, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
 import { emptyWorkspace } from './workspace.ts'
 import { titleProblem } from './title.ts'
 import assert from 'node:assert/strict'
@@ -126,6 +127,54 @@ const failedReplace = applyImageResult(chosen, considered.questions[2].id, {
   candidates: [],
 }, 'What remains unresolved after an answer arrives?')
 assert.equal(failedReplace.drafts[0].candidates.length, 2)
+
+function oneImage(id: 'tension' | 'trace' | 'scale' | 'relation', src: string) {
+  return {
+    source: 'openai' as const,
+    notice: 'Made 1 image call.',
+    reportedCostUsd: 0.1,
+    stoppedBecause: 'complete' as const,
+    model: 'gpt-image-2.5-flare',
+    promptVersion: 'image-eval-1',
+    candidates: [{ id, label: id, metaphor: id, prompt: 'hidden', src: `data:image/svg+xml,${src}`, source: 'openai' as const, usage: null }],
+  }
+}
+const prompt = 'What remains unresolved after an answer arrives?'
+const questionId = considered.questions[2].id
+const started = beginImageSet(considered, questionId, prompt)
+assert.equal(started.drafts[0].candidates.length, 0)
+const firstImage = addImageCandidate(started, questionId, oneImage('tension', 'one'), prompt)
+assert.equal(firstImage.drafts[0].candidates.length, 1)
+const pickedImage = selectCandidate(firstImage, questionId, 'tension')
+const secondImage = addImageCandidate(pickedImage, questionId, oneImage('trace', 'two'), prompt)
+assert.deepEqual(secondImage.drafts[0].candidates.map((candidate) => candidate.id), ['tension', 'trace'])
+assert.equal(secondImage.drafts[0].selectedId, 'tension')
+assert.equal(secondImage.drafts[0].candidates[0].src, 'data:image/svg+xml,one')
+const failedImage = addImageCandidate(secondImage, questionId, { ...oneImage('scale', 'three'), candidates: [] }, prompt)
+assert.equal(failedImage, secondImage)
+const retriedImage = addImageCandidate(failedImage, questionId, oneImage('trace', 'retried'), prompt)
+assert.equal(retriedImage.drafts[0].candidates.length, 2)
+assert.equal(retriedImage.drafts[0].candidates.find((candidate) => candidate.id === 'trace')?.src, 'data:image/svg+xml,retried')
+assert.equal(retriedImage.drafts[0].selectedId, 'tension')
+const revised = {
+  ...retriedImage,
+  questions: retriedImage.questions.map((item) => item.id === questionId ? { ...item, consideredText: 'A revised question.' } : item),
+}
+assert.equal(addImageCandidate(revised, questionId, oneImage('scale', 'late'), prompt), revised)
+assert.equal(beginImageSet(revised, questionId, prompt), revised)
+const keptImage = selectCandidate(secondImage, questionId, 'tension')
+const savedDuringRun = saveConcept(keptImage, questionId, 'Held still', [])
+assert.equal(savedDuringRun.concepts[0].forConsideredText, prompt)
+assert.equal(savedDuringRun.concepts[0].anchorQuestionId, questionId)
+assert.equal(savedDuringRun.concepts[0].imageSrc, 'data:image/svg+xml,one')
+assert.equal(savedDuringRun.concepts[0].questionIds[0], questionId)
+assert.equal(savedDuringRun.drafts.some((draft) => draft.questionId === questionId), false)
+const lateImage = shouldApplyReturnedImage(false) ? addImageCandidate(savedDuringRun, questionId, oneImage('scale', 'late'), prompt) : savedDuringRun
+assert.equal(lateImage, savedDuringRun)
+assert.equal(lateImage.concepts[0].imageSrc, 'data:image/svg+xml,one')
+assert.equal(lateImage.concepts[0].forConsideredText, prompt)
+assert.equal(lateImage.concepts[0].id, savedDuringRun.concepts[0].id)
+assert.equal(lateImage.drafts.some((draft) => draft.questionId === questionId), false)
 
 const stale = {
   ...chosen,
