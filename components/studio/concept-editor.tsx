@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import { useScreenDraft } from '@/components/studio/leave-guard'
-import { quietButton, coralButton } from '@/components/studio/studio-ui'
+import { IconAction } from '@/components/studio/studio-ui'
 import { conceptCardQuestion } from '@/lib/questions/library-carousel'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
 import { foldedQuestions, updateConcept } from '@/lib/questions/workspace'
@@ -55,12 +56,12 @@ export function ConceptEditor({
 
   return (
     <section className="min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-3xl tracking-tight sm:text-4xl">Edit concept</h2>
-        <button type="button" className={quietButton} onClick={onClose}>Back to the library</button>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 font-serif text-3xl tracking-tight sm:text-4xl">Edit concept</h2>
+        <button type="button" className="shrink-0 text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" onClick={onClose}>Back to the library</button>
       </div>
       <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(280px,1.1fr)]">
-        <img src={concept.imageSrc} alt="" className="max-h-[28rem] w-full rounded-[28px] bg-studio-ink object-contain" />
+        <img src={concept.imageSrc} alt="" className="max-h-[min(78vw,28rem)] w-full rounded-3xl bg-studio-ink object-contain" />
         <form className="flex min-w-0 flex-col gap-4" onSubmit={(event) => { event.preventDefault(); save() }}>
           <div>
             <p className="text-sm font-semibold">Original question</p>
@@ -94,8 +95,8 @@ export function ConceptEditor({
               <legend className="text-sm font-semibold">Other questions that inform it</legend>
               <div className="mt-2 flex flex-col gap-2">
                 {choices.map((item) => (
-                  <label key={item.id} className="flex items-start gap-2 text-sm text-studio-body">
-                    <input type="checkbox" checked={extras.includes(item.id)} onChange={() => toggle(item.id)} className="mt-1" />
+                  <label key={item.id} className="flex min-h-11 items-start gap-3 py-2 text-sm text-studio-body">
+                    <input type="checkbox" checked={extras.includes(item.id)} onChange={() => toggle(item.id)} className="mt-0.5 size-5 shrink-0" />
                     <span>{item.originalText}</span>
                   </label>
                 ))}
@@ -107,15 +108,19 @@ export function ConceptEditor({
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+              className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
             />
           </label>
           {title.trim() && titleProblem(title) ? <p className="text-sm text-studio-coral">{titleProblem(title)}</p> : null}
           {saving ? <p role="status" className="text-sm text-studio-body">Saving the title and source-question links…</p> : null}
           {savedConceptId === concept.id && !saving && titleMatches && linksMatch ? <p role="status" className="text-sm text-studio-body">Saved. The image is unchanged.</p> : null}
-          <div className="flex flex-wrap gap-2">
-            <button type="submit" className={coralButton} disabled={Boolean(problem) || saving || (titleMatches && linksMatch)}>Save changes</button>
-            <button type="button" className={quietButton} onClick={onClose}>Cancel</button>
+          <div className="flex items-center gap-2">
+            <IconAction type="submit" label="Save these changes" treatment="coral" tipAlign="start" disabled={Boolean(problem) || saving || (titleMatches && linksMatch)}>
+              <Check aria-hidden="true" />
+            </IconAction>
+            <IconAction label="Cancel editing" treatment="quiet" onClick={onClose}>
+              <X aria-hidden="true" />
+            </IconAction>
           </div>
         </form>
       </div>

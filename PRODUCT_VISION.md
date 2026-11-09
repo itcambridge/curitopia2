@@ -37,7 +37,7 @@ The garden represents the person's evolving curiosity. It is not a streak, level
 
 Growth follows real activity. A pause does not wither anything. A question that never becomes an image remains welcome. The garden should never imply that a person has failed to progress.
 
-The visual system remains warm and editorial: cream and paper surfaces, coral accent, serif display typography, and a human field-notes voice. Botanical language should be sparing; actions should retain clear labels.
+The visual system remains warm and editorial: cream and paper surfaces, coral accent, serif display typography, and a human field-notes voice. Botanical language should be sparing. An action button shows an icon and no visible words. Its meaning is an accessible name for a screen reader, and a tooltip when a pointer can hover. Navigation, text links, headings, field labels, and explanatory text keep their words.
 
 ## 3. Product surfaces, not stages
 

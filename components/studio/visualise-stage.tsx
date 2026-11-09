@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { Bot, Check, ChevronLeft, ChevronRight, ImagePlus } from 'lucide-react'
+import { Bookmark, Bot, Check, ChevronLeft, ChevronRight, ImagePlus, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
 import { StageMark } from '@/components/studio/stage-mark'
 import { useScreenDraft } from '@/components/studio/leave-guard'
-import { Eyebrow, Notice, coralButton, iconButton, iconCoralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, IconAction, Notice, coralButton, panelClass, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
 import { directionsForCount, imageCountdownCopy, imageCountdownSeconds, imageCountdownShowsNumber, imageCounts, initialSlots, markSlot, nextImageCountdown, readImageCount, writeImageCount, type ImageCount, type ImageSlot } from '@/lib/providers/image-count'
 import { shouldApplyReturnedImage, shouldStartNextImage } from '@/lib/providers/image-run'
 import type { ImageSetResult, MetaphorId } from '@/lib/providers/types'
@@ -310,35 +310,42 @@ function QuestionImages({
       {error && <p role="alert" className="rounded-2xl bg-studio-coral/20 px-4 py-3 text-sm">{error}</p>}
       <section className={panelClass}>
         <h3 className="font-serif text-2xl">Image prompt</h3>
-        <label htmlFor="considered-draft" className="mt-3 block text-sm text-studio-body">Write a visual prompt, or edit the one that comes back.</label>
+        <label htmlFor="considered-draft" className="mt-3 block text-sm leading-relaxed text-studio-body">Write a visual prompt, or edit the one that comes back.</label>
         <textarea
           id="considered-draft"
           value={wording}
           onChange={(event) => setWording(event.target.value)}
-          className="mt-2 min-h-36 w-full rounded-2xl border border-studio-line bg-studio-cream p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+          className="mt-2 min-h-36 w-full rounded-2xl border border-studio-line bg-studio-cream p-4 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
         />
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={askForProposal}
-            disabled={busy !== null}
-            className={iconButton}
-            aria-label={busy === 'consider' ? 'Writing an image prompt' : generated ? 'Ask for another image prompt' : 'Ask for an image prompt'}
-            title={busy === 'consider' ? 'Writing an image prompt' : generated ? 'Ask for another image prompt' : 'Ask for an image prompt'}
-          >
-            <Bot size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => { setError(null); onChange(acceptConsidered(workspace, question.id, wording)) }}
-            disabled={busy !== null}
-            className={iconCoralButton}
-            aria-label="Accept this prompt"
-            title="Accept this prompt"
-          >
-            <Check size={18} aria-hidden="true" />
-          </button>
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <IconAction
+              label={busy === 'consider' ? 'Writing an image prompt' : generated ? 'Ask for another image prompt' : 'Ask for an image prompt'}
+              treatment="quiet"
+              tipAlign="start"
+              disabled={busy !== null}
+              onClick={askForProposal}
+            >
+              <Bot aria-hidden="true" />
+            </IconAction>
+            <IconAction
+              label="Accept this prompt"
+              treatment="ink"
+              disabled={busy !== null}
+              onClick={() => { setError(null); onChange(acceptConsidered(workspace, question.id, wording)) }}
+            >
+              <Check aria-hidden="true" />
+            </IconAction>
+            <IconAction
+              label={busy === 'images' ? 'Creating images' : imageCount === 1 ? 'Generate 1 image' : `Generate ${imageCount} images`}
+              treatment="quiet"
+              disabled={!question.consideredText || !wordingSaved || busy !== null}
+              onClick={() => { void askForImages() }}
+            >
+              <ImagePlus aria-hidden="true" />
+            </IconAction>
+          </div>
+          <div className="flex items-center gap-3">
             <span id={countLabelId} className="text-sm font-semibold">Images</span>
             <div role="radiogroup" aria-labelledby={countLabelId} className="inline-flex rounded-full border border-studio-line bg-studio-cream p-0.5">
               {imageCounts.map((count) => {
@@ -362,16 +369,6 @@ function QuestionImages({
               })}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => { void askForImages() }}
-            disabled={!question.consideredText || !wordingSaved || busy !== null}
-            className={iconButton}
-            aria-label={busy === 'images' ? 'Creating images' : imageCount === 1 ? 'Generate 1 image' : `Generate ${imageCount} images`}
-            title={busy === 'images' ? 'Creating images' : imageCount === 1 ? 'Generate 1 image' : `Generate ${imageCount} images`}
-          >
-            <ImagePlus size={18} aria-hidden="true" />
-          </button>
         </div>
         <p className="mt-3 text-sm text-studio-muted">1 image is the quickest look. 4 explores a wider range.</p>
         {busy === 'consider' ? <p className="mt-3 text-sm text-studio-body">Writing an image prompt…</p> : null}
@@ -387,6 +384,12 @@ function QuestionImages({
         )}
         {draft?.notice && current && <div className="mt-4"><Notice>{draft.notice}{draft.reportedCostUsd != null ? ` Reported cost for this set: $${draft.reportedCostUsd.toFixed(5)}.` : ''}</Notice></div>}
         {slots && slots.some((slot) => slot.status !== 'ready') ? <ImageProgress slots={slots} attempt={imageAttempt} busy={busy === 'images'} onRetry={(direction) => { void retryImage(direction) }} /> : null}
+        {visible.length === 0 && hidden.length === 0 && !(slots && slots.some((slot) => slot.status !== 'ready')) ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-studio-line bg-studio-cream px-4 py-5">
+            <p className="font-serif text-lg">Images will appear here</p>
+            <p className="mt-1 text-sm leading-relaxed text-studio-body">Each finished image shows as soon as it is ready. You can then choose the one to keep.</p>
+          </div>
+        ) : null}
         {visible.length > 0 && (
           <ImageCarousel
             candidates={visible}
@@ -399,13 +402,16 @@ function QuestionImages({
         {hidden.length > 0 && (
           <div className="mt-4">
             <p className="text-sm text-studio-body">{hidden.length} hidden from this comparison. Hidden images are not saved.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <ul className="mt-2 flex flex-col gap-2">
               {hidden.map((candidate) => (
-                <button key={candidate.id} type="button" className={quietButton} onClick={() => onChange(restoreCandidate(workspace, question.id, candidate.id))}>
-                  Restore {candidate.label}
-                </button>
+                <li key={candidate.id} className="flex items-center gap-2">
+                  <IconAction label={`Restore ${candidate.label}`} treatment="quiet" tipAlign="start" onClick={() => onChange(restoreCandidate(workspace, question.id, candidate.id))}>
+                    <RotateCcw aria-hidden="true" />
+                  </IconAction>
+                  <span className="min-w-0 text-sm text-studio-body">{candidate.label}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
         <div className="mt-6 border-t border-studio-line pt-5">
@@ -421,9 +427,9 @@ function QuestionImages({
                     ? 'Saved to your library. This account has the image and its source-question links.'
                     : `${justSaved.title} is in your library.`}
               </p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                <button type="button" className={`${coralButton} w-full sm:w-auto`} onClick={() => onChange({ ...workspace, stage: 'library', focusConceptId: justSaved.id, focusQuestionId: question.id })}>View in the library</button>
-                <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => onChange({ ...workspace, stage: 'gather', focusQuestionId: question.id })}>Return to the garden</button>
+              <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:gap-6">
+                <button type="button" className={textLinkClass} onClick={() => onChange({ ...workspace, stage: 'library', focusConceptId: justSaved.id, focusQuestionId: question.id })}>View in the library</button>
+                <button type="button" className={textLinkClass} onClick={() => onChange({ ...workspace, stage: 'gather', focusQuestionId: question.id })}>Return to the garden</button>
               </div>
               <p className="mt-3 text-sm text-studio-muted">You can generate another image for this question, or leave this one as it is.</p>
             </div>
@@ -446,15 +452,17 @@ function QuestionImages({
                 <p className="mt-2 text-sm text-studio-muted">The library card shows this question. The image prompt is kept with the concept and is not the card question.</p>
               </div>
               {relatedChoices.length > 0 && (
-                <fieldset className="mt-4">
-                  <legend className="text-sm font-semibold">Add a related question</legend>
-                  <p className="mt-1 text-sm text-studio-muted">Optional. The concept is saved with this question either way.</p>
-                  <div className="mt-2 flex flex-col gap-2">
+                <details className="mt-4 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3">
+                  <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+                    Add a related question
+                    <span className="mt-1 block font-normal text-studio-muted">Optional. The concept is saved with this question either way.</span>
+                  </summary>
+                  <div className="mt-3 flex flex-col gap-2">
                     {relatedChoices.map((item) => (
-                      <label key={item.id} className="flex items-start gap-2 text-sm text-studio-body">
+                      <label key={item.id} className="flex min-h-11 items-start gap-3 py-2 text-sm text-studio-body">
                         <input
                           type="checkbox"
-                          className="mt-1"
+                          className="mt-1 size-4 shrink-0"
                           checked={related.includes(item.id)}
                           onChange={() => setRelated((currentIds) => currentIds.includes(item.id) ? currentIds.filter((id) => id !== item.id) : [...currentIds, item.id])}
                         />
@@ -462,7 +470,7 @@ function QuestionImages({
                       </label>
                     ))}
                   </div>
-                </fieldset>
+                </details>
               )}
               <label htmlFor="visualise-concept-title" className="mt-4 block text-sm font-semibold">One- or two-word title</label>
               <input
@@ -472,19 +480,23 @@ function QuestionImages({
                 placeholder="Name the metaphor"
                 maxLength={40}
                 aria-describedby={titleIssue || (selected && current && !title.trim()) ? 'visualise-title-issue' : undefined}
-                className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+                className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
               />
               {selected && current && !title.trim() ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral">Add a one- or two-word title.</p> : null}
               {titleIssue ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral">{titleIssue}</p> : null}
               <div className="mt-3">
-                <button
-                  type="button"
-                  className={`${quietButton} w-full sm:w-auto`}
-                  disabled={suggesting || saving || busy === 'consider' || !selected || !current || !draft?.forConsideredText.trim()}
-                  onClick={() => { void askForTitles() }}
-                >
-                  {suggesting ? 'Suggesting titles…' : suggestions.length > 0 ? 'Suggest different titles' : 'Suggest titles'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <IconAction
+                    label={suggesting ? 'Suggesting titles' : suggestions.length > 0 ? 'Suggest different titles' : 'Suggest titles'}
+                    treatment="quiet"
+                    tipAlign="start"
+                    disabled={suggesting || saving || busy === 'consider' || !selected || !current || !draft?.forConsideredText.trim()}
+                    onClick={() => { void askForTitles() }}
+                  >
+                    <Sparkles aria-hidden="true" />
+                  </IconAction>
+                  {suggesting ? <p className="text-sm text-studio-body">Suggesting titles…</p> : null}
+                </div>
                 {suggestError && <p role="alert" className="mt-2 text-sm text-studio-coral">{suggestError}</p>}
                 {suggestNotice && !suggestError && <p role="status" className="mt-2 text-sm text-studio-body">{suggestNotice}</p>}
                 {suggestions.length > 0 && (
@@ -506,7 +518,11 @@ function QuestionImages({
               {selected?.source === 'demo' ? <p className="mt-2 text-sm text-studio-body">This is a demo fixture. It was not generated, and it cannot be stored in the account.</p> : null}
               {saving ? <p className="mt-2 text-sm text-studio-body">Saving the image and its source-question links to this account…</p> : null}
               {busy === 'images' && selected && current ? <p className="mt-3 text-sm text-studio-body">Saving keeps this image and stops any further images from being requested. An image already being created may still finish.</p> : null}
-              <button type="button" className={`${coralButton} mt-4 w-full sm:w-auto`} disabled={!canSave} onClick={saveSelected}>Save concept</button>
+              <div className="mt-4 flex items-center gap-3">
+                <IconAction label="Save concept" treatment="coral" tipAlign="start" disabled={!canSave} onClick={saveSelected}>
+                  <Bookmark aria-hidden="true" />
+                </IconAction>
+              </div>
             </>
           )}
         </div>
@@ -603,11 +619,19 @@ function ImageProgress({ slots, attempt, busy, onRetry }: { slots: ImageSlot[]; 
       {active >= 0 ? <ImageCountdownCard activeKey={`${slots[active].id}:${attempt}`} place={active + 1} total={slots.length} /> : null}
       <ul className="mt-3 grid gap-2" aria-live="polite">
         {slots.map((slot, index) => (
-          <li key={slot.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-2xl border border-studio-line px-3 py-2">
-            <span className="text-sm font-semibold">Image {index + 1} of {slots.length}</span>
-            <span className="text-sm text-studio-body">{slot.status === 'ready' ? 'Ready' : slot.status === 'generating' ? 'Creating this image…' : slot.status === 'waiting' ? 'Waiting' : 'Did not come back'}</span>
-            {slot.status === 'failed' ? <button type="button" className={`${quietButton} w-full sm:w-auto`} disabled={busy} onClick={() => onRetry(slot.id)}>Try this image again</button> : null}
-            {slot.error ? <p role="alert" className="w-full text-sm text-studio-coral">{slot.error}</p> : null}
+          <li key={slot.id} className="min-w-0 rounded-2xl border border-studio-line px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Image {index + 1} of {slots.length}</p>
+                <p className="text-sm text-studio-body">{slot.status === 'ready' ? 'Ready' : slot.status === 'generating' ? 'Creating this image…' : slot.status === 'waiting' ? 'Waiting' : 'Did not come back'}</p>
+              </div>
+              {slot.status === 'failed' ? (
+                <IconAction label="Try this image again" treatment="quiet" tipAlign="end" disabled={busy} onClick={() => onRetry(slot.id)}>
+                  <RefreshCw aria-hidden="true" />
+                </IconAction>
+              ) : null}
+            </div>
+            {slot.error ? <p role="alert" className="mt-2 text-sm text-studio-coral">{slot.error}</p> : null}
           </li>
         ))}
       </ul>
@@ -615,9 +639,7 @@ function ImageProgress({ slots, attempt, busy, onRetry }: { slots: ImageSlot[]; 
   )
 }
 
-const carouselNav = 'grid size-11 shrink-0 place-items-center rounded-full border border-studio-line bg-studio-paper text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
-const carouselSelect = 'grid size-11 shrink-0 place-items-center rounded-xl border border-studio-line text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
-const carouselSelectOn = 'grid size-11 shrink-0 place-items-center rounded-xl bg-studio-coral text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
+const textLinkClass = 'text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral'
 
 function ImageCarousel({
   candidates,
@@ -729,7 +751,7 @@ function ImageCarousel({
             const saved = item.id === selectedId
             return (
               <div key={item.id} className="w-full shrink-0 grow-0 basis-full snap-start" aria-hidden={active ? undefined : true}>
-                <div className={`relative mx-auto w-full max-w-[28rem] overflow-hidden rounded-[24px] border bg-studio-ink xl:max-w-[32rem] ${saved ? 'border-studio-coral shadow-studio-stamp-coral' : 'border-studio-line'}`}>
+                <div className={`relative mx-auto w-full max-w-[28rem] overflow-hidden rounded-[24px] border-2 bg-studio-ink xl:max-w-[32rem] ${saved ? 'border-studio-coral shadow-studio-stamp-coral' : 'border-studio-line'}`}>
                   {saved ? <span className="absolute left-3 top-3 z-10 rounded-full bg-studio-coral px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-studio-ink">Selected</span> : null}
                   <button
                     type="button"
@@ -752,25 +774,17 @@ function ImageCarousel({
           })}
         </div>
       </div>
-      <div className="mt-4 flex max-w-full flex-wrap items-center justify-center gap-2 sm:gap-3">
-        <button type="button" className={carouselNav} aria-label="Show the previous image" disabled={shown <= 0} onClick={() => go(-1)}>
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
+      <div className="mt-4 flex items-center justify-center gap-2">
+        <IconAction label="Show the previous image" treatment="quiet" tipAlign="start" disabled={shown <= 0} onClick={() => go(-1)}>
+          <ChevronLeft aria-hidden="true" />
+        </IconAction>
         <p aria-live="polite" className="min-w-12 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">{shown + 1} of {candidates.length}</p>
-        <button type="button" className={carouselNav} aria-label="Show the next image" disabled={shown >= candidates.length - 1} onClick={() => go(1)}>
-          <ChevronRight size={20} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={chosen ? carouselSelectOn : carouselSelect}
-          aria-pressed={chosen}
-          aria-label={chosen ? 'Using this image' : 'Use this image'}
-          title={chosen ? 'Using this image' : 'Use this image'}
-          disabled={!selectable}
-          onClick={() => onSelect(candidate.id)}
-        >
-          <Check size={18} aria-hidden="true" />
-        </button>
+        <IconAction label="Show the next image" treatment="quiet" disabled={shown >= candidates.length - 1} onClick={() => go(1)}>
+          <ChevronRight aria-hidden="true" />
+        </IconAction>
+        <IconAction label={chosen ? 'Using this image' : 'Use this image'} treatment={chosen ? 'coral' : 'quiet'} aria-pressed={chosen} disabled={!selectable} onClick={() => onSelect(candidate.id)}>
+          <Check aria-hidden="true" />
+        </IconAction>
       </div>
       <div className="mt-3 text-center">
         <Eyebrow>

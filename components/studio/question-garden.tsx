@@ -38,11 +38,11 @@ function NodeFace({
 }) {
   return (
     <>
-      <span className={`mb-1 block font-mono text-[8px] uppercase tracking-widest ${kind === 'shoot' ? 'text-studio-grove' : 'text-studio-label'}`}>
+      <span className={`mb-1 block font-mono text-[10px] uppercase tracking-widest ${kind === 'shoot' ? 'text-studio-grove' : 'text-studio-label'}`}>
         {kindLabel[kind]}
       </span>
-      <span className="line-clamp-3 text-left text-[11px] font-semibold leading-snug">{question.originalText}</span>
-      {linked ? <span className="mt-1 block font-mono text-[8px] uppercase tracking-widest text-studio-grove">Branch</span> : null}
+      <span className="line-clamp-3 text-left text-sm font-semibold leading-snug">{question.originalText}</span>
+      {linked ? <span className="mt-1 block font-mono text-[10px] uppercase tracking-widest text-studio-grove">Branch</span> : null}
     </>
   )
 }
@@ -56,6 +56,7 @@ export function QuestionGarden({
   concepts,
   links,
   linked,
+  onInvite,
   onFocus,
   onOpenConcept,
 }: {
@@ -63,6 +64,7 @@ export function QuestionGarden({
   concepts: ConceptRecord[]
   links: QuestionBranch[]
   linked: Set<string>
+  onInvite: () => void
   onFocus: (id: string) => void
   onOpenConcept: (id: string) => void
 }) {
@@ -75,13 +77,25 @@ export function QuestionGarden({
 
   if (orbit.length === 0) {
     return (
-      <div className="relative mx-auto flex min-h-[250px] max-w-2xl items-center justify-center max-[480px]:min-h-[280px]">
-        <div className="absolute inset-x-8 top-1/2 h-px bg-studio-line-soft max-[480px]:inset-x-4" />
-        <div className="absolute left-1/2 top-6 h-[190px] w-px bg-studio-line-soft max-[480px]:h-[210px]" />
-        <Heart />
-        <Hint place="left" eyebrow="Start with" text="Something you notice" />
-        <Hint place="right" eyebrow="Try turning" text="It sideways" />
-        <Hint place="bottom" eyebrow="Keep it" text="Playfully specific" />
+      <div>
+        <div className="md:hidden">
+          <div className="flex justify-center">
+            <Heart />
+          </div>
+          <ul className="mt-5 grid gap-3">
+            <li><Invitation eyebrow="Start with" text="Something you notice" onInvite={onInvite} /></li>
+            <li><Invitation eyebrow="Try turning" text="It sideways" onInvite={onInvite} /></li>
+            <li><Invitation eyebrow="Keep it" text="Playfully specific" onInvite={onInvite} /></li>
+          </ul>
+        </div>
+        <div className="relative mx-auto hidden min-h-[280px] max-w-2xl items-center justify-center md:flex">
+          <div className="absolute inset-x-8 top-1/2 h-px bg-studio-line-soft" />
+          <div className="absolute left-1/2 top-6 h-[190px] w-px bg-studio-line-soft" />
+          <Heart />
+          <Hint place="left" eyebrow="Start with" text="Something you notice" onInvite={onInvite} />
+          <Hint place="right" eyebrow="Try turning" text="It sideways" onInvite={onInvite} />
+          <Hint place="bottom" eyebrow="Keep it" text="Playfully specific" onInvite={onInvite} />
+        </div>
       </div>
     )
   }
@@ -93,7 +107,7 @@ export function QuestionGarden({
         <ul className="flex flex-wrap justify-center gap-2">
           {orbit.map((node) => (
             <li key={node.key}>
-              <OrbitButton node={node} linked={linked} onFocus={onFocus} onOpenConcept={onOpenConcept} className="max-w-full" />
+              <OrbitButton node={node} linked={linked} onFocus={onFocus} onOpenConcept={onOpenConcept} className="w-[min(100%,14rem)] text-left" />
             </li>
           ))}
         </ul>
@@ -126,7 +140,7 @@ export function QuestionGarden({
               onFocus={onFocus}
               onOpenConcept={onOpenConcept}
               style={{ left: `${point.x}%`, top: `${point.y}%` }}
-              className="absolute z-20 w-[9.5rem] -translate-x-1/2 -translate-y-1/2"
+              className="absolute z-20 w-44 -translate-x-1/2 -translate-y-1/2"
             />
           )
         })}
@@ -160,8 +174,8 @@ function OrbitButton({
   if (node.kind === 'blossom') {
     return (
       <button type="button" style={style} onClick={() => onOpenConcept(node.conceptId)} className={`${className ?? ''} ${chipClass('blossom')}`}>
-        <span className="mb-1 block font-mono text-[8px] uppercase tracking-widest text-studio-coral">Blossom</span>
-        <span className="line-clamp-3 text-left text-[11px] font-semibold leading-snug">{node.title}</span>
+        <span className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-studio-coral">Blossom</span>
+        <span className="line-clamp-3 text-left text-sm font-semibold leading-snug">{node.title}</span>
       </button>
     )
   }
@@ -184,17 +198,26 @@ function Heart() {
   )
 }
 
-function Hint({ place, eyebrow, text }: { place: 'left' | 'right' | 'bottom'; eyebrow: string; text: string }) {
+function Invitation({ eyebrow, text, onInvite }: { eyebrow: string; text: string; onInvite: () => void }) {
+  return (
+    <button type="button" onClick={onInvite} aria-label={`${eyebrow}. ${text}`} className="w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">{eyebrow}</p>
+      <p className="mt-1 font-serif text-lg leading-snug">{text}</p>
+    </button>
+  )
+}
+
+function Hint({ place, eyebrow, text, onInvite }: { place: 'left' | 'right' | 'bottom'; eyebrow: string; text: string; onInvite: () => void }) {
   const position = place === 'left'
     ? 'left-0 top-1/2 -translate-y-1/2'
     : place === 'right'
       ? 'right-0 top-1/2 -translate-y-1/2'
       : 'bottom-0 left-1/2 -translate-x-1/2'
   return (
-    <div className={`absolute ${position} max-w-[39%] rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-center max-[480px]:px-2 max-[480px]:py-2`}>
-      <p className="font-mono text-[9px] uppercase tracking-widest text-studio-label max-[480px]:text-[7px]">{eyebrow}</p>
-      <p className="mt-1 text-sm font-semibold max-[480px]:text-[10px]">{text}</p>
-    </div>
+    <button type="button" onClick={onInvite} aria-label={`${eyebrow}. ${text}`} className={`absolute ${position} max-w-[11rem] rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral`}>
+      <p className="font-mono text-[10px] uppercase tracking-widest text-studio-eyebrow">{eyebrow}</p>
+      <p className="mt-1 font-serif text-base leading-snug">{text}</p>
+    </button>
   )
 }
 

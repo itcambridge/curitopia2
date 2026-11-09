@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
-import { Eyebrow, coralButton, quietButton } from '@/components/studio/studio-ui'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { ArrowLeftRight, Replace, Sprout, X } from 'lucide-react'
+import { Eyebrow, IconAction } from '@/components/studio/studio-ui'
 import { conceptCardQuestion } from '@/lib/questions/library-carousel'
 import { libraryCuriosityName } from '@/lib/questions/library-focus'
 import { filterComparisonConcepts, questionFromReflection, replaceComparison, swapComparison, toggleComparisonPick, type ComparisonPair } from '@/lib/questions/comparison'
@@ -10,6 +11,7 @@ import { addQuestion, createQuestion } from '@/lib/questions/workspace'
 import type { LibraryConcept, QuestionRecord, Workspace } from '@/lib/questions/types'
 
 const frame = 'h-36 w-full object-contain sm:h-72 lg:h-[min(68vh,34rem)]'
+const fieldClass = 'mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral'
 
 export function ComparisonSelect({
   concepts,
@@ -52,9 +54,11 @@ export function ComparisonSelect({
 
   return (
     <section className="min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-3xl tracking-tight sm:text-4xl">Choose two concepts</h2>
-        <button type="button" className={quietButton} onClick={onCancel}>Cancel</button>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 font-serif text-3xl tracking-tight sm:text-4xl">Choose two concepts</h2>
+        <IconAction label="Cancel choosing" treatment="quiet" tipAlign="end" onClick={onCancel}>
+          <X aria-hidden="true" />
+        </IconAction>
       </div>
       <p className="mt-3 max-w-xl text-sm leading-relaxed text-studio-body">{scopeLabel ? `Choose two concepts from ${scopeLabel}.` : 'Choose two concepts. They can come from any of your curiosities.'}</p>
       {notice ? <p role="status" className="mt-3 max-w-xl text-sm text-studio-body">{notice}</p> : null}
@@ -76,7 +80,7 @@ export function ComparisonSelect({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Title, question, or curiosity"
-          className="mt-2 w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5 font-normal"
+          className={fieldClass}
         />
       </label>
       <ConceptChoiceList concepts={visible} names={names} questions={questions} picks={picks} blockedId={null} onPick={pick} />
@@ -178,30 +182,52 @@ export function ConceptComparison({
 
   return (
     <section className="min-w-0 overflow-x-clip">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 ref={headingRef} tabIndex={-1} className="font-serif text-2xl tracking-tight outline-none sm:text-4xl">Side by side</h2>
-        <button type="button" className={quietButton} onClick={onClose}>Back to the library</button>
+      <div className="flex items-start justify-between gap-3">
+        <h2 ref={headingRef} tabIndex={-1} className="min-w-0 font-serif text-2xl tracking-tight outline-none sm:text-4xl">Side by side</h2>
+        <button type="button" onClick={onClose} className="shrink-0 text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">Back to the library</button>
       </div>
       <p className="sr-only">{left?.title ?? 'Missing concept'} and {right?.title ?? 'Missing concept'}.</p>
-      <div className="-mx-1 mt-3 grid grid-cols-2 items-start gap-2 sm:mx-0 sm:mt-6 sm:gap-6 lg:gap-10">
-        <ComparedConcept key={pair.leftId} concept={left} questions={questions} names={names} />
-        <ComparedConcept key={pair.rightId} concept={right} questions={questions} names={names} />
+      <div className="mt-3 grid grid-cols-2 items-start gap-2 sm:mt-6 sm:gap-6 lg:gap-10">
+        <ComparedConcept
+          key={pair.leftId}
+          concept={left}
+          questions={questions}
+          names={names}
+          action={
+            <IconAction label="Replace the left concept" treatment={replacing === 'left' ? 'coral' : 'quiet'} onClick={() => { setReplacing('left'); setQuery('') }}>
+              <Replace aria-hidden="true" />
+            </IconAction>
+          }
+        />
+        <ComparedConcept
+          key={pair.rightId}
+          concept={right}
+          questions={questions}
+          names={names}
+          action={
+            <IconAction label="Replace the right concept" treatment={replacing === 'right' ? 'coral' : 'quiet'} tipAlign="end" onClick={() => { setReplacing('right'); setQuery('') }}>
+              <Replace aria-hidden="true" />
+            </IconAction>
+          }
+        />
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center">
-        <button type="button" className={`${quietButton} col-span-2 w-full sm:w-auto`} onClick={() => { setReplacing(null); onPair(swapComparison(pair)) }}>Swap sides</button>
-        <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => { setReplacing('left'); setQuery('') }}>Replace left</button>
-        <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => { setReplacing('right'); setQuery('') }}>Replace right</button>
+      <div className="mt-4 flex justify-center">
+        <IconAction label="Swap sides" treatment="quiet" onClick={() => { setReplacing(null); onPair(swapComparison(pair)) }}>
+          <ArrowLeftRight aria-hidden="true" />
+        </IconAction>
       </div>
       {replacing ? (
         <div className="mt-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-serif text-2xl">Choose a concept for the {replacing} side</h3>
-            <button type="button" className={quietButton} onClick={() => { setReplacing(null); setQuery('') }}>Cancel</button>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="min-w-0 font-serif text-2xl">Choose a concept for the {replacing} side</h3>
+            <IconAction label="Cancel replacing" treatment="quiet" tipAlign="end" onClick={() => { setReplacing(null); setQuery('') }}>
+              <X aria-hidden="true" />
+            </IconAction>
           </div>
           <p className="mt-2 text-sm text-studio-body">{scopeLabel ? `Concepts from ${scopeLabel}.` : 'Concepts from every curiosity.'}</p>
           <label className="mt-4 block text-sm font-semibold">
             Search
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, question, or curiosity" className="mt-2 w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5 font-normal" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, question, or curiosity" className={fieldClass} />
           </label>
           <ConceptChoiceList concepts={visible} names={names} questions={questions} picks={[replacing === 'left' ? pair.leftId : pair.rightId]} blockedId={replacing === 'left' ? pair.rightId : pair.leftId} onPick={chooseReplacement} />
         </div>
@@ -210,15 +236,20 @@ export function ConceptComparison({
           <Eyebrow>A thought, if one appears</Eyebrow>
           <label htmlFor={thoughtField} className="mt-3 block font-serif text-2xl leading-snug sm:text-3xl">What do you notice when you bring these ideas together?</label>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-studio-body">A connection, a similarity, a contradiction, a tension, a surprising difference, or an entirely new question. Leave this empty if you are only looking.</p>
-          <textarea id={thoughtField} value={thought} onChange={(event) => setThought(event.target.value)} maxLength={2000} className="mt-4 min-h-28 w-full rounded-2xl border border-studio-line bg-studio-cream p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral" />
+          <textarea id={thoughtField} value={thought} onChange={(event) => setThought(event.target.value)} maxLength={2000} className="mt-4 min-h-28 w-full rounded-2xl border border-studio-line bg-studio-cream p-4 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral" />
           <label htmlFor={curiosityField} className="mt-4 block text-sm font-semibold">
             Keep the question in
-            <select id={curiosityField} value={destination} onChange={(event) => setDestination(event.target.value)} className="mt-2 w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5 font-normal sm:w-auto sm:min-w-56">
+            <select id={curiosityField} value={destination} onChange={(event) => setDestination(event.target.value)} className={`${fieldClass} sm:w-auto sm:min-w-56`}>
               <option value="">Choose a curiosity</option>
               {names.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
-          <button type="submit" className={`${coralButton} mt-4 w-full sm:w-auto`} disabled={planting || thought.trim() === '' || destination === ''}>Turn into a question</button>
+          <div className="mt-4 flex items-center gap-3">
+            <IconAction type="submit" label="Plant this as a question" treatment="coral" tipAlign="start" disabled={planting || thought.trim() === '' || destination === ''}>
+              <Sprout aria-hidden="true" />
+            </IconAction>
+            {planting ? <p className="text-sm text-studio-body">Planting this question…</p> : null}
+          </div>
           {problem ? <p role="alert" className="mt-3 text-sm">{problem}</p> : null}
           {notice ? <p role="status" className="mt-3 text-sm text-studio-body">{notice}</p> : null}
         </form>
@@ -231,10 +262,12 @@ function ComparedConcept({
   concept,
   questions,
   names,
+  action,
 }: {
   concept: LibraryConcept | null
   questions: QuestionRecord[]
   names: { id: string; name: string }[]
+  action?: ReactNode
 }) {
   const [expanded, setExpanded] = useState(false)
   if (!concept) {
@@ -246,7 +279,7 @@ function ComparedConcept({
   return (
     <article className="min-w-0">
       <h3 className="text-balance text-center font-serif text-sm leading-tight text-studio-ink sm:text-2xl lg:text-4xl">{concept.title}</h3>
-      <div className="relative mt-2 overflow-hidden rounded-2xl bg-studio-ink sm:rounded-[28px]">
+      <div className="relative mt-2 overflow-hidden rounded-3xl bg-studio-ink">
         <img src={concept.imageSrc} alt="" className={frame} />
       </div>
       {origin ? <p className="mt-2 text-center text-[11px] text-studio-body sm:text-sm">From: {origin}</p> : null}
@@ -256,6 +289,7 @@ function ComparedConcept({
           {expanded ? 'Show less' : 'Read full question'}
         </button>
       ) : null}
+      {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
     </article>
   )
 }

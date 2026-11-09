@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-sans: system-ui, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  --font-serif: Georgia, "Times New Roman", serif;
   --color-border: var(--border);
   --color-ring: var(--ring);
   --color-background: var(--background);
@@ -19,7 +19,7 @@
   --color-studio-paper: #fffaf3;
   --color-studio-ivory: #fff8ed;
   --color-studio-ink: #182326;
-  --color-studio-coral: #ff765d;
+  --color-studio-coral: #ff7f50;
   --color-studio-coral-hover: #ff907c;
   --color-logo-orange: #ff7f50;
   --color-studio-mint: #a8d6c1;
@@ -81,6 +81,6 @@
 
 * { @apply border-border outline-ring/50; }
 html { background: var(--color-studio-cream); }
-body { @apply bg-background text-foreground; }
+body { @apply bg-background font-sans text-foreground; }
 button, input { font: inherit; }
 ::selection { background: var(--color-studio-mint); color: var(--color-studio-ink); }

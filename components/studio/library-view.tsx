@@ -2,11 +2,11 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Columns2, Pencil } from 'lucide-react'
 import { ComparisonSelect, ConceptComparison } from '@/components/studio/concept-comparison'
 import { ConceptEditor } from '@/components/studio/concept-editor'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, coralButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, IconAction, panelClass } from '@/components/studio/studio-ui'
 import { studioPath } from '@/lib/paths'
 import { carouselOffset, conceptCardQuestion, conceptQuestionCopy, conceptRemainsVisible, orderedConcepts, questionDispositionMap, selectedConceptIndex, stepConceptIndex } from '@/lib/questions/library-carousel'
 import { reconcileComparisonScope, type ComparisonPair } from '@/lib/questions/comparison'
@@ -16,8 +16,8 @@ import { listCuriosityNames } from '@/lib/questions/supabase-curiosities'
 import { listQuestionDispositions } from '@/lib/questions/supabase-questions'
 import type { ConceptRecord, LibraryConcept, Workspace } from '@/lib/questions/types'
 
-const navButton = 'grid size-11 place-items-center rounded-full border border-studio-line bg-studio-paper text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
 const heroFrame = 'h-[min(88vw,24rem)] sm:h-[28rem] xl:h-[36rem]'
+const textLinkClass = 'text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral'
 
 export function LibraryView({
   workspace,
@@ -188,6 +188,7 @@ export function LibraryView({
       ?? workspace.concepts.find((concept) => concept.id === editingId && conceptRemainsVisible(concept, dispositions))
       ?? null
     : null
+  const gallery = records !== null && !editing && !pair && !picks && concepts.length > 0
 
   return (
     <div className="min-w-0">
@@ -198,23 +199,28 @@ export function LibraryView({
           <br />
           <em className="text-studio-coral">looking at again.</em>
         </h2>
-        <div className={`flex min-w-0 flex-wrap items-center gap-2 ${pair || picks ? '' : 'mt-5'}`}>
-          <label htmlFor={focusId} className="shrink-0 text-sm font-semibold">Library scope</label>
-          <select
-            id={focusId}
-            value={focus}
-            onChange={(event) => selectFocus(event.target.value)}
-            className="min-h-11 min-w-0 flex-1 rounded-xl border border-studio-line bg-studio-cream px-3 py-2 text-sm font-normal sm:w-auto sm:min-w-56 sm:max-w-xs sm:flex-none"
-          >
-            {options.map((option) => (
-              <option key={option.id} value={option.id}>{option.name}</option>
-            ))}
-          </select>
+        <div className={`flex min-w-0 items-end gap-2 ${pair || picks ? '' : 'mt-5'}`}>
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <label htmlFor={focusId} className="text-sm font-semibold">Library scope</label>
+            <select
+              id={focusId}
+              value={focus}
+              onChange={(event) => selectFocus(event.target.value)}
+              className="mt-2 block min-h-11 w-full min-w-0 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base font-normal sm:w-56"
+            >
+              {options.map((option) => (
+                <option key={option.id} value={option.id}>{option.name}</option>
+              ))}
+            </select>
+          </div>
           {concepts.length > 1 && pair === null && picks === null ? (
-            <button type="button" className={`${quietButton} w-full sm:w-auto`} onClick={() => { setScopeNotice(null); setPicks([]); setPair(null) }}>Compare</button>
+            <IconAction label="Compare concepts" treatment="quiet" tipAlign="end" onClick={() => { setScopeNotice(null); setPicks([]); setPair(null) }}>
+              <Columns2 aria-hidden="true" />
+            </IconAction>
           ) : null}
         </div>
-        {pair || picks ? null : <StageMark stage="library" placement="content" />}
+        {concepts.length > 1 && pair === null && picks === null ? <p className="mt-3 max-w-xl text-sm leading-relaxed text-studio-body">Compare two concepts from this scope.</p> : null}
+        {pair || picks || gallery || editing ? null : <StageMark stage="library" placement="content" />}
       </header>
       {error && records !== null ? <p role="alert" className="mb-4 text-sm">{error}</p> : null}
       {scopeNotice && !picks ? <p role="status" className="mb-4 text-sm text-studio-body">{scopeNotice}</p> : null}
@@ -262,9 +268,9 @@ export function LibraryView({
         <div className={panelClass}>
           <p className="max-w-xl text-studio-body">{scopedCount > 0 ? hiddenLibraryMessage() : emptyLibraryMessage(focus, focusName)}</p>
           {returnHref ? (
-            <Link href={returnHref} className={`${coralButton} mt-4 inline-block`}>Return to your curiosities</Link>
+            <Link href={returnHref} className={`${textLinkClass} mt-4 inline-block`}>Return to your curiosities</Link>
           ) : (
-            <button type="button" className={`${coralButton} mt-4`} onClick={() => onChange({ ...workspace, stage: 'gather' })}>Return to the garden</button>
+            <button type="button" className={`${textLinkClass} mt-4`} onClick={() => onChange({ ...workspace, stage: 'gather' })}>Return to the garden</button>
           )}
         </div>
       ) : (
@@ -348,6 +354,7 @@ export function LibraryView({
               onRevise={() => revise(selected)}
             />
           )}
+          <StageMark stage="library" placement="content" />
         </div>
       )}
     </div>
@@ -386,7 +393,7 @@ function ConceptSlide({
       {!current && (
         <button
           type="button"
-          className="absolute inset-0 rounded-[28px] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-studio-coral"
+          className="absolute inset-0 rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-studio-coral"
           onClick={onChoose}
         >
           <span className="sr-only">Show {concept.title}</span>
@@ -409,7 +416,7 @@ function ConceptCard({ src, title, question, heading }: { src: string; title: st
   }, [src])
   const Title = heading ? 'h3' : 'p'
   return (
-    <div className={`relative overflow-hidden rounded-[28px] bg-studio-ink ${heroFrame}`}>
+    <div className={`relative overflow-hidden rounded-3xl bg-studio-ink ${heroFrame}`}>
       {phase === 'loading' && <span className="absolute inset-0 grid place-items-center px-4 text-center text-sm text-studio-ivory">Opening image…</span>}
       {phase === 'error' && <span className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-studio-ivory">This image could not be opened.</span>}
       {phase !== 'error' && (
@@ -422,11 +429,11 @@ function ConceptCard({ src, title, question, heading }: { src: string; title: st
           className={`h-full w-full object-contain ${phase === 'ready' ? 'opacity-100' : 'opacity-0'}`}
         />
       )}
-      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-studio-ink/90 via-studio-ink/50 to-transparent px-4 pb-16 pt-4 text-center sm:px-6 sm:pt-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-studio-ink via-studio-ink/75 to-transparent px-4 pb-14 pt-4 text-center sm:px-6 sm:pt-6">
         <Title className="text-balance font-serif text-3xl leading-none tracking-[-0.03em] text-studio-ivory sm:text-4xl">{title}</Title>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-studio-ink/90 via-studio-ink/55 to-transparent px-4 pb-4 pt-16 text-center sm:px-6 sm:pb-5">
-        <p className={`${heading ? 'max-h-28 overflow-y-auto pointer-events-auto' : 'line-clamp-3'} text-balance font-serif text-sm leading-snug text-studio-ivory sm:text-base`}>{question}</p>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-studio-ink via-studio-ink/80 to-transparent px-4 pb-4 pt-16 text-center sm:px-6 sm:pb-5">
+        <p className={`${heading ? 'pointer-events-auto max-h-32 overflow-y-auto text-base sm:text-lg' : 'line-clamp-3 text-sm'} text-balance font-serif leading-snug text-studio-ivory`}>{question}</p>
       </div>
     </div>
   )
@@ -460,14 +467,14 @@ function ConceptDetail({
     <div className="mx-auto mt-5 max-w-2xl text-center">
       <p aria-live="polite" className="sr-only">{concept.title}. {question}</p>
       {origin ? <p className="text-balance break-words text-sm text-studio-body">{origin}</p> : null}
-      <div className="mt-3 flex items-center justify-center gap-3">
-        <button type="button" className={navButton} aria-label="Show the previous concept" disabled={count < 2} onClick={() => onMove(-1)}>
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
+      <div className="mt-3 flex items-center justify-center gap-2">
+        <IconAction label="Show the previous concept" treatment="quiet" tipAlign="start" disabled={count < 2} onClick={() => onMove(-1)}>
+          <ChevronLeft aria-hidden="true" />
+        </IconAction>
         <p className="min-w-16 font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">{index + 1} of {count}</p>
-        <button type="button" className={navButton} aria-label="Show the next concept" disabled={count < 2} onClick={() => onMove(1)}>
-          <ChevronRight size={20} aria-hidden="true" />
-        </button>
+        <IconAction label="Show the next concept" treatment="quiet" tipAlign="end" disabled={count < 2} onClick={() => onMove(1)}>
+          <ChevronRight aria-hidden="true" />
+        </IconAction>
       </div>
       <div className="mt-4">
         <Eyebrow>
@@ -485,11 +492,11 @@ function ConceptDetail({
           </ul>
         </div>
       )}
-      {reviseHref ? (
-        <Link href={reviseHref} className={`${quietButton} mt-4 inline-block`}>Edit concept</Link>
-      ) : (
-        <button type="button" className={`${quietButton} mt-4`} onClick={onRevise}>Edit concept</button>
-      )}
+      <div className="mt-4 flex justify-center">
+        <IconAction label="Edit this concept" treatment="quiet" href={reviseHref ?? undefined} onClick={reviseHref ? undefined : onRevise}>
+          <Pencil aria-hidden="true" />
+        </IconAction>
+      </div>
     </div>
   )
 }

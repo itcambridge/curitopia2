@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, ChevronRight, Play, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronRight, GitBranch, Image, Pause, Play, RotateCcw, Sparkles, Sprout, Trash2, Undo2, Unlink, X } from 'lucide-react'
 import { QuestionGarden } from '@/components/studio/question-garden'
 import { conceptRemainsVisible, questionDispositionMap } from '@/lib/questions/library-carousel'
 import { useScreenDraft } from '@/components/studio/leave-guard'
 import { addQuestion, branchPartners, correctOriginal, foldedQuestions, linkQuestions, openVisualise, plantedQuestion, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition, visualiseQuestions, visualiseTarget } from '@/lib/questions/workspace'
 import type { ConceptRecord, QuestionRecord, StageId, Workspace } from '@/lib/questions/types'
 import { StageMark } from '@/components/studio/stage-mark'
-import { Eyebrow, inkButton, questionListClass, questionListItemClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, IconAction, questionListClass, questionListItemClass } from '@/components/studio/studio-ui'
 
 const shelfDots = ['bg-studio-coral', 'bg-studio-violet', 'bg-studio-mint', 'bg-studio-grove']
 
@@ -80,7 +80,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
         <StageMark stage="gather" placement="content" />
       </header>
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.62fr)]">
-        <section className="flex min-w-0 flex-col rounded-[30px] border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">
+        <section className="flex min-w-0 flex-col rounded-3xl border border-studio-line bg-studio-paper p-6 shadow-studio-card sm:p-8">
           <div className="order-1 mb-6">
             <Eyebrow>The question garden</Eyebrow>
           </div>
@@ -90,6 +90,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
               concepts={workspace.concepts.filter((concept) => conceptRemainsVisible(concept, questionDispositionMap(workspace.questions)))}
               links={workspace.branches}
               linked={linked}
+              onInvite={() => field.current?.focus()}
               onFocus={(id) => revealQuestion(id)}
               onOpenConcept={(id) => {
                 const concept = workspace.concepts.find((item) => item.id === id)
@@ -98,17 +99,17 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
             />
           </div>
           <form
-            className="order-2 mt-8 rounded-2xl bg-studio-ink p-5 sm:p-6 xl:order-3"
+            className="order-2 mt-8 rounded-3xl bg-studio-ink p-5 sm:p-6 xl:order-3"
             onSubmit={(event) => {
               event.preventDefault()
               add(text)
             }}
           >
             <div className="mb-3 flex items-center gap-2 text-studio-note-on">
-              <Sparkles size={14} />
+              <Sparkles size={14} aria-hidden="true" />
               <span className="font-mono text-[10px] uppercase tracking-widest">Plant a new seed</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <label htmlFor="gather-question" className="sr-only">Plant a new seed</label>
               <input
                 ref={field}
@@ -125,15 +126,11 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
                 }}
                 autoFocus
                 placeholder="I wonder why…"
-                className="min-w-0 flex-1 bg-transparent py-2 text-lg text-studio-paper outline-none placeholder:text-studio-placeholder"
+                className="min-h-11 min-w-0 flex-1 rounded-2xl border border-transparent bg-studio-cream px-4 py-3 font-serif text-xl text-studio-ink outline-none placeholder:text-studio-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral"
               />
-              <button
-                type="submit"
-                disabled={!text.trim()}
-                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-studio-coral px-3 py-2 text-sm font-semibold text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-paper disabled:opacity-40"
-              >
-                Plant <ArrowUpRight size={16} />
-              </button>
+              <IconAction type="submit" label="Plant this question" treatment="coral" tipAlign="end" disabled={!text.trim()}>
+                <Sprout aria-hidden="true" />
+              </IconAction>
             </div>
             {error && <p role="alert" className="mt-3 text-sm text-studio-coral">{error}</p>}
           </form>
@@ -156,10 +153,10 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
           )}
         </section>
         <div className="flex flex-col gap-5">
-          <div className="rounded-[30px] bg-studio-mint p-6">
+          <div className="rounded-3xl bg-studio-mint p-6">
             <div className="mb-8 flex items-start justify-between">
-              <div className="grid size-10 place-items-center rounded-xl bg-studio-cream text-studio-ink">
-                <Play size={17} fill="currentColor" />
+              <div className="grid size-11 place-items-center rounded-xl bg-studio-cream text-studio-ink">
+                <Play size={18} fill="currentColor" aria-hidden="true" />
               </div>
               <span className="font-mono text-[10px] uppercase tracking-widest text-studio-grove">Next</span>
             </div>
@@ -180,15 +177,15 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
               {invitation.action} <ArrowUpRight size={15} />
             </button>
           </div>
-          <div className="rounded-[30px] border border-studio-line bg-studio-paper p-6">
-            <h3 className="font-semibold">Curiosity shelf</h3>
+          <div className="rounded-3xl border border-studio-line bg-studio-paper p-6">
+            <h3 className="font-serif text-2xl">Curiosity shelf</h3>
             {shelf.length === 0 ? (
               <p className="mt-4 text-sm text-studio-body">{questions.length === 0 ? 'The shelf is clear. A question you plant will rest here.' : 'Questions you set aside stay in the garden.'}</p>
             ) : (
               <ul className="mt-5 flex flex-col gap-3">
                 {shelf.map((item, index) => (
                   <li key={item.id}>
-                    <button type="button" onClick={() => revealQuestion(item.id)} className="flex w-full items-start gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+                    <button type="button" onClick={() => revealQuestion(item.id)} className="flex min-h-11 w-full items-start gap-3 py-1 text-left text-sm leading-snug focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
                       <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${shelfDots[index % shelfDots.length]}`} />
                       <span className="text-sm text-studio-body">{item.originalText}</span>
                     </button>
@@ -196,13 +193,13 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
                 ))}
               </ul>
             )}
-            <button type="button" onClick={() => document.getElementById('captured-questions')?.scrollIntoView({ block: 'nearest' })} className="mt-5 flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-studio-coral focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
-              View all <ChevronRight size={13} />
+            <button type="button" onClick={() => document.getElementById('captured-questions')?.scrollIntoView({ block: 'nearest' })} className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-studio-coral underline decoration-studio-coral/40 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+              View all <ChevronRight size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
       </div>
-      <footer className="mt-8 flex flex-wrap items-center gap-3 text-[11px] text-studio-footer">
+      <footer className="mt-8 flex flex-wrap items-center gap-3 text-sm text-studio-footer">
         <span className="font-mono uppercase tracking-widest">A gentle reminder</span>
         <span className="size-1 rounded-full bg-studio-coral" />
         <span>You don&apos;t have to know the answer to begin.</span>
@@ -251,96 +248,120 @@ function QuestionCard({
   useScreenDraft(target !== '' || (editing && correction.trim() !== item.originalText.trim()))
 
   return (
-    <li id={`question-${item.id}`} className={questionListItemClass}>
-      <Eyebrow>{questionPlace(workspace, item)}</Eyebrow>
-      {editing ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <textarea
-            value={correction}
-            onChange={(event) => setCorrection(event.target.value)}
-            aria-label="Correct the capture"
-            className="min-h-24 w-full min-w-0 rounded-2xl border border-studio-line bg-studio-cream p-4 text-lg outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
-          />
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={inkButton}
-              onClick={() => {
-                const next = correctOriginal(workspace, item.id, correction)
-                if (next === workspace) {
-                  setError('Keep a question within 2000 characters.')
-                  return
-                }
-                setError(null)
-                onChange(next)
-                setEditingId(null)
-              }}
-            >
-              Save the correction
-            </button>
-            <button type="button" className={quietButton} onClick={() => setEditingId(null)}>Cancel</button>
+    <li id={`question-${item.id}`} className={`${questionListItemClass} flex`}>
+      <article className={`flex min-w-0 flex-1 flex-col rounded-3xl border-2 p-4 ${editing ? 'border-studio-coral bg-studio-paper' : parked ? 'border-studio-line bg-studio-cream' : 'border-studio-line bg-studio-paper'}`}>
+        <Eyebrow>{questionPlace(workspace, item)}</Eyebrow>
+        {editing ? (
+          <div className="mt-3 flex flex-col gap-3">
+            <textarea
+              value={correction}
+              onChange={(event) => setCorrection(event.target.value)}
+              aria-label="Correct the capture"
+              className="min-h-24 w-full min-w-0 rounded-2xl border border-studio-line bg-studio-cream p-4 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
+            />
+            <div className="flex items-center gap-2">
+              <IconAction
+                label="Save this correction"
+                treatment="ink"
+                tipAlign="start"
+                onClick={() => {
+                  const next = correctOriginal(workspace, item.id, correction)
+                  if (next === workspace) {
+                    setError('Keep a question within 2000 characters.')
+                    return
+                  }
+                  setError(null)
+                  onChange(next)
+                  setEditingId(null)
+                }}
+              >
+                <Check aria-hidden="true" />
+              </IconAction>
+              <IconAction label="Cancel this correction" treatment="quiet" tipAlign="end" onClick={() => setEditingId(null)}>
+                <X aria-hidden="true" />
+              </IconAction>
+            </div>
           </div>
-        </div>
-      ) : (
-        <>
-          <p className="mt-1 break-words font-serif text-2xl leading-snug">{item.originalText}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {visualisable.has(item.id) && (
-              <button type="button" className={quietButton} aria-label={`Visualise: ${item.originalText}`} onClick={() => onVisualise(item.id)}>Visualise</button>
-            )}
-            {(parked || discarded) && (
-              <button type="button" className={quietButton} onClick={() => onChange(restoreQuestion(workspace, item.id))}>Restore</button>
-            )}
-            <button type="button" className="text-sm text-studio-grove underline-offset-4 hover:underline" onClick={() => { setEditingId(item.id); setCorrection(item.originalText) }}>
+        ) : (
+          <>
+            <p className="mt-2 break-words font-serif text-2xl leading-snug">{item.originalText}</p>
+            <div className="mt-4 flex items-center gap-2">
+              {visualisable.has(item.id) && (
+                <IconAction label={`Visualise: ${item.originalText}`} treatment="quiet" tipAlign="start" onClick={() => onVisualise(item.id)}>
+                  <Image aria-hidden="true" />
+                </IconAction>
+              )}
+              {(parked || discarded) && (
+                <IconAction label="Restore this question" treatment="quiet" onClick={() => onChange(restoreQuestion(workspace, item.id))}>
+                  <RotateCcw aria-hidden="true" />
+                </IconAction>
+              )}
+            </div>
+            <button type="button" className="mt-3 self-start text-sm font-semibold text-studio-grove underline decoration-studio-grove/40 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" onClick={() => { setEditingId(item.id); setCorrection(item.originalText) }}>
               Correct the capture
             </button>
+          </>
+        )}
+        {folded.length > 0 && (
+          <ul className="mt-3 text-sm text-studio-body">
+            {folded.map((source) => (
+              <li key={source.id} className="mt-2 flex items-center gap-2">
+                <IconAction label="Restore as its own question" treatment="quiet" tipAlign="start" onClick={() => onChange(restoreQuestion(workspace, source.id))}>
+                  <Undo2 aria-hidden="true" />
+                </IconAction>
+                <span className="min-w-0 break-words">Merged wording kept: {source.originalText}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">Manage this question</summary>
+          <div className="mt-3 flex min-w-0 flex-col gap-3">
+            {branchNotice ? <p role="status" className="text-sm leading-relaxed text-studio-body">{branchNotice}</p> : null}
+            {!discarded ? <p className="text-sm leading-relaxed text-studio-body">Park keeps it here. Discard moves it to set aside.</p> : null}
+            {!discarded ? (
+              <div className="flex items-center gap-2">
+                {!parked ? (
+                  <IconAction label="Park this question" treatment="quiet" tipAlign="start" onClick={() => onChange(setDisposition(workspace, item.id, 'parked'))}>
+                    <Pause aria-hidden="true" />
+                  </IconAction>
+                ) : null}
+                <IconAction label="Discard this question" treatment="quiet" tipAlign="end" onClick={() => onChange(setDisposition(workspace, item.id, 'discarded'))}>
+                  <Trash2 aria-hidden="true" />
+                </IconAction>
+              </div>
+            ) : null}
+            {partners.length > 0 && (
+              <ul className="text-sm text-studio-body">
+                {workspace.branches.filter((branch) => branch.questionLowId === item.id || branch.questionHighId === item.id).map((branch) => {
+                  const partner = partners.find((candidate) => candidate.id === (branch.questionLowId === item.id ? branch.questionHighId : branch.questionLowId))
+                  if (!partner) return null
+                  return (
+                    <li key={branch.id} className="mt-2 flex items-center gap-2">
+                      <IconAction label="Remove this branch" treatment="quiet" tipAlign="start" onClick={() => onChange(removeBranch(workspace, branch.id))}>
+                        <Unlink aria-hidden="true" />
+                      </IconAction>
+                      <span className="min-w-0 break-words">Branched with {partner.originalText}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            {!discarded && others.length > 0 && (
+              <div className="flex min-w-0 flex-col gap-2">
+                <label className="text-sm text-studio-body" htmlFor={`link-${item.id}`}>Branch with another question</label>
+                <select id={`link-${item.id}`} value={target} onChange={(event) => setTarget(event.target.value)} className="w-full min-w-0 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base">
+                  <option value="">Choose a question</option>
+                  {others.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.originalText}</option>)}
+                </select>
+                <IconAction label="Create a branch" treatment="quiet" tipAlign="start" disabled={!target} onClick={() => { onChange(linkQuestions(workspace, item.id, target)); setTarget('') }}>
+                  <GitBranch aria-hidden="true" />
+                </IconAction>
+              </div>
+            )}
           </div>
-        </>
-      )}
-      {folded.length > 0 && (
-        <ul className="mt-3 text-sm text-studio-body">
-          {folded.map((source) => (
-            <li key={source.id} className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <span>Merged wording kept: {source.originalText}</span>
-              <button type="button" className={quietButton} onClick={() => onChange(restoreQuestion(workspace, source.id))}>Restore as its own question</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <details className="mt-3">
-        <summary className="cursor-pointer text-sm font-semibold">Manage this question</summary>
-        <div className="mt-3 flex flex-col gap-3">
-          {branchNotice ? <p role="status" className="text-sm leading-relaxed text-studio-body">{branchNotice}</p> : null}
-          <div className="flex flex-wrap gap-2">
-            {!parked && !discarded && <button type="button" className={quietButton} onClick={() => onChange(setDisposition(workspace, item.id, 'parked'))}>Park</button>}
-            {!discarded && <button type="button" className={quietButton} onClick={() => onChange(setDisposition(workspace, item.id, 'discarded'))}>Discard</button>}
-          </div>
-          {partners.length > 0 && (
-            <ul className="text-sm text-studio-body">
-              {workspace.branches.filter((branch) => branch.questionLowId === item.id || branch.questionHighId === item.id).map((branch) => {
-                const partner = partners.find((candidate) => candidate.id === (branch.questionLowId === item.id ? branch.questionHighId : branch.questionLowId))
-                if (!partner) return null
-                return (
-                  <li key={branch.id} className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                    <span>Branched with {partner.originalText}</span>
-                    <button type="button" className={quietButton} onClick={() => onChange(removeBranch(workspace, branch.id))}>Remove branch</button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-          {!discarded && others.length > 0 && (
-            <div className="flex min-w-0 flex-col gap-2">
-              <label className="text-sm text-studio-body" htmlFor={`link-${item.id}`}>Branch with another question</label>
-              <select id={`link-${item.id}`} value={target} onChange={(event) => setTarget(event.target.value)} className="w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2 text-sm">
-                <option value="">Choose a question</option>
-                {others.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.originalText}</option>)}
-              </select>
-              <button type="button" className={`${quietButton} w-fit`} disabled={!target} onClick={() => { onChange(linkQuestions(workspace, item.id, target)); setTarget('') }}>Create a branch</button>
-            </div>
-          )}
-        </div>
-      </details>
+        </details>
+      </article>
     </li>
   )
 }
