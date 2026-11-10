@@ -111,7 +111,7 @@ export function ConceptEditor({
               className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
             />
           </label>
-          {title.trim() && titleProblem(title) ? <p className="text-sm text-studio-coral">{titleProblem(title)}</p> : null}
+          {title.trim() && titleProblem(title) ? <p className="text-sm text-studio-coral-text">{titleProblem(title)}</p> : null}
           {saving ? <p role="status" className="text-sm text-studio-body">Saving the title and source-question links…</p> : null}
           {savedConceptId === concept.id && !saving && titleMatches && linksMatch ? <p role="status" className="text-sm text-studio-body">Saved. The image is unchanged.</p> : null}
           <div className="flex items-center gap-2">

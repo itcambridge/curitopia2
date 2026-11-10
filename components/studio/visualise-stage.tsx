@@ -482,8 +482,8 @@ function QuestionImages({
                 aria-describedby={titleIssue || (selected && current && !title.trim()) ? 'visualise-title-issue' : undefined}
                 className="mt-2 w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral"
               />
-              {selected && current && !title.trim() ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral">Add a one- or two-word title.</p> : null}
-              {titleIssue ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral">{titleIssue}</p> : null}
+              {selected && current && !title.trim() ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral-text">Add a one- or two-word title.</p> : null}
+              {titleIssue ? <p id="visualise-title-issue" className="mt-2 text-sm text-studio-coral-text">{titleIssue}</p> : null}
               <div className="mt-3">
                 <div className="flex items-center gap-3">
                   <IconAction
@@ -497,7 +497,7 @@ function QuestionImages({
                   </IconAction>
                   {suggesting ? <p className="text-sm text-studio-body">Suggesting titles…</p> : null}
                 </div>
-                {suggestError && <p role="alert" className="mt-2 text-sm text-studio-coral">{suggestError}</p>}
+                {suggestError && <p role="alert" className="mt-2 text-sm text-studio-coral-text">{suggestError}</p>}
                 {suggestNotice && !suggestError && <p role="status" className="mt-2 text-sm text-studio-body">{suggestNotice}</p>}
                 {suggestions.length > 0 && (
                   <div role="group" aria-label="Title suggestions" className="mt-3 flex flex-wrap gap-2">
@@ -631,7 +631,7 @@ function ImageProgress({ slots, attempt, busy, onRetry }: { slots: ImageSlot[]; 
                 </IconAction>
               ) : null}
             </div>
-            {slot.error ? <p role="alert" className="mt-2 text-sm text-studio-coral">{slot.error}</p> : null}
+            {slot.error ? <p role="alert" className="mt-2 text-sm text-studio-coral-text">{slot.error}</p> : null}
           </li>
         ))}
       </ul>
@@ -794,7 +794,7 @@ function ImageCarousel({
         <p className="mt-1 text-sm text-studio-body">{candidate.metaphor}</p>
         {!selected ? <p className="mt-2 text-sm text-studio-muted">Select the image you want to keep.</p> : null}
         {selected && !chosen ? <p className="mt-2 text-sm text-studio-muted">Selected image: {selected.label}.</p> : null}
-        <button type="button" className="mt-3 text-sm font-semibold text-studio-muted underline-offset-2 hover:underline" onClick={() => onHide(candidate.id)}>Hide from this comparison</button>
+        <button type="button" className="mt-3 text-sm font-semibold text-studio-muted underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" onClick={() => onHide(candidate.id)}>Hide from this comparison</button>
       </div>
     </div>
   )

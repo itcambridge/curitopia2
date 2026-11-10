@@ -3,9 +3,9 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ImagePlus } from 'lucide-react'
+import { Check, ImagePlus, Pencil, Replace, Sprout, Trash2, X } from 'lucide-react'
 import { BrandBanner } from '@/components/site-banner'
-import { Eyebrow, inkButton, panelClass, quietButton } from '@/components/studio/studio-ui'
+import { Eyebrow, IconAction, panelClass } from '@/components/studio/studio-ui'
 import { studioPath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { clearCuriosityCover, createCuriosity, listCuriosities, renameCuriosity, setCuriosityCover, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
@@ -148,78 +148,86 @@ export function CuriosityLanding() {
   return (
     <main className="min-h-screen bg-studio-cream text-studio-ink">
       <BrandBanner email={email} onSignOut={() => { void signOut() }} />
-      <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-8">
-        <div className="mb-10 max-w-xl">
-          <p className="font-serif text-4xl tracking-tight">Curi-toe·pia</p>
-          <p className="mt-3 font-mono text-sm tracking-wide text-studio-body">[juːˈtəʊpɪə]</p>
-          <p className="mt-4 italic text-studio-body">noun</p>
-          <p className="mt-2 max-w-md text-base leading-relaxed text-studio-body">
-            <span className="mr-3 font-serif text-lg">1.</span>
-            an imagined place or state of things in which curiosity is practised.
-          </p>
+      <div className="mx-auto flex min-h-screen w-full min-w-0 max-w-6xl flex-col px-4 py-8 sm:px-8 lg:px-10">
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+          <div className="max-w-xl">
+            <p className="font-serif text-4xl tracking-tight sm:text-5xl">Curi-toe·pia</p>
+            <p className="mt-3 font-mono text-sm tracking-wide text-studio-body">[juːˈtəʊpɪə]</p>
+            <p className="mt-4 italic text-studio-body">noun</p>
+            <p className="mt-2 max-w-md text-base leading-relaxed text-studio-body">
+              <span className="mr-3 font-serif text-lg">1.</span>
+              an imagined place or state of things in which curiosity is practised.
+            </p>
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Which curiosity shall we tend?</h2>
+            <Link href={studioPath('/?library=all')} className="mt-4 inline-block text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">Library of Curiosities</Link>
+            <form onSubmit={(event) => { void create(event) }} className={`${panelClass} mt-6`}>
+              <label htmlFor="new-curiosity" className="text-sm font-semibold">Name a new curiosity</label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  ref={nameField}
+                  id="new-curiosity"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="min-h-11 min-w-0 flex-1 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral"
+                  placeholder="A question worth staying with"
+                  maxLength={80}
+                />
+                <IconAction type="submit" label="Begin this curiosity" treatment="coral" tipAlign="end" disabled={creating}>
+                  <Sprout aria-hidden="true" />
+                </IconAction>
+              </div>
+              {creating ? <p className="mt-3 text-sm text-studio-body">Planting…</p> : null}
+            </form>
+          </div>
         </div>
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="font-serif text-4xl leading-tight">Which curiosity shall we tend?</h2>
-          <Link href={studioPath('/?library=all')} className={`${quietButton} w-full text-center sm:w-auto`}>Library of Curiosities</Link>
-        </div>
-        <form onSubmit={(event) => { void create(event) }} className={`${panelClass} mb-6 flex flex-col gap-3 sm:flex-row sm:items-end`}>
-          <label className="min-w-0 flex-1 text-sm font-semibold">
-            Name a new curiosity
-            <input
-              ref={nameField}
-              id="new-curiosity"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5 font-normal"
-              placeholder="A question worth staying with"
-              maxLength={80}
-            />
-          </label>
-          <button type="submit" className={inkButton} disabled={creating}>{creating ? 'Planting…' : 'Begin'}</button>
-        </form>
-        {coverNotice ? <p className="mb-4 text-sm text-studio-body">{coverNotice}</p> : null}
-        {error ? <p role="alert" className="mb-4 text-sm">{error}</p> : null}
-        {coverWarning ? <p className="mb-4 text-sm text-studio-body">{coverWarning}</p> : null}
-        {!ready ? <p className="text-sm text-studio-muted">Looking for your curiosities…</p> : items.length === 0 ? (
-          <section className={panelClass}>
+        {coverNotice ? <p className="mt-6 text-sm text-studio-body">{coverNotice}</p> : null}
+        {error ? <p role="alert" className="mt-6 text-sm">{error}</p> : null}
+        {coverWarning ? <p className="mt-6 text-sm text-studio-body">{coverWarning}</p> : null}
+        {!ready ? <p className="mt-8 text-sm text-studio-muted">Looking for your curiosities…</p> : items.length === 0 ? (
+          <section className={`${panelClass} mt-8 max-w-xl`}>
             <Eyebrow>Empty garden</Eyebrow>
             <p className="mt-3 font-serif text-2xl">Nothing is planted yet.</p>
             <p className="mt-2 text-sm leading-relaxed text-studio-body">Name a curiosity above. It will hold the questions you gather and the concepts you decide to keep. There is no score and nothing to finish.</p>
           </section>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="mt-8 grid gap-4 lg:grid-cols-2">
             {items.map((item) => (
-              <li key={item.id} className={`${panelClass} relative`}>
+              <li key={item.id} className={`${panelClass} relative min-w-0`}>
                 {renamingId === item.id ? (
-                  <form className="relative z-10 flex flex-col gap-3 sm:flex-row" onSubmit={(event) => { event.preventDefault(); void rename(item.id) }}>
-                    <input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-studio-line bg-studio-cream px-3 py-2.5" maxLength={80} />
-                    <button type="submit" className={inkButton}>Save name</button>
-                    <button type="button" className={quietButton} onClick={() => setRenamingId(null)}>Cancel</button>
+                  <form className="relative z-10" onSubmit={(event) => { event.preventDefault(); void rename(item.id) }}>
+                    <label htmlFor={`rename-${item.id}`} className="text-sm font-semibold">New name</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input id={`rename-${item.id}`} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" maxLength={80} />
+                      <IconAction type="submit" label="Save this name" treatment="ink">
+                        <Check aria-hidden="true" />
+                      </IconAction>
+                      <IconAction label="Cancel renaming" treatment="quiet" tipAlign="end" onClick={() => setRenamingId(null)}>
+                        <X aria-hidden="true" />
+                      </IconAction>
+                    </div>
                   </form>
                 ) : (
                   <>
                     <Link
                       href={curiosityPath(item.id)}
                       aria-label={`Open ${item.name}`}
-                      className="absolute inset-0 z-0 rounded-[30px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral"
+                      className="absolute inset-0 z-0 rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral"
                     />
-                    <div className="pointer-events-none relative z-10 flex items-start gap-3 sm:items-center sm:gap-4">
+                    <div className="pointer-events-none relative z-10 flex items-start gap-3">
                       <CoverThumb item={item} onOpen={() => { setCoverId(item.id); setCoverWarning(null) }} />
-                      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <h3 className="truncate font-serif text-2xl">{item.name}</h3>
-                          <p className="mt-1 text-sm text-studio-body">
-                            {placeName(item.stage)} · {item.questionCount} {item.questionCount === 1 ? 'question' : 'questions'} · {item.conceptCount} {item.conceptCount === 1 ? 'concept' : 'concepts'}
-                          </p>
-                          <p className="mt-1 text-xs text-studio-muted">Last tended {activityFormat.format(new Date(item.updatedAt))}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="min-w-0 truncate font-serif text-2xl leading-tight">{item.name}</h3>
+                          <IconAction label="Rename this curiosity" treatment="quiet" tipAlign="end" className="pointer-events-auto" onClick={() => { setRenamingId(item.id); setRenameValue(item.name) }}>
+                            <Pencil aria-hidden="true" />
+                          </IconAction>
                         </div>
-                        <button
-                          type="button"
-                          className={`${quietButton} pointer-events-auto self-start`}
-                          onClick={() => { setRenamingId(item.id); setRenameValue(item.name) }}
-                        >
-                          Rename
-                        </button>
+                        <p className="mt-1 text-sm text-studio-body">
+                          {placeName(item.stage)} · {item.questionCount} {item.questionCount === 1 ? 'question' : 'questions'} · {item.conceptCount} {item.conceptCount === 1 ? 'concept' : 'concepts'}
+                        </p>
+                        <p className="mt-1 text-sm text-studio-muted">Last tended {activityFormat.format(new Date(item.updatedAt))}</p>
                       </div>
                     </div>
                   </>
@@ -241,22 +249,21 @@ export function CuriosityLanding() {
 }
 
 function CoverThumb({ item, onOpen }: { item: CuriositySummary; onOpen: () => void }) {
-  const label = item.coverImagePath ? `Change image for ${item.name}` : `Add image for ${item.name}`
+  if (!item.coverImageSrc) {
+    return (
+      <IconAction label="Add a cover image" treatment="quiet" tipAlign="start" className="pointer-events-auto" onClick={onOpen}>
+        <ImagePlus aria-hidden="true" />
+      </IconAction>
+    )
+  }
   return (
     <button
       type="button"
-      className={`pointer-events-auto grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-studio-ivory text-studio-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral sm:size-24 ${item.coverImageSrc ? 'border-solid border-studio-line' : 'border-dashed border-studio-line'}`}
-      aria-label={label}
+      className="pointer-events-auto size-16 shrink-0 overflow-hidden rounded-2xl border border-studio-line bg-studio-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral sm:size-20"
+      aria-label="Replace the cover image"
       onClick={onOpen}
     >
-      {item.coverImageSrc ? (
-        <img src={item.coverImageSrc} alt="" className="size-full object-cover" />
-      ) : (
-        <span className="flex flex-col items-center gap-1 px-1 text-[10px] font-semibold leading-tight sm:text-xs">
-          <ImagePlus size={16} aria-hidden="true" />
-          Add image
-        </span>
-      )}
+      <img src={item.coverImageSrc} alt="" className="size-full object-cover" />
     </button>
   )
 }
@@ -275,7 +282,9 @@ function CoverDialog({
   onRemove: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const inputId = useId()
+  const titleId = useId()
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -287,26 +296,28 @@ function CoverDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="w-[min(100%-2rem,24rem)] rounded-[30px] border border-studio-line bg-studio-paper p-6 text-studio-ink shadow-studio-card"
+      aria-labelledby={item ? titleId : undefined}
+      className="w-[min(100%-2rem,24rem)] rounded-3xl border border-studio-line bg-studio-paper p-6 text-studio-ink shadow-studio-card"
       onCancel={(event) => { if (busy) event.preventDefault() }}
       onClose={onClose}
     >
       {item ? (
         <form method="dialog" className="flex flex-col gap-4">
           <div>
-            <h3 className="font-serif text-2xl">Cover image</h3>
+            <h3 id={titleId} className="font-serif text-2xl">Cover image</h3>
             <p className="mt-1 text-sm text-studio-body">{item.name}</p>
           </div>
           <div className="grid size-24 place-items-center overflow-hidden rounded-2xl border border-dashed border-studio-line bg-studio-ivory text-studio-muted">
-            {item.coverImageSrc ? <img src={item.coverImageSrc} alt="" className="size-full object-cover" /> : <ImagePlus size={18} aria-hidden="true" />}
+            {item.coverImageSrc ? <img src={item.coverImageSrc} alt="" className="size-full object-cover" /> : <ImagePlus aria-hidden="true" />}
           </div>
-          <label htmlFor={inputId} className={`${inkButton} text-center ${busy ? 'pointer-events-none opacity-40' : 'cursor-pointer'}`}>
-            {busy === 'upload' ? 'Uploading…' : item.coverImagePath ? 'Replace image' : 'Upload image'}
-          </label>
+          <p className="text-sm text-studio-muted">JPEG, PNG, or WebP. Up to 5 MB.</p>
           <input
+            ref={fileRef}
             id={inputId}
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            tabIndex={-1}
+            aria-hidden="true"
             className="sr-only"
             disabled={busy !== null}
             onChange={(event) => {
@@ -315,13 +326,27 @@ function CoverDialog({
               if (file) onUpload(file)
             }}
           />
-          {item.coverImagePath ? (
-            <button type="button" className={quietButton} disabled={busy !== null} onClick={onRemove}>
-              {busy === 'remove' ? 'Removing…' : 'Remove image'}
-            </button>
-          ) : null}
-          <p className="text-xs text-studio-muted">JPEG, PNG, or WebP. Up to 5 MB.</p>
-          <button type="submit" className={quietButton} disabled={busy !== null}>Close</button>
+          <div className="flex items-center gap-2">
+            <IconAction
+              label={item.coverImagePath ? 'Replace the cover image' : 'Add a cover image'}
+              treatment={item.coverImagePath ? 'ink' : 'quiet'}
+              tipAlign="start"
+              disabled={busy !== null}
+              onClick={() => fileRef.current?.click()}
+            >
+              {item.coverImagePath ? <Replace aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}
+            </IconAction>
+            {item.coverImagePath ? (
+              <IconAction label="Remove the cover image" treatment="quiet" disabled={busy !== null} onClick={onRemove}>
+                <Trash2 aria-hidden="true" />
+              </IconAction>
+            ) : null}
+            <IconAction type="submit" label="Close" treatment="quiet" tipAlign="end" disabled={busy !== null}>
+              <X aria-hidden="true" />
+            </IconAction>
+          </div>
+          {busy === 'upload' ? <p className="text-sm text-studio-body">Uploading…</p> : null}
+          {busy === 'remove' ? <p className="text-sm text-studio-body">Removing…</p> : null}
         </form>
       ) : null}
     </dialog>

@@ -282,7 +282,7 @@ function ComparedConcept({
       <div className="relative mt-2 overflow-hidden rounded-3xl bg-studio-ink">
         <img src={concept.imageSrc} alt="" className={frame} />
       </div>
-      {origin ? <p className="mt-2 text-center text-[11px] text-studio-body sm:text-sm">From: {origin}</p> : null}
+      {origin ? <p className="mt-2 text-center text-sm text-studio-body">From: {origin}</p> : null}
       <p className={`mt-2 text-balance break-words text-center font-serif text-xs leading-snug text-studio-ink sm:text-base ${long && !expanded ? 'line-clamp-3' : ''}`}>{question}</p>
       {long ? (
         <button type="button" className="mt-2 w-full text-center text-xs font-semibold underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral sm:text-sm" aria-expanded={expanded} onClick={() => setExpanded((current) => !current)}>

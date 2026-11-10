@@ -41,6 +41,14 @@ The swatches above are the brand. The app also has a few near-duplicates. Use on
 
 `studio-coral` is `#FF7F50`, the same coral as the banner. The hover step remains `#FF907C`. Coral is the accent, the selected state, and an important confirmation. It is not the ground of every action. Quiet actions stay outlined. A strong confirm that is not the coral confirmation uses deep teal.
 
+`#FF7F50` is the accent colour. It is for fills, rings, selected states, and the banner. It is not a text colour on cream or paper: as text on `#F5F1EA` it is about 2.2:1. Text that should still read as coral uses `studio-coral-text`, `#B8472A`. That is the darker coral for words. Buttons, focus rings, and the countdown ring stay `#FF7F50`.
+
+Eyebrow labels, chip labels, and the garden date line use `#656D69` (`studio-eyebrow`, `studio-label`, `studio-date`). Muted metadata and the garden footer use `#686E6A` (`studio-muted`, `studio-footer`). Sidebar hints use `#5B615D` (`studio-note`), which is darker because the sidebar ground is darker than the page. Body text stays `#45524F`.
+
+Botanical green `#47715C` stays `studio-grove` for growth on cream, paper, and the soft mint notice. Words set directly on the mint card `#A8D6C1` use `studio-grove-text`, `#375848`.
+
+Text on the page meets WCAG AA: 4.5:1 for normal text, and 3:1 for large text (24px, or 18.66px bold). These text colours clear 4.5:1 on the ground they sit on, so the large headings clear 3:1 as well. Do not fix a failing colour by painting the words deep teal, and do not replace the brand coral fill with the text coral.
+
 Violet appears only as a shelf dot. It is not a button colour.
 
 ## Typography
@@ -179,6 +187,8 @@ Prompt, accept, and generate on Visualise use `IconAction`. Keep `Bot`, `Check`,
 Garden uses the same control. Planting is the coral sprout. Saving a correction is deep teal. The other garden actions are quiet. Park and discard sit under “Manage this question”, with a sentence beside them. An empty garden’s three invitations keep their words. Choosing one places the cursor in the planting field. It does not create a question.
 
 Library uses the same control. Comparing concepts is quiet and sits beside the scope. Editing a concept is quiet. Saving those changes is the coral confirmation. Cancelling the edit is quiet. On a phone the botanical tree follows the concept, so the artwork stays in front.
+
+Home uses the same control. Beginning a curiosity is the coral sprout. Saving a renamed curiosity is deep teal, as is replacing its cover. The other home actions are quiet. Library of Curiosities stays a text link. On a wide screen the dictionary and the invitation sit side by side, and the curiosity cards sit in two columns. A phone keeps them in one column.
 
 These keep their words:
 

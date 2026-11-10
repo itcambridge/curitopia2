@@ -75,7 +75,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
         <h2 className="max-w-xl font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">
           Follow the thread.
           <br />
-          <em className="text-studio-coral">See what unfolds.</em>
+          <em className="text-studio-coral-text">See what unfolds.</em>
         </h2>
         <StageMark stage="gather" placement="content" />
       </header>
@@ -132,7 +132,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
                 <Sprout aria-hidden="true" />
               </IconAction>
             </div>
-            {error && <p role="alert" className="mt-3 text-sm text-studio-coral">{error}</p>}
+            {error && <p role="alert" className="mt-3 text-sm text-studio-coral-text">{error}</p>}
           </form>
           {activeQuestions.length > 0 && (
             <ul id="captured-questions" aria-label="Captured questions" className={`order-4 mt-8 border-t border-studio-line pt-6 ${questionListClass}`}>
@@ -158,9 +158,9 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
               <div className="grid size-11 place-items-center rounded-xl bg-studio-cream text-studio-ink">
                 <Play size={18} fill="currentColor" aria-hidden="true" />
               </div>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-studio-grove">Next</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-studio-grove-text">Next</span>
             </div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-studio-grove">{invitation.eyebrow}</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-studio-grove-text">{invitation.eyebrow}</p>
             <h3 className="mt-2 max-w-[16rem] font-serif text-3xl leading-tight">{invitation.title}</h3>
             <button
               type="button"
@@ -193,7 +193,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
                 ))}
               </ul>
             )}
-            <button type="button" onClick={() => document.getElementById('captured-questions')?.scrollIntoView({ block: 'nearest' })} className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-studio-coral underline decoration-studio-coral/40 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+            <button type="button" onClick={() => document.getElementById('captured-questions')?.scrollIntoView({ block: 'nearest' })} className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-studio-coral-text underline decoration-studio-coral/40 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
               View all <ChevronRight size={16} aria-hidden="true" />
             </button>
           </div>

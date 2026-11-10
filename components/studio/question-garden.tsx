@@ -174,7 +174,7 @@ function OrbitButton({
   if (node.kind === 'blossom') {
     return (
       <button type="button" style={style} onClick={() => onOpenConcept(node.conceptId)} className={`${className ?? ''} ${chipClass('blossom')}`}>
-        <span className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-studio-coral">Blossom</span>
+        <span className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-studio-coral-text">Blossom</span>
         <span className="line-clamp-3 text-left text-sm font-semibold leading-snug">{node.title}</span>
       </button>
     )

@@ -197,7 +197,7 @@ export function LibraryView({
         <h2 className={`font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl ${pair || picks || editing ? 'sr-only' : 'mt-2'}`}>
           Concepts worth
           <br />
-          <em className="text-studio-coral">looking at again.</em>
+          <em className="text-studio-coral-text">looking at again.</em>
         </h2>
         <div className={`flex min-w-0 items-end gap-2 ${pair || picks ? '' : 'mt-5'}`}>
           <div className="min-w-0 flex-1 sm:flex-none">

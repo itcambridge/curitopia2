@@ -31,10 +31,9 @@ export function BrandBanner({ email, onSignOut }: { email: string | null; onSign
           type="button"
           onClick={onSignOut}
           aria-label="Sign out"
-          title="Sign out"
-          className="grid size-11 shrink-0 place-items-center rounded-xl text-studio-ink hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-ink"
+          className="grid size-11 shrink-0 place-items-center rounded-xl text-studio-ink hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-ink [&_svg]:size-[18px]"
         >
-          <LogOut size={16} aria-hidden="true" />
+          <LogOut aria-hidden="true" />
         </button>
       </div>
     </header>
