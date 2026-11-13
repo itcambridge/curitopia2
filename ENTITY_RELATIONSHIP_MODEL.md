@@ -120,6 +120,8 @@ A `stage` column is present in the older model description as the last-opened st
 
 A cover image, where supported by the current deployment, is optional presentation metadata for the curiosity. It is separate from concept artwork and does not change question/concept ownership.
 
+An Experience belongs to exactly one curiosity. The foundation stores one `experiences` row, created when the person opens that screen and resumed on later visits. `curiosity_id` cannot change after insert. The row does not change the curiosity's stage. The migration file is version-controlled and is not applied to the production database. North Star, circles, and conversation history are not part of this row.
+
 ### 3.2 Question
 
 A question belongs to one person and one curiosity. It has:

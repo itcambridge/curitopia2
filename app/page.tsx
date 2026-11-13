@@ -15,7 +15,7 @@ export const metadata: Metadata = studioAtRoot
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string }>
+  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string; experience?: string }>
 }) {
   if (studioAtRoot) return <CuritopiaEntry searchParams={searchParams} />
   return <ConsultancyPage />

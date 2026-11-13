@@ -2,6 +2,14 @@ import type { StageId } from '@/lib/questions/types'
 
 export const createCuriosityChoice = 'new'
 
+export function curiosityOpenPath(curiosityId: string) {
+  return `/?curiosity=${encodeURIComponent(curiosityId)}`
+}
+
+export function experiencePath(curiosityId: string) {
+  return `/?curiosity=${encodeURIComponent(curiosityId)}&experience=1`
+}
+
 export function curiosityGardenPath(curiosityId: string) {
   return `/?curiosity=${encodeURIComponent(curiosityId)}&garden=1`
 }

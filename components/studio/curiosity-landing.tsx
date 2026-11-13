@@ -10,7 +10,7 @@ import { studioPath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { clearCuriosityCover, createCuriosity, listCuriosities, renameCuriosity, setCuriosityCover, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
 import { createClient } from '@/lib/supabase/client'
-import { surfaceStage } from '@/lib/questions/curiosity-switch'
+import { experiencePath, surfaceStage } from '@/lib/questions/curiosity-switch'
 import type { StageId } from '@/lib/questions/types'
 
 function curiosityPath(id: string) {
@@ -228,6 +228,9 @@ export function CuriosityLanding() {
                           {placeName(item.stage)} · {item.questionCount} {item.questionCount === 1 ? 'question' : 'questions'} · {item.conceptCount} {item.conceptCount === 1 ? 'concept' : 'concepts'}
                         </p>
                         <p className="mt-1 text-sm text-studio-muted">Last tended {activityFormat.format(new Date(item.updatedAt))}</p>
+                        <Link href={studioPath(experiencePath(item.id))} aria-label={`Experience for ${item.name}`} className="pointer-events-auto relative z-10 mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
+                          Experience
+                        </Link>
                       </div>
                     </div>
                   </>

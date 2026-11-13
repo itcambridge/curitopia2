@@ -209,6 +209,8 @@ try {
   assert.equal(policySource.includes('reached its limit'), false)
   assert.equal(policySource.includes('reserve_ai_request'), false)
 
+  const savedNodeEnv = process.env.NODE_ENV
+  process.env.NODE_ENV = 'production'
   delete process.env.NEXT_PUBLIC_SUPABASE_URL
   delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   assert.equal(readPublicSupabaseEnv(), null)
@@ -216,6 +218,8 @@ try {
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'publishable-test-key'
   assert.equal(readPublicSupabaseEnv()?.url, 'https://example.supabase.co')
   assert.equal(readPublicSupabaseEnv()?.publishableKey, 'publishable-test-key')
+  if (savedNodeEnv === undefined) delete process.env.NODE_ENV
+  else process.env.NODE_ENV = savedNodeEnv
 
   const envSource = readPublicEnvSource()
   assert.equal(envSource.includes('process.env.NEXT_PUBLIC_SUPABASE_URL'), true)

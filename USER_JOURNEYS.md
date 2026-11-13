@@ -5,7 +5,7 @@
 **Product scope and image quality:** `PRODUCT_VISION.md`.  
 **Technical boundaries and entities:** `PRODUCT_ARCHITECTURE.md`, `ENTITY_RELATIONSHIP_MODEL.md`.
 
-Curitopia is not a four-stage wizard. Its primary surfaces are the Garden, contextual Visualise, and the Library of Curiosities. A person can move between them freely. Saving a concept does not complete it. Comparing concepts does not require saving a connection.
+Curitopia is not a four-stage wizard. Its primary surfaces are the Garden, contextual Visualise, and the Library of Curiosities. A person can move between them freely. Saving a concept does not complete it. Comparing concepts does not require saving a connection. Experience is a separate screen for one curiosity. Opening it leaves the curiosity's saved workspace stage as it is.
 
 ## Shared rules
 

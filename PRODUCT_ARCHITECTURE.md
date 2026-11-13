@@ -16,6 +16,8 @@ The application is not organised as a staged pipeline. Its primary surfaces are:
 
 There are no dedicated Curate or Distil stages. Question parking, discard, restore, and branching live in the Garden. Retitling a saved concept and editing its contributing questions live in the Library. A stored curiosity stage of `curate` opens the Garden, and a stored stage of `distil` opens the Library. New navigation writes only `gather`, `visualise`, or `library`.
 
+Experience is a separate screen for one curiosity. It is opened from that curiosity's card or from the workspace, and it does not write `curiosities.stage`. The first explicit visit creates one `experiences` row for that curiosity; a later visit resumes the same row. The version-controlled migration is `supabase/migrations/20261113200000_experiences.sql`. It is not applied to the production database. A separate hosted development Supabase project is the intended place to apply it later. North Star, circles, and AI are outside this foundation.
+
 A person can stop after capture, reject all image candidates, save a concept, compare existing concepts, or follow a new question. No action implies completion.
 
 ## 2. Architectural principles
