@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { curiosityOpenPath, experiencePath } from './curiosity-switch.ts'
-import { experienceDevelopmentProjectRefs, experiencePersistenceAllowed, experienceWriteTarget, nextExperienceVisit, productionExperienceProjectRef } from './experience.ts'
+import { experienceClientProductionOpen, experienceDevelopmentProjectRefs, experienceHttpTarget, experiencePersistenceAllowed, experienceProductionDecision, experienceRecordPermitted, experienceWriteTarget, nextExperienceVisit, productionExperienceProjectRef } from './experience.ts'
 
 const curiosityId = '11111111-1111-4111-8111-111111111111'
 const experienceId = '22222222-2222-4222-8222-222222222222'
@@ -47,6 +47,35 @@ assert.equal(experiencePersistenceAllowed('https://example.supabase.co', listed)
 assert.equal(experiencePersistenceAllowed('http://[::1]:54321', listed), false)
 assert.deepEqual(nextExperienceVisit(null), { action: 'create' })
 assert.deepEqual(nextExperienceVisit(experienceId), { action: 'resume', id: experienceId })
+
+const allow = 'allow'
+assert.equal(experienceProductionDecision({ nodeEnv: 'development', target: 'allowed', uiPermit: undefined, apiPermit: undefined }), 'development')
+assert.equal(experienceProductionDecision({ nodeEnv: 'development', target: 'allowed', uiPermit: allow, apiPermit: allow }), 'development')
+assert.equal(experienceProductionDecision({ nodeEnv: 'development', target: 'production', uiPermit: allow, apiPermit: allow }), 'closed')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'production', uiPermit: undefined, apiPermit: undefined }), 'closed')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'production', uiPermit: '', apiPermit: '' }), 'closed')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'production', uiPermit: 'true', apiPermit: 'true' }), 'closed')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'production', uiPermit: allow, apiPermit: undefined }), 'split')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'production', uiPermit: undefined, apiPermit: allow }), 'split')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'production', uiPermit: allow, apiPermit: allow }), 'open')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'allowed', uiPermit: undefined, apiPermit: undefined }), 'development')
+assert.equal(experienceProductionDecision({ nodeEnv: 'production', target: 'allowed', uiPermit: allow, apiPermit: allow }), 'development')
+assert.equal(experienceProductionDecision({ nodeEnv: undefined, target: 'production', uiPermit: allow, apiPermit: allow }), 'closed')
+assert.equal(experienceClientProductionOpen({ nodeEnv: 'development', target: 'production', uiPermit: allow, serverDecision: 'open' }), false)
+assert.equal(experienceClientProductionOpen({ nodeEnv: 'production', target: 'production', uiPermit: allow, serverDecision: 'closed' }), false)
+assert.equal(experienceClientProductionOpen({ nodeEnv: 'production', target: 'production', uiPermit: allow, serverDecision: 'split' }), false)
+assert.equal(experienceClientProductionOpen({ nodeEnv: 'production', target: 'production', uiPermit: 'true', serverDecision: 'open' }), false)
+assert.equal(experienceClientProductionOpen({ nodeEnv: 'production', target: 'production', uiPermit: allow, serverDecision: 'open' }), true)
+assert.equal(experienceRecordPermitted({ target: 'allowed', nodeEnv: 'development', uiPermit: allow, productionOpen: false }), true)
+assert.equal(experienceRecordPermitted({ target: 'production', nodeEnv: 'development', uiPermit: allow, productionOpen: true }), false)
+assert.equal(experienceRecordPermitted({ target: 'production', nodeEnv: 'production', uiPermit: allow, productionOpen: false }), false)
+assert.equal(experienceRecordPermitted({ target: 'production', nodeEnv: 'production', uiPermit: allow, productionOpen: true }), true)
+assert.equal(experienceHttpTarget('production', 'closed'), 'production')
+assert.equal(experienceHttpTarget('production', 'split'), 'production')
+assert.equal(experienceHttpTarget('production', 'open'), 'allowed')
+assert.equal(experienceHttpTarget('allowed', 'closed'), 'allowed')
+assert.equal(experienceHttpTarget('refused', 'open'), 'refused')
+assert.equal(experienceWriteTarget({ url: `https://${productionExperienceProjectRef}.supabase.co` }, [productionExperienceProjectRef, 'tnohnytbddsbchueghcf']), 'production')
 
 const migration = readFileSync(new URL('../../supabase/migrations/20261113200000_experiences.sql', import.meta.url), 'utf8')
 assert.equal(migration.includes('create table public.experiences'), true)
@@ -100,21 +129,55 @@ assert.equal(landing.includes('Open ${item.name}'), true)
 const screen = readFileSync(new URL('../../components/studio/experience-screen.tsx', import.meta.url), 'utf8')
 const load = screen.slice(screen.indexOf('async function load'), screen.indexOf('load().catch'))
 assert.equal(screen.includes('rememberCuriosityStage'), false)
-assert.equal(load.indexOf("target !== 'allowed'") < load.indexOf('openExperience(curiosityId)'), true)
+assert.equal(load.indexOf("target !== 'allowed'") < load.indexOf('openExperience(curiosityId,'), true)
 assert.equal(screen.includes("writeTarget === 'production'"), true)
 assert.equal(screen.includes("writeTarget === 'refused'"), true)
 assert.equal(screen.includes('curiosityOpenPath'), true)
 assert.equal(screen.includes('garden=1'), false)
-assert.equal(screen.includes('North Star'), false)
+assert.equal(screen.includes('ExperienceWorkspace'), true)
+assert.equal(screen.includes('key={experienceId}'), true)
+assert.equal(screen.includes('loadExperienceContent'), true)
+assert.equal(load.indexOf('openExperience(curiosityId,') < load.indexOf('loadExperienceContent(opened.id,'), true)
+assert.equal(load.includes('setExperienceId(null)'), true)
 assert.equal(screen.includes('named in the allowlist'), true)
 assert.equal(screen.includes('local Supabase'), false)
+assert.equal(entry.includes('<ExperienceScreen key={curiosity} curiosityId={curiosity} productionDecision={productionDecision} />'), true)
+assert.equal(entry.includes("'use client'"), false)
+assert.equal(entry.includes("from '@/lib/questions/experience-production'"), true)
+assert.equal(screen.includes('experience-production'), false)
+assert.equal(screen.includes('EXPERIENCE_PRODUCTION_API'), false)
+assert.equal(screen.includes('permissions do not match'), true)
 
 const writer = readFileSync(new URL('./supabase-experience.ts', import.meta.url), 'utf8')
 const open = writer.slice(writer.indexOf('export async function openExperience'))
-assert.equal(open.indexOf("!== 'allowed'") < open.indexOf(".from('experiences')"), true)
+assert.equal(open.indexOf('experienceRecordPermitted') < open.indexOf(".from('experiences')"), true)
+assert.equal(open.includes('experienceWriteTarget(readPublicSupabaseEnv())'), true)
 assert.equal(writer.includes('service_role'), false)
 assert.equal(writer.includes('eyJ'), false)
 assert.equal(writer.includes('rememberCuriosityStage'), false)
 assert.equal(writer.includes("code === '23505'"), true)
+
+const clientGraph = [
+  screen,
+  writer,
+  readFileSync(new URL('./supabase-experience-content.ts', import.meta.url), 'utf8'),
+  readFileSync(new URL('./experience.ts', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../components/studio/experience-workspace.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../components/studio/experience-clearing.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../components/studio/experience-conversation.tsx', import.meta.url), 'utf8'),
+]
+for (const source of clientGraph) {
+  assert.equal(source.includes('experience-production'), false)
+  assert.equal(source.includes('EXPERIENCE_PRODUCTION_API'), false)
+}
+const release = readFileSync(new URL('./experience-production.ts', import.meta.url), 'utf8')
+assert.equal(release.includes('EXPERIENCE_PRODUCTION_API'), true)
+assert.equal(release.includes('service_role'), false)
+const home = readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8')
+const workspacePage = readFileSync(new URL('../../app/workspace/page.tsx', import.meta.url), 'utf8')
+assert.equal(home.includes('use client'), false)
+assert.equal(workspacePage.includes('use client'), false)
+assert.equal(home.includes('experience-production'), false)
+assert.equal(workspacePage.includes('experience-production'), false)
 
 console.log('experience checks passed')

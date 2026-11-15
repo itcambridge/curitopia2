@@ -153,11 +153,50 @@ export type Database = {
         }
         Relationships: []
       }
+      experience_circle_items: {
+        Row: {
+          body: string
+          circle: string
+          created_at: string
+          experience_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          circle: string
+          created_at?: string
+          experience_id: string
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          circle?: string
+          created_at?: string
+          experience_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experience_circle_items_experience_owner"
+            columns: ["experience_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "experiences"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       experiences: {
         Row: {
           created_at: string
           curiosity_id: string
           id: string
+          north_star: string | null
           updated_at: string
           user_id: string
         }
@@ -165,6 +204,7 @@ export type Database = {
           created_at?: string
           curiosity_id: string
           id: string
+          north_star?: string | null
           updated_at?: string
           user_id: string
         }
@@ -172,6 +212,7 @@ export type Database = {
           created_at?: string
           curiosity_id?: string
           id?: string
+          north_star?: string | null
           updated_at?: string
           user_id?: string
         }

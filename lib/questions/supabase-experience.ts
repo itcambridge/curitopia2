@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { experienceWriteTarget, nextExperienceVisit } from '@/lib/questions/experience'
+import { experienceRecordPermitted, experienceWriteTarget, nextExperienceVisit } from '@/lib/questions/experience'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 
 export type OpenExperience = {
@@ -26,8 +26,14 @@ async function readExperienceId(curiosityId: string) {
   return data?.id ?? null
 }
 
-export async function openExperience(curiosityId: string): Promise<OpenExperience> {
-  if (experienceWriteTarget(readPublicSupabaseEnv()) !== 'allowed') {
+export async function openExperience(curiosityId: string, productionOpen: boolean): Promise<OpenExperience> {
+  const target = experienceWriteTarget(readPublicSupabaseEnv())
+  if (!experienceRecordPermitted({
+    target,
+    nodeEnv: process.env.NODE_ENV,
+    uiPermit: process.env.NEXT_PUBLIC_EXPERIENCE_PRODUCTION_UI,
+    productionOpen,
+  })) {
     throw new Error('An Experience record is not stored for this project. Nothing was saved.')
   }
   const supabase = createClient()
