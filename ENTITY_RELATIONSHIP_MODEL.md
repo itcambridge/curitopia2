@@ -120,6 +120,8 @@ A `stage` column is present in the older model description as the last-opened st
 
 A cover image, where supported by the current deployment, is optional presentation metadata for the curiosity. It is separate from concept artwork and does not change question/concept ownership.
 
+An Experience belongs to exactly one curiosity. The foundation stores one `experiences` row, created when the person opens that screen and resumed on later visits. `curiosity_id` cannot change after insert. The row does not change the curiosity's stage. An optional `north_star` on that row is the person's current direction. Circle notes are separate rows in `experience_circle_items`: each belongs to that experience and to exactly one of Concern, Influence, or Control. `experience_id` and `user_id` cannot change after insert; `circle` can, so a note can move. Connections between phrases are not stored. The migrations `supabase/migrations/20261113200000_experiences.sql` and `supabase/migrations/20261113220000_experience_north_star_and_circles.sql` have been applied and verified on the production Supabase project `dacfaoksxfqztnswmnfm`. Conversation history and AI suggestions are not part of this model.
+
 ### 3.2 Question
 
 A question belongs to one person and one curiosity. It has:

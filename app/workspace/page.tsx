@@ -3,7 +3,7 @@ import { CuritopiaEntry } from '@/components/studio/curitopia-entry'
 export default function WorkspacePage({
   searchParams,
 }: {
-  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string }>
+  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string; experience?: string }>
 }) {
   return <CuritopiaEntry searchParams={searchParams} />
 }

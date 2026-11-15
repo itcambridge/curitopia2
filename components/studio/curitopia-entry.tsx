@@ -3,14 +3,16 @@ import { MissingSupabaseEnv } from '@/components/auth/missing-env'
 import { CuriosityLanding } from '@/components/studio/curiosity-landing'
 import { AccountLibrary } from '@/components/studio/account-library'
 import { CuritopiaApp } from '@/components/studio/curitopia-app'
+import { ExperienceScreen } from '@/components/studio/experience-screen'
 import { studioPath } from '@/lib/paths'
+import { readExperienceProductionDecision } from '@/lib/questions/experience-production'
 import { readPublicSupabaseEnv } from '@/lib/supabase/env'
 import { createClient } from '@/lib/supabase/server'
 
 export async function CuritopiaEntry({
   searchParams,
 }: {
-  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string }>
+  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string; experience?: string }>
 }) {
   if (!readPublicSupabaseEnv()) return <MissingSupabaseEnv />
   const supabase = await createClient()
@@ -26,7 +28,11 @@ export async function CuritopiaEntry({
     )
   }
   if (!signedIn) redirect(studioPath('/sign-in'))
-  const { curiosity, library, concept, garden } = await searchParams
+  const { curiosity, library, concept, garden, experience } = await searchParams
+  if (curiosity && experience === '1') {
+    const productionDecision = readExperienceProductionDecision()
+    return <ExperienceScreen key={curiosity} curiosityId={curiosity} productionDecision={productionDecision} />
+  }
   if (!curiosity && library === 'all') return <AccountLibrary />
   if (!curiosity) return <CuriosityLanding />
   return <CuritopiaApp key={curiosity} curiosityId={curiosity} reviseConceptId={concept ?? null} openGarden={garden === '1'} />
