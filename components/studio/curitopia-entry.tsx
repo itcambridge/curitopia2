@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 export async function CuritopiaEntry({
   searchParams,
 }: {
-  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string; experience?: string }>
+  searchParams: Promise<{ curiosity?: string; library?: string; concept?: string; garden?: string; experience?: string; arrival?: string }>
 }) {
   if (!readPublicSupabaseEnv()) return <MissingSupabaseEnv />
   const supabase = await createClient()
@@ -28,7 +28,11 @@ export async function CuritopiaEntry({
     )
   }
   if (!signedIn) redirect(studioPath('/sign-in'))
-  const { curiosity, library, concept, garden, experience } = await searchParams
+  const { curiosity, library, concept, garden, experience, arrival } = await searchParams
+  if (process.env.NODE_ENV === 'development' && arrival === 'preview') {
+    const { ArrivalPreview } = await import('@/components/studio/arrival/arrival-preview')
+    return <ArrivalPreview />
+  }
   if (curiosity && experience === '1') {
     const productionDecision = readExperienceProductionDecision()
     return <ExperienceScreen key={curiosity} curiosityId={curiosity} productionDecision={productionDecision} />

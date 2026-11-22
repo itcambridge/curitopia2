@@ -236,6 +236,7 @@ export function useAccountWorkspace(curiosityId: string, reviseConceptId: string
     void job.finally(() => {
       if (chain.current === job) setSaving(false)
     })
+    return job
   }
 
   function holdDrafts() {
