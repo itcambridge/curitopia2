@@ -93,7 +93,7 @@ export function conceptRemainsVisible(
 
 // The card shows the person's original question, preferring the wording saved
 // with the concept. A later edit to the live question stays off the card.
-// The image prompt in considered text is not the question.
+// The creative direction in considered text is not the question.
 export function conceptCardQuestion(
   concept: Pick<ConceptRecord, 'anchorQuestionId' | 'sources' | 'questionIds'> & { forConsideredText?: string },
   questions: Pick<QuestionRecord, 'id' | 'originalText'>[],

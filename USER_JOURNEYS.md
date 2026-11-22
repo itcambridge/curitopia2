@@ -74,23 +74,23 @@ A question in the Garden, or an existing question opened from another part of th
 ### Happy path
 
 1. The person chooses **Visualise** from a question.
-2. Curitopia shows the original question. The person may use it unchanged or optionally refine the wording. The original capture remains intact.
-3. Curitopia makes clear which exact wording will be sent to image generation.
-4. The person chooses 1, 2, or 4 images and explicitly requests them. A first visit starts at 1 image. The last choice is remembered in this browser.
+2. Curitopia shows the original question. The person may ask for one creative direction, or write one. The direction describes the idea, feeling, tension, or relationship to explore. It does not choose a subject, setting, or metaphor. The original capture remains intact.
+3. The person can edit that one direction and accepts it before any image is made. Curitopia does not ask them to review a separate prompt for each image.
+4. The person chooses 1, 2, or 4 images and explicitly requests them. A first visit starts at 1 image. The last choice is remembered in this browser. One image uses Tension. Two use Tension and Trace. Four use Tension, Trace, Scale, and Relation. Each image interprets the original question and the accepted direction from its own starting point.
 5. Curitopia shows that the image is being created. Each image request, including one tried again, starts its own countdown at 30 seconds and decreases it once per second. The supporting line reads “Usually around 30 seconds. Sometimes quicker!” A finished image is shown immediately, even when time remains on the countdown. If the request is still running at zero, the number stops, it does not go negative, and the line changes to “Taking a little longer than usual…” while generation continues. One image is the quickest look. Two images offer a couple of interpretations. Four images explore a wider range, and they can differ in concept or metaphor.
 6. The person can select a finished image while later images are still being created. They can hide an image, try a failed image again without losing the others, request another set, or leave without saving.
 7. If one image is worth keeping, the person selects it and chooses **Save concept**.
 8. The save interaction presents a title field. The person writes a title of one or two words, or explicitly asks for optional title suggestions and adopts/edits one. The person's final wording is authoritative.
 9. Curitopia validates the title and saves the original selected artwork, the title, the exact generation wording, model/prompt metadata, and links to the source questions.
-10. The saved concept appears in the Library with its title rendered at the top, original artwork in the centre, and exact generation question at the bottom.
+10. The saved concept appears in the Library with its title rendered at the top, original artwork in the centre, and the original question at the bottom. The accepted creative direction stays with the concept.
 11. The person may continue exploring, return to the Garden, compare the new concept with another, or leave.
 
 ### Guardrails
 
 - Image generation requires a fresh explicit action.
 - The first finished image is shown without waiting for the rest of the requested set, and without waiting for the countdown to reach zero. The countdown belongs only to the request in progress. After zero, the screen says “Taking a little longer than usual…” and keeps waiting. A failure stays on that image, and the successful images remain. A result is kept only for the question and prompt that requested it.
-- A considered question is optional refinement, not a separate stage. If the existing implementation still requires it, assess that dependency before removing it; do not silently change the text sent to generation.
-- The exact wording that generated the image is retained as the concept's represented question.
+- The creative direction is one editable brief, not a separate stage and not a finished scene. The original question is sent with every image in the run, together with that accepted direction.
+- The library card shows the original question. The accepted creative direction is kept with the concept as the wording that guided generation.
 - The generated image is an interpretation, not evidence or a verdict on the question.
 - A title is one or two words, with one word valid and two the maximum. Enforce the existing 40-character/one-ordinary-space database rule.
 - A title is required to save a concept; an invalid or blank title produces inline validation. Manual title entry remains available even if AI title help fails.

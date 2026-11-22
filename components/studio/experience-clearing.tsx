@@ -113,16 +113,6 @@ function ClearingTerrain() {
       <path fill="#c5dac6" opacity="0.8" d="M0 450 C260 390 520 540 820 450 C1020 390 1140 470 1200 420 V760 C1000 680 740 800 460 720 C210 650 80 710 0 660 Z" />
       <path fill="#ead9c6" d="M0 560 C220 500 480 660 800 560 C1020 490 1140 580 1200 520 V980 H0 Z" />
       <path fill="#e0cdb6" opacity="0.85" d="M0 700 C280 630 540 790 860 690 C1060 620 1160 710 1200 650 V980 H0 Z" />
-      <g fill="none" stroke="#6d947c" strokeWidth="1.25" className="opacity-40 sm:opacity-70">
-        <path d="M240 168 C420 128 640 210 880 160 S1160 120 1220 156" />
-        <path d="M260 206 C460 168 680 250 920 198 S1160 160 1220 196" />
-        <path d="M220 248 C460 190 700 320 960 240 S1160 180 1220 230" />
-        <path d="M240 292 C500 236 740 360 990 286 S1160 230 1220 274" />
-        <path d="M200 470 C470 400 740 560 1020 460 S1180 400 1220 450" />
-        <path d="M220 518 C500 452 760 600 1040 512 S1180 456 1220 500" />
-        <path d="M180 700 C480 620 780 800 1080 690 S1200 640 1220 690" />
-        <path d="M200 748 C510 674 800 840 1100 742 S1200 700 1220 740" />
-      </g>
     </svg>
   )
 }
@@ -402,11 +392,7 @@ export function ExperienceClearing({
             </div>
           </form>
         ) : null}
-        <div aria-hidden="true" className="relative mt-5">
-          <svg className="h-12 w-full" viewBox="0 0 1200 48" preserveAspectRatio="none">
-            <path d="M0 34 C 180 8, 380 42, 640 18 S 980 4, 1200 28" fill="none" stroke="#c4a882" strokeWidth="1.6" />
-            <path d="M0 40 C 200 18, 420 46, 700 26 S 1000 14, 1200 34" fill="none" stroke="#d7c4a8" strokeWidth="1" />
-          </svg>
+        <div aria-hidden="true" className="relative mt-5 h-12">
           <span className="absolute right-[8%] top-1 flex flex-col items-center sm:right-[16%]">
             <span className="size-3.5 rounded-full bg-studio-coral shadow-[0_0_0_8px_rgba(255,127,80,0.2)]" />
             <span className="h-24 w-px bg-gradient-to-b from-studio-coral/70 to-transparent" />

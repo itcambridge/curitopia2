@@ -69,13 +69,16 @@ try {
   assert.equal(calls[0]?.url, 'https://api.openai.com/v1/chat/completions')
   assert.equal(calls[0]?.question, conduct)
   assert.equal(calls[1]?.question, balance)
-  assert.equal(calls[0]?.system.includes('focal subject'), true)
+  assert.equal(calls[0]?.system.includes('creative direction'), true)
+  assert.equal(calls[0]?.system.includes('focal subject'), false)
+  assert.equal(calls[0]?.system.includes('Do not describe a finished picture.'), true)
+  assert.equal(calls[0]?.system.includes('Do not choose a focal object'), true)
   assert.equal(calls[0]?.system.includes('ripples travelling across a still pool'), false)
   assert.equal(JSON.stringify(first).includes('Demo proposal'), false)
 
   const failed = await requestImagePrompt({ apiKey: 'test-not-a-real-key', model: 'gpt-6-luna', question: 'fail this question', fetchImpl })
   assert.equal('proposal' in failed, false)
-  assert.equal('error' in failed && failed.error.includes('did not return an image prompt'), true)
+  assert.equal('error' in failed && failed.error.includes('did not return a creative direction'), true)
   assert.equal('error' in failed && failed.error.includes('60 minutes'), false)
 
   let promptCalls = 0

@@ -1,17 +1,15 @@
 import { providerFailure, readProviderError } from './provider-error.ts'
 import { assistantText } from './title-suggestions.ts'
 
-const systemPrompt = [
-  'You write one image-generation prompt for a single still image.',
-  'Interpret what the question is really exploring, then turn that meaning into a visual concept.',
-  'Do not answer the question, and do not restate its words.',
-  'Choose one strong focal subject and an original metaphor.',
-  'Give the image a coherent composition, depth, balance, light, atmosphere, colour, and texture.',
-  'Make it distinctive and emotionally specific. Keep the scene rich, but not crowded with competing subjects.',
-  'No text, lettering, typography, captions, logos, or watermarks.',
-  'No generic stock photography, corporate scenes, or a literal illustration of the nouns in the question.',
-  'Avoid a familiar cliché when a more particular metaphor is available.',
-  'Reply with the image prompt only.',
+export const creativeDirectionSystemPrompt = [
+  'You write one editable creative direction for a set of images.',
+  'Interpret what the question is really exploring: the idea, feeling, tension, or relationship underneath it.',
+  'Be specific and meaningful, not generic. A person should be able to read the direction, understand it, and edit it.',
+  'Do not answer the question, and do not restate it as a slogan.',
+  'Do not describe a finished picture.',
+  'Do not choose a focal object, a physical scene, a setting, a metaphor, a composition, a camera angle, or a collection of visual elements.',
+  'Leave the choice of visual metaphor open, so each image can interpret the direction independently.',
+  'Reply with the creative direction only.',
 ].join(' ')
 
 type CompletionBody = {
@@ -42,7 +40,7 @@ async function providerError(response: Response) {
   const specific = providerFailure(response.status, detail, code, 'text model', 'Your prompt was left unchanged. ')
   if (specific) return specific
   const extra = detail ? ` ${detail}` : ''
-  return `The text model did not return an image prompt.${extra} Your prompt was left unchanged.`
+  return `The text model did not return a creative direction.${extra} Your direction was left unchanged.`
 }
 
 export async function requestImagePrompt(input: {
@@ -52,7 +50,7 @@ export async function requestImagePrompt(input: {
   fetchImpl?: typeof fetch
 }): Promise<{ proposal: string } | { error: string }> {
   if (!input.apiKey.trim() || !input.model.trim()) {
-    return { error: 'No text model is connected. Write the image prompt yourself. Nothing was sent.' }
+    return { error: 'No text model is connected. Write the creative direction yourself. Nothing was sent.' }
   }
   const fetchImpl = input.fetchImpl ?? fetch
   try {
@@ -67,7 +65,7 @@ export async function requestImagePrompt(input: {
         reasoning_effort: 'none',
         max_completion_tokens: 1200,
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: creativeDirectionSystemPrompt },
           { role: 'user', content: input.question },
         ],
       }),
@@ -76,7 +74,7 @@ export async function requestImagePrompt(input: {
     if (!response.ok) return { error: await providerError(response) }
     const body = await response.json() as CompletionBody
     const proposal = fitPrompt(assistantText(body.choices?.[0]?.message))
-    if (!proposal) return { error: 'The text model returned no image prompt. Your prompt was left unchanged.' }
+    if (!proposal) return { error: 'The text model returned no creative direction. Your direction was left unchanged.' }
     console.info(JSON.stringify({
       imagePrompt: {
         model: input.model,

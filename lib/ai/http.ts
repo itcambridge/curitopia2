@@ -2,7 +2,8 @@ import { beginAiTurn, considerWouldCallProvider, imagesWouldCallProvider, titles
 import { configuredTextModel, requestTitleSuggestions } from '../providers/title-suggestions.ts'
 import { isMetaphorId } from '../providers/prompts.ts'
 import type { ImageSetResult, MetaphorId } from '../providers/types.ts'
-import { acceptTitleSuggestions, inspectTitleSuggestions, titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
+import { inspectTitleSuggestions, resolveTitleSuggestions } from '../questions/suggested-titles.ts'
+import { titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
 
 const questionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -33,14 +34,14 @@ export async function considerHttp(
   const questionId = typeof body.questionId === 'string' ? body.questionId : ''
   const curiosityId = typeof body.curiosityId === 'string' ? body.curiosityId : ''
   if (!questionIdPattern.test(questionId) || !questionIdPattern.test(curiosityId)) {
-    return Response.json({ error: 'Choose a saved question before asking for an image prompt.' }, { status: 400 })
+    return Response.json({ error: 'Choose a saved question before asking for a creative direction.' }, { status: 400 })
   }
   const originalText = (await loadQuestion(questionId, curiosityId))?.trim() ?? ''
   if (!originalText) {
     return Response.json({ error: 'That question is not in this curiosity. Nothing was sent.' }, { status: 404 })
   }
   if (originalText.length > 2000) {
-    return Response.json({ error: 'That question is too long to turn into an image prompt.' }, { status: 400 })
+    return Response.json({ error: 'That question is too long to turn into a creative direction.' }, { status: 400 })
   }
   const turn = startTurn(auth.userId, 'consider', considerWouldCallProvider())
   if (turn instanceof Response) return turn
@@ -59,12 +60,12 @@ export async function considerHttp(
 export async function imagesHttp(
   request: Request,
   gate: Gate,
-  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId) => Promise<ImageSetResult>,
+  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId, question?: string) => Promise<ImageSetResult>,
 ) {
   const auth = await gate.authenticate('images', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { consideredText?: unknown; direction?: unknown; runId?: unknown }
+  let body: { consideredText?: unknown; originalText?: unknown; direction?: unknown; runId?: unknown }
   try {
     body = await request.json()
   } catch {
@@ -78,13 +79,17 @@ export async function imagesHttp(
     return Response.json({ error: 'Choose one of the available visual directions.' }, { status: 400 })
   }
   const direction = isMetaphorId(body.direction) ? body.direction : undefined
+  const originalText = typeof body.originalText === 'string' ? body.originalText.trim() : ''
+  if (originalText.length > 2000) {
+    return Response.json({ error: 'That question is too long to send with the images.' }, { status: 400 })
+  }
   if (body.runId !== undefined && (typeof body.runId !== 'string' || !questionIdPattern.test(body.runId))) {
     return Response.json({ error: 'The image run could not be recognised. Nothing was sent.' }, { status: 400 })
   }
   const turn = startTurn(auth.userId, 'images', imagesWouldCallProvider())
   if (turn instanceof Response) return turn
   try {
-    return Response.json(await interpret(consideredText, request.signal, direction))
+    return Response.json(await interpret(consideredText, request.signal, direction, originalText))
   } finally {
     turn?.()
   }
@@ -135,31 +140,34 @@ export async function titlesHttp(request: Request, gate: Gate) {
     }
 
     const image = titleImageUrl(model, imageSrc)
-    const requested = await requestTitleSuggestions({
-      apiKey: process.env.OPENAI_API_KEY?.trim() ?? '',
-      model,
-      imageUrl: image.url,
-      prompt: titleSuggestionPrompt({
-        consideredText,
-        metaphor: metaphor || null,
-        questions,
-        sawImage: image.reason === 'seen',
-      }),
+    const prompt = titleSuggestionPrompt({
+      consideredText,
+      metaphor: metaphor || null,
+      questions,
+      sawImage: image.reason === 'seen',
     })
-    console.info(JSON.stringify({
-      titleSuggestion: {
+    const apiKey = process.env.OPENAI_API_KEY?.trim() ?? ''
+    const accepted = await resolveTitleSuggestions(async (text) => {
+      const requested = await requestTitleSuggestions({
+        apiKey,
         model,
-        httpStatus: requested.httpStatus,
-        ok: requested.ok,
-        finishReason: requested.finishReason,
-        contentPresent: requested.contentPresent,
-        contentType: requested.contentType,
-        ...('content' in requested ? inspectTitleSuggestions(requested.content) : { parsed: false, extracted: 0, passed: 0 }),
-      },
-    }))
-    if ('error' in requested) return Response.json({ error: requested.error })
-
-    const accepted = acceptTitleSuggestions(requested.content)
+        imageUrl: image.url,
+        prompt: text,
+      })
+      console.info(JSON.stringify({
+        titleSuggestion: {
+          model,
+          httpStatus: requested.httpStatus,
+          ok: requested.ok,
+          finishReason: requested.finishReason,
+          contentPresent: requested.contentPresent,
+          contentType: requested.contentType,
+          ...('content' in requested ? inspectTitleSuggestions(requested.content) : { parsed: false, extracted: 0, passed: 0 }),
+        },
+      }))
+      if ('error' in requested) return { error: requested.error }
+      return { content: requested.content }
+    }, prompt)
     if ('error' in accepted) return Response.json({ error: accepted.error })
 
     const notice = image.reason === 'seen'
