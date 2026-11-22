@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Columns2, Pencil } from 'lucide-react'
+import { ArrivalOverlay } from '@/components/studio/arrival/arrival-overlay'
+import { useArrivalCue } from '@/components/studio/arrival/use-arrival-cue'
 import { ComparisonSelect, ConceptComparison } from '@/components/studio/concept-comparison'
 import { ConceptEditor } from '@/components/studio/concept-editor'
 import { StageMark } from '@/components/studio/stage-mark'
@@ -188,10 +190,12 @@ export function LibraryView({
       ?? workspace.concepts.find((concept) => concept.id === editingId && conceptRemainsVisible(concept, dispositions))
       ?? null
     : null
-  const gallery = records !== null && !editing && !pair && !picks && concepts.length > 0
+  const gallery = records !== null && concepts.length > 0 && !editing && picks === null && pair === null
+  const [compareCue, dismissCompareCue] = useArrivalCue(pair !== null, 'each')
 
   return (
-    <div className="min-w-0">
+    <div className="relative min-w-0">
+      {compareCue && pair ? <ArrivalOverlay destination="compare" onDone={dismissCompareCue} /> : null}
       <header className={pair || picks ? 'mb-3' : 'mb-8'}>
         {pair || picks ? null : <Eyebrow>Library</Eyebrow>}
         <h2 className={`font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl ${pair || picks || editing ? 'sr-only' : 'mt-2'}`}>

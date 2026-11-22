@@ -1,0 +1,170 @@
+.arrival-overlay {
+  pointer-events: none;
+  animation-duration: var(--arrival-ms);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+.arrival-overlay[data-fade='hold'] {
+  animation-name: arrival-fade-hold;
+}
+
+.arrival-overlay[data-fade='out'] {
+  animation-name: arrival-fade-through;
+}
+
+@keyframes arrival-fade-hold {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes arrival-fade-through {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.arrival-draw {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation-name: arrival-draw;
+  animation-duration: calc(var(--arrival-ms) * var(--draw-span, 0.45));
+  animation-delay: calc(var(--arrival-ms) * var(--draw-delay, 0));
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes arrival-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.arrival-leaf {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: arrival-leaf-in;
+  animation-duration: calc(var(--arrival-ms) * 0.3);
+  animation-delay: calc(var(--arrival-ms) * var(--leaf-delay, 0.5));
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes arrival-leaf-in {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.arrival-thought {
+  position: absolute;
+  width: 7.5rem;
+  height: 4.6rem;
+  border-radius: 1rem;
+  border: 1px solid #d8d0c2;
+  background: #fffaf3;
+  box-shadow: 0 16px 40px rgb(66 51 34 / 0.06);
+  opacity: 0;
+}
+
+.arrival-thought::before,
+.arrival-thought::after {
+  content: "";
+  position: absolute;
+  left: 0.85rem;
+  height: 2px;
+  border-radius: 999px;
+  background: #d6cdc0;
+}
+
+.arrival-thought::before {
+  top: 1.35rem;
+  width: 4.6rem;
+}
+
+.arrival-thought::after {
+  top: 2.25rem;
+  width: 3rem;
+}
+
+.arrival-thought-left {
+  left: 0;
+  top: 1.6rem;
+  animation: arrival-thought-left var(--arrival-ms) ease-out forwards;
+}
+
+.arrival-thought-right {
+  right: 0;
+  top: 0.2rem;
+  animation: arrival-thought-right var(--arrival-ms) ease-out forwards;
+}
+
+.arrival-thought-focus {
+  left: 50%;
+  top: 2.5rem;
+  margin-left: -3.75rem;
+  animation: arrival-thought-focus var(--arrival-ms) ease-out forwards;
+}
+
+@keyframes arrival-thought-left {
+  0% { opacity: 0; transform: translate(-16px, -12px) rotate(-8deg); }
+  16% { opacity: 0.9; }
+  52% { opacity: 0.9; transform: translate(26px, 10px) rotate(-3deg); }
+  100% { opacity: 0.22; transform: translate(16px, 16px) rotate(-6deg); }
+}
+
+@keyframes arrival-thought-right {
+  0% { opacity: 0; transform: translate(16px, 6px) rotate(8deg); }
+  16% { opacity: 0.85; }
+  52% { opacity: 0.85; transform: translate(-24px, 14px) rotate(3deg); }
+  100% { opacity: 0.22; transform: translate(-12px, 20px) rotate(6deg); }
+}
+
+@keyframes arrival-thought-focus {
+  0% { opacity: 0; transform: translateY(14px) scale(0.94); }
+  18% { opacity: 1; }
+  55% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 1; transform: translateY(-8px) scale(1.04); border-color: #ff7f50; box-shadow: 4px 4px 0 #ff7f50; }
+}
+
+.arrival-approach-left,
+.arrival-approach-right {
+  animation-duration: calc(var(--arrival-ms) * 0.52);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: forwards;
+}
+
+.arrival-approach-left { animation-name: arrival-from-left; }
+.arrival-approach-right { animation-name: arrival-from-right; }
+
+@keyframes arrival-from-left {
+  from { transform: translateX(-32px); }
+  to { transform: translateX(0); }
+}
+
+@keyframes arrival-from-right {
+  from { transform: translateX(32px); }
+  to { transform: translateX(0); }
+}
+
+.arrival-star {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: arrival-star-in;
+  animation-duration: calc(var(--arrival-ms) * 0.26);
+  animation-delay: calc(var(--arrival-ms) * 0.62);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes arrival-star-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival-overlay { display: none; }
+}

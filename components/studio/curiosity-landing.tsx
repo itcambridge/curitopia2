@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Check, ImagePlus, Pencil, Replace, Sprout, Trash2, X } from 'lucide-react'
 import { BrandBanner } from '@/components/site-banner'
 import { Eyebrow, IconAction, panelClass } from '@/components/studio/studio-ui'
+import { GardenSeedling } from '@/components/studio/stage-mark'
 import { studioPath } from '@/lib/paths'
 import { curiosityNameProblem } from '@/lib/questions/curiosity'
 import { clearCuriosityCover, createCuriosity, listCuriosities, renameCuriosity, setCuriosityCover, type CuriositySummary } from '@/lib/questions/supabase-curiosities'
@@ -158,6 +159,9 @@ export function CuriosityLanding() {
               <span className="mr-3 font-serif text-lg">1.</span>
               an imagined place or state of things in which curiosity is practised.
             </p>
+            <div className="mt-8 flex justify-end">
+              <GardenSeedling alt="" width={512} height={341} frame="h-auto w-36 max-w-full object-contain sm:w-[9.5rem]" frameStyle={{ maxWidth: '100%', height: 'auto' }} />
+            </div>
           </div>
           <div className="min-w-0">
             <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">Which curiosity shall we tend?</h2>

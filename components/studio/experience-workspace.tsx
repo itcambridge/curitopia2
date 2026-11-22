@@ -39,7 +39,7 @@ export function ExperienceWorkspace({
   }
 
   return (
-    <div className="mt-8 grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)] lg:gap-6">
+    <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)] lg:gap-6">
       <ExperienceConversation
         curiosityId={curiosityId}
         experienceId={experienceId}

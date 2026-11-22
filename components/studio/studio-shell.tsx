@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Home, Menu, X } from 'lucide-react'
 import { BrandBanner } from '@/components/site-banner'
 import { CuriositySwitcher } from '@/components/studio/curiosity-switcher'
-import { StageMark } from '@/components/studio/stage-mark'
+import { ExperienceMark, StageMark } from '@/components/studio/stage-mark'
 import { experiencePath, surfaceStage } from '@/lib/questions/curiosity-switch'
 import { studioPath } from '@/lib/paths'
 import type { StageId } from '@/lib/questions/types'
@@ -34,6 +34,7 @@ export function StudioShell({
   curiosityName,
   onBeforeLeave,
   onSignOut,
+  experienceActive = false,
   children,
 }: {
   stage: StageId
@@ -44,6 +45,7 @@ export function StudioShell({
   curiosityName: string | null
   onBeforeLeave: () => void
   onSignOut: () => void
+  experienceActive?: boolean
   children: ReactNode
 }) {
   const menuId = useId()
@@ -91,7 +93,7 @@ export function StudioShell({
           </div>
           <nav id={menuId} aria-label="Sections" hidden={!menuOpen} className={`${menuOpen ? 'grid' : 'hidden'} grid-cols-2 gap-1.5 px-3 pb-3`}>
             {destinations.map((item) => {
-              const current = surfaceStage(stage) === item.id
+              const current = !experienceActive && surfaceStage(stage) === item.id
               const count = countFor(item.id, counts)
               return (
                 <button
@@ -107,7 +109,7 @@ export function StudioShell({
               )
             })}
           </nav>
-          <Link href={studioPath(experiencePath(curiosityId))} aria-label={`Experience for ${curiosityName}`} className={menuOpen ? 'mx-3 mb-3 flex min-h-11 items-center rounded-xl bg-studio-paper px-3 text-sm font-semibold text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral' : 'hidden'}>
+          <Link href={studioPath(experiencePath(curiosityId))} aria-label={`Experience for ${curiosityName}`} aria-current={experienceActive ? 'page' : undefined} className={menuOpen ? `mx-3 mb-3 flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral ${experienceActive ? 'bg-studio-ink text-studio-ivory' : 'bg-studio-paper text-studio-ink'}` : 'hidden'}>
             Experience
           </Link>
         </div>
@@ -119,7 +121,7 @@ export function StudioShell({
           <CuriositySwitcher curiosityId={curiosityId} curiosityName={curiosityName} onBeforeLeave={onBeforeLeave} />
           <nav aria-label="Workspace stages" className="flex w-full min-w-0 gap-2 overflow-x-auto lg:flex-col">
             {destinations.map((item) => {
-              const current = surfaceStage(stage) === item.id
+              const current = !experienceActive && surfaceStage(stage) === item.id
               const count = countFor(item.id, counts)
               return (
                 <button
@@ -137,11 +139,11 @@ export function StudioShell({
               )
             })}
           </nav>
-          <Link href={studioPath(experiencePath(curiosityId))} aria-label={`Experience for ${curiosityName}`} className="mt-4 flex min-w-0 flex-col rounded-2xl p-3 text-studio-nav hover:bg-studio-sidebar-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
-            <span className="text-sm font-semibold leading-tight text-studio-ink">Experience</span>
-            <span className="text-[11px] text-studio-note">One place for this curiosity</span>
+          <Link href={studioPath(experiencePath(curiosityId))} aria-label={`Experience for ${curiosityName}`} aria-current={experienceActive ? 'page' : undefined} className={`mt-4 flex min-w-0 flex-col rounded-2xl p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral ${experienceActive ? 'bg-studio-ink text-studio-ivory shadow-studio-stamp-coral' : 'text-studio-nav hover:bg-studio-sidebar-hover'}`}>
+            <span className={`text-sm font-semibold leading-tight ${experienceActive ? '' : 'text-studio-ink'}`}>Experience</span>
+            <span className={`text-[11px] ${experienceActive ? 'text-studio-note-on' : 'text-studio-note'}`}>One place for this curiosity</span>
           </Link>
-          <StageMark stage={stage} placement="sidebar" />
+          {experienceActive ? <ExperienceMark /> : <StageMark stage={stage} placement="sidebar" />}
         </aside>
         <section className="relative min-w-0 flex-1 overflow-x-clip px-3 py-4 sm:px-8 sm:py-7 lg:px-12 lg:py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-studio-mint-wash opacity-70 blur-3xl" />
