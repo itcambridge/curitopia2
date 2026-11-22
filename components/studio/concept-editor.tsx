@@ -68,7 +68,7 @@ export function ConceptEditor({
             <p className="mt-1 font-serif text-xl leading-snug">{question}</p>
           </div>
           <div>
-            <p className="text-sm font-semibold">Image prompt</p>
+            <p className="text-sm font-semibold">Creative direction</p>
             <p className="mt-1 text-sm leading-relaxed text-studio-body">{concept.forConsideredText}</p>
           </div>
           <div>

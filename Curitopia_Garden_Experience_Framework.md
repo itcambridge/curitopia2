@@ -64,13 +64,13 @@ Visualise opens from a question. It helps the person explore a question through 
 
 Experience principles:
 - The user chooses when to visualise a question; opening a question does not generate an image.
-- Preserve the original question. A considered wording may be edited or proposed when it genuinely helps the image prompt, but refinement is a lightweight aid rather than a required stage.
-- Make clear which exact wording was sent to image generation.
-- Generate only after an explicit user action.
-- Show a small set of large candidates that differ in metaphor or conceptual interpretation, not merely colour or composition.
+- Preserve the original question. One creative direction may be written or proposed. It names the idea to explore and leaves the visual metaphor open. It is a lightweight aid, not a required stage and not a finished scene.
+- Make clear which creative direction will guide generation. The person edits that one direction, not a prompt per image.
+- Generate only after an explicit user action. Each image receives the original question, the accepted direction, and its own metaphor starting point, and interprets them independently.
+- Show a small set of large candidates that differ in metaphor or conceptual interpretation, not merely colour, lighting, or composition. Different focal ideas are welcome when the question allows them. Conceptual relevance comes before variety.
 - Give imagery room to breathe. Avoid burying the artwork in explanatory UI.
 - Candidates are temporary until the person selects and saves one.
-- If the question wording changes after generation, keep the candidates associated with the wording that produced them. Do not imply they interpret the newer wording.
+- If the creative direction changes after generation, keep the candidates associated with the direction that produced them. Do not imply they interpret the newer direction.
 - The person can reject every candidate, ask for another set, or leave without saving.
 - Quality and conceptual resonance matter more than minimising every second or API call.
 
@@ -85,7 +85,7 @@ The Library is an account-wide collection of saved concepts, potentially origina
 Experience principles:
 - Show a recognisable concept card with its title at the top, artwork in the centre, and the exact question represented at the bottom.
 - The title is one or two words; one word is valid and two is the maximum.
-- The question shown on the card is the exact wording used to generate that image, not a later, silently updated version of the live question.
+- The question shown on the card is the original question recorded with the concept, not a later edit to the live question. The creative direction that guided the image is kept with the concept and is not drawn onto the artwork.
 - Preserve links to all other questions that informed the concept. Show these in its details or provenance view.
 - Allow the person to select two concepts and place them side by side. Start with a clear two-concept comparison; do not require the concepts to come from the same curiosity.
 - Keep the title and question visible during comparison so the person is thinking about the concepts, not just looking at anonymous images.

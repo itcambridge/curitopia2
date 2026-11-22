@@ -5,6 +5,7 @@ import { authenticateAiUser, type AiSession } from '../ai/policy.ts'
 import { shouldApplyReturnedImage, shouldStartNextImage } from './image-run.ts'
 import { directionsForCount, imageCountdownCopy, imageCountKey, imageCountdownShowsNumber, initialSlots, markSlot, millisecondsUntilNextImageSecond, nextImageCountdown, parseImageCount, readImageCount, remainingImageSeconds, writeImageCount } from './image-count.ts'
 import { interpretQuestion } from './openai-images.ts'
+import { imagePrompt, metaphorDirections } from './prompts.ts'
 
 assert.equal(parseImageCount(null), 1)
 assert.equal(parseImageCount('1'), 1)
@@ -118,8 +119,12 @@ function session(userId: string): AiSession {
 }
 
 let seen: string | undefined
-const interpret = async (_considered: string, _signal?: AbortSignal, direction?: string) => {
+let seenQuestion = ''
+let seenDirectionText = ''
+const interpret = async (considered: string, _signal?: AbortSignal, direction?: string, question?: string) => {
   seen = direction
+  seenQuestion = question ?? ''
+  seenDirectionText = considered
   return {
     source: 'openai' as const,
     notice: 'checked',
@@ -138,6 +143,27 @@ const directed = await imagesHttp(new Request('http://localhost/api/images', {
 }), gate, interpret)
 assert.equal(directed.status, 200)
 assert.equal(seen, 'scale')
+assert.equal(seenQuestion, '')
+const withQuestion = await imagesHttp(new Request('http://localhost/api/images', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    consideredText: 'Hold the uncertainty between what is experienced and what may be true.',
+    originalText: 'Is reality only the part we are able to notice?',
+    direction: 'relation',
+  }),
+}), gate, interpret)
+assert.equal(withQuestion.status, 200)
+assert.equal(seen, 'relation')
+assert.equal(seenQuestion, 'Is reality only the part we are able to notice?')
+assert.equal(seenDirectionText, 'Hold the uncertainty between what is experienced and what may be true.')
+const tooLongQuestion = await imagesHttp(new Request('http://localhost/api/images', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ consideredText: 'Hold the uncertainty.', originalText: 'x'.repeat(2001), direction: 'tension' }),
+}), gate, interpret)
+assert.equal(tooLongQuestion.status, 400)
+assert.equal(seen, 'relation')
 const rejected = await imagesHttp(new Request('http://localhost/api/images', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -205,6 +231,12 @@ assert.equal(view.includes('beginImageSet'), true)
 assert.equal(view.includes('direction'), true)
 assert.equal(view.includes('readImageCount'), true)
 assert.equal(view.includes('Generate 1 image'), true)
+assert.equal(view.includes('Creative direction'), true)
+assert.equal(view.includes('Set the idea you want to explore. Each image will interpret it differently.'), true)
+assert.equal(view.includes('originalText: question.originalText'), true)
+assert.equal(view.includes('directionsForCount(count)'), true)
+assert.equal((view.match(/<textarea/g) ?? []).length, 1)
+assert.equal(view.includes('Image prompt'), false)
 assert.equal(view.includes('role="radiogroup"'), true)
 assert.equal(view.includes('IconAction'), true)
 assert.equal(view.includes('questionListItemClass'), true)
@@ -243,3 +275,34 @@ assert.equal(costSource.includes('maxImageCalls'), false)
 assert.equal(view.includes('aboveSpendCeiling'), false)
 assert.equal(view.includes('1.50'), false)
 assert.equal(policySource.includes('Another request is already running. Nothing extra was sent.'), true)
+
+const directionText = 'Explore the gap between what is experienced and what may be true. Hold uncertainty, wonder, and the relationship between attention and what remains.'
+const samples = [
+  'Is what we call reality only the part we are able to notice?',
+  'How can someone be present among others and still be unreached?',
+  'Why does the kitchen feel smaller after everyone has left?',
+]
+for (const question of samples) {
+  const prompts = metaphorDirections.map((direction) => imagePrompt(question, directionText, direction.instruction))
+  assert.equal(new Set(prompts).size, 4)
+  for (const direction of metaphorDirections) {
+    const prompt = imagePrompt(question, directionText, direction.instruction)
+    assert.equal(prompt.includes(question), true)
+    assert.equal(prompt.includes(directionText), true)
+    assert.equal(prompt.includes(direction.instruction), true)
+    assert.equal(prompt.includes('not a scene, subject, setting, or metaphor to copy'), true)
+    assert.equal(prompt.includes('Considered question'), false)
+    for (const other of metaphorDirections) {
+      if (other.id === direction.id) continue
+      assert.equal(prompt.includes(other.instruction), false)
+    }
+  }
+}
+assert.deepEqual(directionsForCount(1).map((direction) => direction.instruction), [metaphorDirections[0].instruction])
+assert.deepEqual(directionsForCount(2).map((direction) => direction.id), ['tension', 'trace'])
+assert.deepEqual(directionsForCount(4).map((direction) => direction.id), ['tension', 'trace', 'scale', 'relation'])
+const q09 = imagePrompt(samples[1], directionText, metaphorDirections[0].instruction)
+const concrete = imagePrompt(samples[2], directionText, metaphorDirections[0].instruction)
+assert.equal(q09.includes('empty bench'), true)
+assert.equal(concrete.includes('empty bench'), false)
+assert.equal(concrete.includes('A literal illustration of the nouns in the question.'), true)

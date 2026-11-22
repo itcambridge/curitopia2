@@ -150,13 +150,13 @@ function QuestionImages({
       const body = await response.json() as { proposal?: string; error?: string }
       if (id !== request.current) return
       if (!response.ok || !body.proposal) {
-        setError(body.error ?? 'An image prompt did not come back. You can try again. The prompt already in the field was left unchanged.')
+        setError(body.error ?? 'A creative direction did not come back. You can try again. The direction already in the field was left unchanged.')
         return
       }
       setGenerated(true)
       setWording(body.proposal)
     } catch {
-      if (id === request.current) setError('An image prompt did not come back. You can try again. The prompt already in the field was left unchanged.')
+      if (id === request.current) setError('A creative direction did not come back. You can try again. The direction already in the field was left unchanged.')
     } finally {
       if (id === request.current) setBusy(null)
     }
@@ -175,7 +175,7 @@ function QuestionImages({
       const response = await fetch(withBasePath('/api/images'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ consideredText: sentText, direction, runId: imageRunId.current }),
+        body: JSON.stringify({ consideredText: sentText, originalText: question.originalText, direction, runId: imageRunId.current }),
         signal: controller.signal,
       })
       const body = await response.json() as ImageSetResult & { error?: string }
@@ -309,8 +309,8 @@ function QuestionImages({
     <div className="flex flex-col gap-6">
       {error && <p role="alert" className="rounded-2xl bg-studio-coral/20 px-4 py-3 text-sm">{error}</p>}
       <section className={panelClass}>
-        <h3 className="font-serif text-2xl">Image prompt</h3>
-        <label htmlFor="considered-draft" className="mt-3 block text-sm leading-relaxed text-studio-body">Write a visual prompt, or edit the one that comes back.</label>
+        <h3 className="font-serif text-2xl">Creative direction</h3>
+        <label htmlFor="considered-draft" className="mt-3 block text-sm leading-relaxed text-studio-body">Set the idea you want to explore. Each image will interpret it differently.</label>
         <textarea
           id="considered-draft"
           value={wording}
@@ -320,7 +320,7 @@ function QuestionImages({
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <IconAction
-              label={busy === 'consider' ? 'Writing an image prompt' : generated ? 'Ask for another image prompt' : 'Ask for an image prompt'}
+              label={busy === 'consider' ? 'Writing a creative direction' : generated ? 'Ask for another creative direction' : 'Ask for a creative direction'}
               treatment="quiet"
               tipAlign="start"
               disabled={busy !== null}
@@ -329,7 +329,7 @@ function QuestionImages({
               <Bot aria-hidden="true" />
             </IconAction>
             <IconAction
-              label="Accept this prompt"
+              label="Accept this direction"
               treatment="ink"
               disabled={busy !== null}
               onClick={() => { setError(null); onChange(acceptConsidered(workspace, question.id, wording)) }}
@@ -371,15 +371,15 @@ function QuestionImages({
           </div>
         </div>
         <p className="mt-3 text-sm text-studio-muted">1 image is the quickest look. 4 explores a wider range.</p>
-        {busy === 'consider' ? <p className="mt-3 text-sm text-studio-body">Writing an image prompt…</p> : null}
-        {!question.consideredText && <p className="mt-3 text-sm text-studio-muted">Accept an image prompt first.</p>}
-        {question.consideredText && !wordingSaved && <p className="mt-3 text-sm text-studio-muted">Accept the prompt before asking for images.</p>}
+        {busy === 'consider' ? <p className="mt-3 text-sm text-studio-body">Writing a creative direction…</p> : null}
+        {!question.consideredText && <p className="mt-3 text-sm text-studio-muted">Accept a creative direction first.</p>}
+        {question.consideredText && !wordingSaved && <p className="mt-3 text-sm text-studio-muted">Accept the direction before asking for images.</p>}
       </section>
       <section className={panelClass}>
         <h3 className="font-serif text-2xl">Images</h3>
         {draft && !current && (
           <div className="mt-4">
-            <Notice>These images were made for “{draft.forConsideredText}”. The considered question is now different, so they are not a reading of the new wording.</Notice>
+            <Notice>These images were made for “{draft.forConsideredText}”. The creative direction is now different, so they are not a reading of the new wording.</Notice>
           </div>
         )}
         {draft?.notice && current && <div className="mt-4"><Notice>{draft.notice}{draft.reportedCostUsd != null ? ` Reported cost for this set: $${draft.reportedCostUsd.toFixed(5)}.` : ''}</Notice></div>}
@@ -449,7 +449,7 @@ function QuestionImages({
                     {folded.map((source) => <li key={source.id}>Merged wording kept: {source.originalText}</li>)}
                   </ul>
                 )}
-                <p className="mt-2 text-sm text-studio-muted">The library card shows this question. The image prompt is kept with the concept and is not the card question.</p>
+                <p className="mt-2 text-sm text-studio-muted">The library card shows this question. The creative direction is kept with the concept and is not the card question.</p>
               </div>
               {relatedChoices.length > 0 && (
                 <details className="mt-4 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3">

@@ -173,9 +173,10 @@ A successful image should give the person a useful representation to think with.
 These are evaluation rules for prompt experiments, not a claim that any first wording is final:
 
 - Send a request only after an explicit user action.
-- The question is the subject. If a considered wording exists, use it as the exact generation question; the original text may be included as secondary context.
+- The person sees and edits one creative direction. It names the idea, feeling, tension, or relationship to explore, and it does not commit to a subject, setting, or metaphor. The original question stays intact.
+- Each image request receives the original question, that accepted direction, and one metaphor starting point: Tension, Trace, Scale, or Relation. The image model interprets them independently. The direction is not a scene to copy, and the person does not edit a separate prompt for each image.
 - Ask for one visually specific metaphor with conceptual and emotional weight.
-- Make candidates meaningfully different in metaphor or interpretation.
+- Make candidates meaningfully different in metaphor or interpretation, including a different focal idea where the question allows it.
 - Exclude rendered text, logos, watermarks, infographic layouts, and stock tropes such as lightbulbs, generic silhouettes at a horizon, flat corporate illustration, clip-art icons, or a person paired with a question mark.
 - Keep candidates large enough that composition and mood can be judged.
 - Store the selected file in its returned PNG, JPEG, or WebP format. Do not replace the original with a thumbnail or text-composited version.

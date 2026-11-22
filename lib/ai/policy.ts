@@ -5,7 +5,7 @@ export const aiEndpoints = ['consider', 'images', 'titles', 'experience'] as con
 export type AiEndpoint = (typeof aiEndpoints)[number]
 
 const signedOut: Record<AiEndpoint, string> = {
-  consider: 'Sign in again before asking for an image prompt. Nothing was sent.',
+  consider: 'Sign in again before asking for a creative direction. Nothing was sent.',
   images: 'Sign in again before asking for images. Nothing was sent.',
   titles: 'Sign in again before asking for titles. You can still type a title.',
   experience: 'Sign in again before continuing the conversation. Nothing was sent.',

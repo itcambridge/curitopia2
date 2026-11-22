@@ -33,14 +33,14 @@ export async function considerHttp(
   const questionId = typeof body.questionId === 'string' ? body.questionId : ''
   const curiosityId = typeof body.curiosityId === 'string' ? body.curiosityId : ''
   if (!questionIdPattern.test(questionId) || !questionIdPattern.test(curiosityId)) {
-    return Response.json({ error: 'Choose a saved question before asking for an image prompt.' }, { status: 400 })
+    return Response.json({ error: 'Choose a saved question before asking for a creative direction.' }, { status: 400 })
   }
   const originalText = (await loadQuestion(questionId, curiosityId))?.trim() ?? ''
   if (!originalText) {
     return Response.json({ error: 'That question is not in this curiosity. Nothing was sent.' }, { status: 404 })
   }
   if (originalText.length > 2000) {
-    return Response.json({ error: 'That question is too long to turn into an image prompt.' }, { status: 400 })
+    return Response.json({ error: 'That question is too long to turn into a creative direction.' }, { status: 400 })
   }
   const turn = startTurn(auth.userId, 'consider', considerWouldCallProvider())
   if (turn instanceof Response) return turn
@@ -59,12 +59,12 @@ export async function considerHttp(
 export async function imagesHttp(
   request: Request,
   gate: Gate,
-  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId) => Promise<ImageSetResult>,
+  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId, question?: string) => Promise<ImageSetResult>,
 ) {
   const auth = await gate.authenticate('images', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { consideredText?: unknown; direction?: unknown; runId?: unknown }
+  let body: { consideredText?: unknown; originalText?: unknown; direction?: unknown; runId?: unknown }
   try {
     body = await request.json()
   } catch {
@@ -78,13 +78,17 @@ export async function imagesHttp(
     return Response.json({ error: 'Choose one of the available visual directions.' }, { status: 400 })
   }
   const direction = isMetaphorId(body.direction) ? body.direction : undefined
+  const originalText = typeof body.originalText === 'string' ? body.originalText.trim() : ''
+  if (originalText.length > 2000) {
+    return Response.json({ error: 'That question is too long to send with the images.' }, { status: 400 })
+  }
   if (body.runId !== undefined && (typeof body.runId !== 'string' || !questionIdPattern.test(body.runId))) {
     return Response.json({ error: 'The image run could not be recognised. Nothing was sent.' }, { status: 400 })
   }
   const turn = startTurn(auth.userId, 'images', imagesWouldCallProvider())
   if (turn instanceof Response) return turn
   try {
-    return Response.json(await interpret(consideredText, request.signal, direction))
+    return Response.json(await interpret(consideredText, request.signal, direction, originalText))
   } finally {
     turn?.()
   }
