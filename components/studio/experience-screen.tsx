@@ -37,7 +37,6 @@ export function ExperienceScreen({
   const [missing, setMissing] = useState(false)
   const [writeTarget, setWriteTarget] = useState<ExperienceWriteTarget | null>(null)
   const [release, setRelease] = useState<'closed' | 'split' | null>(null)
-  const [created, setCreated] = useState(false)
   const [experienceId, setExperienceId] = useState<string | null>(null)
   const [northStar, setNorthStar] = useState<string | null>(null)
   const [items, setItems] = useState<CircleItem[]>([])
@@ -52,7 +51,6 @@ export function ExperienceScreen({
       setName(null)
       setWriteTarget(null)
       setRelease(null)
-      setCreated(false)
       setError(null)
       setExperienceId(null)
       setNorthStar(null)
@@ -92,7 +90,6 @@ export function ExperienceScreen({
         setContentNotice(reason instanceof Error ? reason.message : 'The experience could not be opened.')
       }
       setWriteTarget('allowed')
-      setCreated(opened.created)
       setReady(true)
     }
     load().catch((reason: unknown) => {
@@ -124,14 +121,9 @@ export function ExperienceScreen({
               <header className="mb-8">
                 <Eyebrow>Experience</Eyebrow>
                 <h2 className="mt-2 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">{name}</h2>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-studio-body">
-                  This is the one experience for {name}. It stays with this curiosity.
-                </p>
                 {writeTarget === 'production' && release === 'split' ? <p className="mt-4 text-sm leading-relaxed text-studio-body">{mismatchNotice}</p> : null}
                 {writeTarget === 'production' && release !== 'split' ? <p className="mt-4 text-sm leading-relaxed text-studio-body">{productionNotice}</p> : null}
                 {writeTarget === 'refused' ? <p className="mt-4 text-sm leading-relaxed text-studio-body">{refusedNotice}</p> : null}
-                {writeTarget === 'allowed' && created ? <p className="mt-4 text-sm text-studio-body">This experience has been opened for the first time.</p> : null}
-                {writeTarget === 'allowed' && !created && !error ? <p className="mt-4 text-sm text-studio-body">This experience was already open.</p> : null}
                 {contentNotice ? <p role="alert" className="mt-4 text-sm">{contentNotice}</p> : null}
                 {error ? <p role="alert" className="mt-4 text-sm">{error}</p> : null}
               </header>

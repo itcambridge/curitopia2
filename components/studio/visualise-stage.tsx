@@ -387,7 +387,6 @@ function QuestionImages({
         {visible.length === 0 && hidden.length === 0 && !(slots && slots.some((slot) => slot.status !== 'ready')) ? (
           <div className="mt-4 rounded-2xl border border-dashed border-studio-line bg-studio-cream px-4 py-5">
             <p className="font-serif text-lg">Images will appear here</p>
-            <p className="mt-1 text-sm leading-relaxed text-studio-body">Each finished image shows as soon as it is ready. You can then choose the one to keep.</p>
           </div>
         ) : null}
         {visible.length > 0 && (
@@ -431,7 +430,6 @@ function QuestionImages({
                 <button type="button" className={textLinkClass} onClick={() => onChange({ ...workspace, stage: 'library', focusConceptId: justSaved.id, focusQuestionId: question.id })}>View in the library</button>
                 <button type="button" className={textLinkClass} onClick={() => onChange({ ...workspace, stage: 'gather', focusQuestionId: question.id })}>Return to the garden</button>
               </div>
-              <p className="mt-3 text-sm text-studio-muted">You can generate another image for this question, or leave this one as it is.</p>
             </div>
           ) : (
             <>
@@ -449,13 +447,11 @@ function QuestionImages({
                     {folded.map((source) => <li key={source.id}>Merged wording kept: {source.originalText}</li>)}
                   </ul>
                 )}
-                <p className="mt-2 text-sm text-studio-muted">The library card shows this question. The creative direction is kept with the concept and is not the card question.</p>
               </div>
               {relatedChoices.length > 0 && (
                 <details className="mt-4 rounded-2xl border border-studio-line bg-studio-cream px-4 py-3">
                   <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral">
                     Add a related question
-                    <span className="mt-1 block font-normal text-studio-muted">Optional. The concept is saved with this question either way.</span>
                   </summary>
                   <div className="mt-3 flex flex-col gap-2">
                     {relatedChoices.map((item) => (
