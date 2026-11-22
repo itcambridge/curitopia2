@@ -106,8 +106,8 @@ export async function requestTitleSuggestions(input: {
                   description: 'Exactly three different titles.',
                   items: {
                     type: 'string',
-                    description: 'One word, or two words separated by a single space. At most 40 characters.',
-                    pattern: '^[^\\s]{1,40}( [^\\s]{1,39})?$',
+                    description: 'One ordinary word, or two ordinary words separated by a single space. No joined or camel-case words. At most 40 characters.',
+                    pattern: "^[A-Za-z][a-z]*(?:'[a-z]+)?( [A-Za-z][a-z]*(?:'[a-z]+)?)?$",
                   },
                 },
               },

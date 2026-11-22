@@ -42,6 +42,7 @@ function listenPort() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   ...(basePath ? { basePath } : {}),
+  serverExternalPackages: ['word-list', 'dictionary-en'],
   images: {
     unoptimized: true,
   },

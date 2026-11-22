@@ -35,107 +35,6 @@ export function titleImageUrl(model: string, src: string | null | undefined) {
   return { url: null, reason: 'unsupported' as const }
 }
 
-function suggestionText(item: unknown) {
-  if (typeof item === 'string') return item
-  if (!item || typeof item !== 'object') return null
-  const record = item as { title?: unknown; text?: unknown }
-  if (typeof record.title === 'string') return record.title
-  if (typeof record.text === 'string') return record.text
-  return null
-}
-
-function normalizeSuggestedTitle(value: string) {
-  return value
-    .trim()
-    .replace(/^["'“”]+|["'“”]+$/g, '')
-    .replace(/^\d+[.)]\s+/, '')
-    .replace(/^[-*•]\s+/, '')
-}
-
-function preparedTitle(item: unknown): { kind: TitleRejection } | { kind: 'ok'; title: string } {
-  const raw = suggestionText(item)
-  if (raw === null) return { kind: 'malformed' }
-  const title = cleanTitle(normalizeSuggestedTitle(raw))
-  if (!title) return { kind: 'empty' }
-  if (title.length > maxTitleLength) return { kind: 'tooLong' }
-  if (title.split(/\s+/).length > 2) return { kind: 'wordCount' }
-  return { kind: 'ok', title }
-}
-
-export type TitleRejection = 'empty' | 'tooLong' | 'wordCount' | 'duplicate' | 'malformed'
-
-export function inspectTitleSuggestions(value: unknown) {
-  const rejected: Record<TitleRejection, number> = { empty: 0, tooLong: 0, wordCount: 0, duplicate: 0, malformed: 0 }
-  let parsed = false
-  let extracted = 0
-  let passed = 0
-  if (typeof value !== 'string') return { parsed, extracted, passed, rejected }
-  const stripped = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-  let data: unknown
-  try {
-    data = JSON.parse(stripped)
-    parsed = true
-  } catch {
-    return { parsed, extracted, passed, rejected }
-  }
-  const list = Array.isArray(data)
-    ? data
-    : data && typeof data === 'object' && Array.isArray((data as { titles?: unknown }).titles)
-      ? (data as { titles: unknown[] }).titles
-      : null
-  if (!list) return { parsed, extracted, passed, rejected }
-  extracted = list.length
-  const seen = new Set<string>()
-  for (const item of list) {
-    const prepared = preparedTitle(item)
-    if (prepared.kind !== 'ok') {
-      rejected[prepared.kind] += 1
-      continue
-    }
-    const key = prepared.title.toLocaleLowerCase()
-    if (seen.has(key)) {
-      rejected.duplicate += 1
-      continue
-    }
-    seen.add(key)
-    passed += 1
-  }
-  return { parsed, extracted, passed, rejected }
-}
-
-export function acceptTitleSuggestions(value: unknown): { titles: [string, string, string] } | { error: string } {
-  let parsed = value
-  if (typeof value === 'string') {
-    const stripped = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-    try {
-      parsed = JSON.parse(stripped)
-    } catch {
-      return { error: 'The text model did not return titles. Your title was left unchanged.' }
-    }
-  }
-  const list = Array.isArray(parsed)
-    ? parsed
-    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { titles?: unknown }).titles)
-      ? (parsed as { titles: unknown[] }).titles
-      : null
-  if (!list) return { error: 'The text model did not return titles. Your title was left unchanged.' }
-  const titles: string[] = []
-  const seen = new Set<string>()
-  for (const item of list) {
-    const prepared = preparedTitle(item)
-    if (prepared.kind !== 'ok') continue
-    const title = prepared.title
-    if (titleProblem(title)) continue
-    const key = title.toLocaleLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    titles.push(title)
-    if (titles.length === 3) break
-  }
-  if (titles.length !== 3) return { error: 'The suggestions were not three distinct one- or two-word titles. Your title was left unchanged.' }
-  return { titles: [titles[0], titles[1], titles[2]] }
-}
-
 export function titleSuggestionPrompt(input: {
   consideredText: string
   metaphor: string | null
@@ -147,12 +46,14 @@ export function titleSuggestionPrompt(input: {
     return `${index + 1}. Original: ${question.originalText.trim()}${considered ? `\n   Considered: ${considered}` : ''}`
   })
   return [
-    'Propose exactly three titles for one concept.',
-    'Each title is one word or two words. Never more. One word is valid.',
-    'The three titles must be different interpretations, not small variations of one phrase.',
-    'Make them distinctive, evocative, faithful to the material, and easy to remember beside other concepts.',
-    'Do not invent a meaning the question and image do not support. Do not use obscure wording for its own sake.',
-    'These examples show the length and specificity only. Do not copy them: "Spacetime Fusion", "Russian Blackholes".',
+    'Name the metaphor. Do not write a slogan, a sentence, or a description of the whole concept.',
+    'Propose exactly three different titles.',
+    'Each title is one natural English word, or two natural English words separated by a single space. One word is valid.',
+    'Use ordinary words. Do not invent a compound, concatenate words, use camel case, or compress a phrase into one token.',
+    'Make each title evocative and memorable.',
+    'Avoid a leading "The" unless the title is weaker without it.',
+    'Stay faithful to the selected image and the source questions. Do not invent a meaning they do not support.',
+    'These show the style only. Do not copy them unless the material itself asks for those words: "Kindness", "Gentle Guidance", "Clear Paths", "Quiet Confidence", "Clarity", "New Beginnings".',
     'Reply with JSON only, in this shape: {"titles":["First Title","Second","Third Title"]}',
     '',
     `Considered wording the image was made for: ${input.consideredText.trim()}`,

@@ -275,7 +275,7 @@ function QuestionImages({
       const body = await response.json() as { titles?: unknown; notice?: unknown; error?: unknown }
       if (id !== suggestRequest.current) return
       const titles = Array.isArray(body.titles) ? body.titles.filter((item): item is string => typeof item === 'string') : []
-      if (!response.ok || typeof body.error === 'string' || titles.length !== 3) {
+      if (!response.ok || typeof body.error === 'string' || titles.length < 1 || titles.length > 3) {
         setSuggestNotice(null)
         setSuggestError(typeof body.error === 'string' ? body.error : 'Titles could not be suggested. Your title was left unchanged.')
         return

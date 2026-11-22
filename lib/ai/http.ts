@@ -2,7 +2,8 @@ import { beginAiTurn, considerWouldCallProvider, imagesWouldCallProvider, titles
 import { configuredTextModel, requestTitleSuggestions } from '../providers/title-suggestions.ts'
 import { isMetaphorId } from '../providers/prompts.ts'
 import type { ImageSetResult, MetaphorId } from '../providers/types.ts'
-import { acceptTitleSuggestions, inspectTitleSuggestions, titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
+import { inspectTitleSuggestions, resolveTitleSuggestions } from '../questions/suggested-titles.ts'
+import { titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
 
 const questionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -139,31 +140,34 @@ export async function titlesHttp(request: Request, gate: Gate) {
     }
 
     const image = titleImageUrl(model, imageSrc)
-    const requested = await requestTitleSuggestions({
-      apiKey: process.env.OPENAI_API_KEY?.trim() ?? '',
-      model,
-      imageUrl: image.url,
-      prompt: titleSuggestionPrompt({
-        consideredText,
-        metaphor: metaphor || null,
-        questions,
-        sawImage: image.reason === 'seen',
-      }),
+    const prompt = titleSuggestionPrompt({
+      consideredText,
+      metaphor: metaphor || null,
+      questions,
+      sawImage: image.reason === 'seen',
     })
-    console.info(JSON.stringify({
-      titleSuggestion: {
+    const apiKey = process.env.OPENAI_API_KEY?.trim() ?? ''
+    const accepted = await resolveTitleSuggestions(async (text) => {
+      const requested = await requestTitleSuggestions({
+        apiKey,
         model,
-        httpStatus: requested.httpStatus,
-        ok: requested.ok,
-        finishReason: requested.finishReason,
-        contentPresent: requested.contentPresent,
-        contentType: requested.contentType,
-        ...('content' in requested ? inspectTitleSuggestions(requested.content) : { parsed: false, extracted: 0, passed: 0 }),
-      },
-    }))
-    if ('error' in requested) return Response.json({ error: requested.error })
-
-    const accepted = acceptTitleSuggestions(requested.content)
+        imageUrl: image.url,
+        prompt: text,
+      })
+      console.info(JSON.stringify({
+        titleSuggestion: {
+          model,
+          httpStatus: requested.httpStatus,
+          ok: requested.ok,
+          finishReason: requested.finishReason,
+          contentPresent: requested.contentPresent,
+          contentType: requested.contentType,
+          ...('content' in requested ? inspectTitleSuggestions(requested.content) : { parsed: false, extracted: 0, passed: 0 }),
+        },
+      }))
+      if ('error' in requested) return { error: requested.error }
+      return { content: requested.content }
+    }, prompt)
     if ('error' in accepted) return Response.json({ error: accepted.error })
 
     const notice = image.reason === 'seen'
