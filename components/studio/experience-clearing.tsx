@@ -4,6 +4,7 @@ import { ArrowLeftRight, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { coralButton, Eyebrow, quietButton } from '@/components/studio/studio-ui'
 import { SuggestionCard, HeldInvitation } from '@/components/studio/experience-suggestions'
+import { TopicCarousel } from '@/components/studio/topic-carousel'
 import {
   circleById,
   circleItemMaxLength,
@@ -27,11 +28,13 @@ import { addCircleItem, deleteCircleItem, editCircleItem, moveCircleItem, saveNo
 import type { HeldExperiment, LandscapeProposal, ProposalActions } from '@/lib/questions/experience-proposals'
 import { holdExperiment } from '@/lib/questions/experience-proposals'
 import { experimentVisitNote } from '@/lib/questions/experience-facilitator'
+import { focusAddedTopic, focusAfterRemoval, focusMovedTopic, initialTopicFocus, topicIndex } from '@/lib/questions/topic-carousel'
 
 const fieldClass = 'w-full rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-studio-coral'
 const textAction = 'min-h-11 rounded-md px-1 text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral disabled:opacity-40'
-const thoughtRest = 'min-h-11 w-fit max-w-full rounded-full bg-[#fffaf3] px-5 py-2.5 text-left font-serif text-lg leading-snug text-studio-ink shadow-[0_10px_22px_rgb(90_70_45/0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral'
-const thoughtOpen = 'min-h-11 w-fit max-w-full rounded-full bg-[#fffaf3] px-5 py-2.5 text-left font-serif text-lg leading-snug text-studio-ink shadow-[0_0_0_2px_#ff7f50,0_12px_26px_rgb(184_71_42/0.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral'
+const topicFace = 'block min-h-11 max-w-full rounded-full bg-[#fffaf3] px-5 py-2.5 text-left font-serif text-lg leading-snug text-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral'
+const topicFaceRest = `${topicFace} shadow-[0_10px_22px_rgb(90_70_45/0.1)]`
+const topicFaceOpen = `${topicFace} shadow-[0_0_0_2px_#ff7f50,0_12px_26px_rgb(184_71_42/0.18)]`
 const detailAction = `${quietButton} flex w-full items-center justify-start gap-2`
 
 function replaceItem(items: CircleItem[], next: CircleItem) {
@@ -65,22 +68,21 @@ function LinkLines({
         setSegments([])
         return
       }
-      const start = from.getBoundingClientRect()
+      const start = anchorPoint(from, box)
       setSegments(partnerIds.flatMap((id) => {
         const partner = ground.querySelector<HTMLElement>(`[data-phrase-id="${CSS.escape(id)}"]`)
         if (!partner) return []
-        const end = partner.getBoundingClientRect()
-        return [{
-          x1: start.left + start.width / 2 - box.left,
-          y1: start.top + start.height / 2 - box.top,
-          x2: end.left + end.width / 2 - box.left,
-          y2: end.top + end.height / 2 - box.top,
-        }]
+        const end = anchorPoint(partner, box)
+        return [{ x1: start.x, y1: start.y, x2: end.x, y2: end.y }]
       }))
     }
     measure()
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    ground.addEventListener('scroll', measure, true)
+    return () => {
+      window.removeEventListener('resize', measure)
+      ground.removeEventListener('scroll', measure, true)
+    }
   }, [ground, selectedId, partnerKey])
   if (segments.length === 0) return null
   return (
@@ -123,15 +125,26 @@ const regionSpace = {
   control: 'px-4 pb-3 pt-4 sm:px-10 lg:grid lg:min-h-48 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:px-12 lg:pb-8 lg:pt-8',
 } as const
 
-const phraseFlow = {
-  concern: 'mt-4 grid justify-items-start gap-3 lg:mt-1 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-8',
-  influence: 'mt-4 grid justify-items-start gap-3 lg:mt-6 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-8',
-  control: 'mt-4 grid justify-items-start gap-3 lg:mt-4 lg:grid-cols-2 lg:gap-x-14 lg:gap-y-6',
-} as const
-
-function phrasePlace(index: number) {
-  if (index % 2 === 1) return 'lg:mt-8 lg:justify-self-end'
-  return 'lg:mt-1 lg:justify-self-start'
+function anchorPoint(element: HTMLElement, box: DOMRect) {
+  const rect = element.getBoundingClientRect()
+  const scroller = element.closest<HTMLElement>('[data-topic-scroller]')
+  const view = scroller?.getBoundingClientRect()
+  let left = rect.left
+  let right = rect.right
+  let y = rect.top + rect.height / 2
+  if (view) {
+    const visibleLeft = Math.max(rect.left, view.left)
+    const visibleRight = Math.min(rect.right, view.right)
+    if (visibleRight - visibleLeft < 8) {
+      const x = rect.right <= view.left + 1 ? view.left : view.right
+      const clampedY = Math.min(Math.max(y, view.top), view.bottom)
+      return { x: x - box.left, y: clampedY - box.top }
+    }
+    left = visibleLeft
+    right = visibleRight
+    y = Math.min(Math.max(y, view.top), view.bottom)
+  }
+  return { x: (left + right) / 2 - box.left, y: y - box.top }
 }
 
 export function ExperienceClearing({
@@ -162,6 +175,7 @@ export function ExperienceClearing({
   const [starDraft, setStarDraft] = useState(northStar ?? '')
   const [confirmingClear, setConfirmingClear] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [focus, setFocus] = useState(initialTopicFocus)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [itemDraft, setItemDraft] = useState('')
   const [removingId, setRemovingId] = useState<string | null>(null)
@@ -214,6 +228,7 @@ export function ExperienceClearing({
     void run(async () => {
       const saved = await addCircleItem(experienceId, circle, body, productionOpen)
       setNotes((current) => experienceContentView({ northStar: null, items: [...current, saved] }).items)
+      setFocus((current) => focusAddedTopic(current, circle, saved.id))
       onSettled(proposal.id)
     })
   }
@@ -231,9 +246,12 @@ export function ExperienceClearing({
   function acceptSuggestedShift(proposal: Extract<LandscapeProposal, { kind: 'shift' }>, circle: CircleName) {
     void run(async () => {
       const saved = await moveCircleItem(proposal.itemId, circle, productionOpen)
-      const next = notesRef.current.some((item) => item.id === saved.id) ? replaceItem(notesRef.current, saved) : notesRef.current
+      const previous = notesRef.current
+      const from = previous.find((item) => item.id === saved.id)?.circle
+      const next = previous.some((item) => item.id === saved.id) ? replaceItem(previous, saved) : previous
       setNotes(next)
       setLinks((present) => reconcileRelationships(present, next))
+      if (from && from !== circle) setFocus((current) => focusMovedTopic(current, saved.id, from, circle, previous, next))
       onSettled(proposal.id)
     })
   }
@@ -299,6 +317,7 @@ export function ExperienceClearing({
     void run(async () => {
       const saved = await addCircleItem(experienceId, circle, draft, productionOpen)
       setNotes((current) => experienceContentView({ northStar: null, items: [...current, saved] }).items)
+      setFocus((current) => focusAddedTopic(current, circle, saved.id))
       setDrafts((current) => ({ ...current, [circle]: '' }))
       setAdding(null)
     })
@@ -317,11 +336,14 @@ export function ExperienceClearing({
   function confirmMove(item: CircleItem) {
     const circle = pendingMove
     if (!circle || circle === item.circle) return
+    const from = item.circle
     void run(async () => {
       const saved = await moveCircleItem(item.id, circle, productionOpen)
-      const next = replaceItem(notes, saved)
+      const previous = notesRef.current
+      const next = replaceItem(previous, saved)
       setNotes(next)
       setLinks((present) => reconcileRelationships(present, next))
+      setFocus((current) => focusMovedTopic(current, item.id, from, circle, previous, next))
       setPendingMove(null)
       setChoosingMove(false)
     })
@@ -330,7 +352,10 @@ export function ExperienceClearing({
   function removeNote(itemId: string) {
     void run(async () => {
       await deleteCircleItem(itemId, productionOpen)
-      setNotes((current) => current.filter((item) => item.id !== itemId))
+      const previous = notesRef.current
+      const next = previous.filter((item) => item.id !== itemId)
+      setNotes(next)
+      setFocus((current) => focusAfterRemoval(current, itemId, previous, next))
       setLinks((current) => withoutPhrase(current, itemId))
       setRemovingId(null)
       setSelectedId(null)
@@ -339,6 +364,17 @@ export function ExperienceClearing({
       setChoosingMove(false)
       setPendingPartnerId(null)
     })
+  }
+
+  function inspect(item: CircleItem) {
+    const open = selectedId === item.id
+    setSelectedId(open ? null : item.id)
+    setRemovingId(null)
+    setPendingMove(null)
+    setChoosingMove(false)
+    setPendingPartnerId(null)
+    setEditingItemId(null)
+    setFocus((current) => ({ ...current, [item.circle]: item.id }))
   }
 
   function keepLink(item: CircleItem, partner: CircleItem) {
@@ -417,96 +453,93 @@ export function ExperienceClearing({
                 <h3 id={`${starField}-${circle.id}`} className="mt-2 font-serif text-2xl leading-tight">{circle.label}</h3>
                 <p className="mt-1 max-w-xs text-sm leading-relaxed text-studio-body">{circle.hint}</p>
               </div>
-              <div>
-              <ul className={`${phraseFlow[circle.id]} ${selectedId ? 'lg:pr-[23rem]' : ''}`}>
-                {grouped[circle.id].length === 0 && !proposals.some((proposal) => proposal.kind === 'phrase' && proposal.circle === circle.id) ? <li className="basis-full text-sm text-studio-muted">Nothing here yet.</li> : null}
-                {grouped[circle.id].map((item, index) => {
-                  const open = selectedId === item.id
-                  return (
-                    <li key={item.id} className={`max-w-full ${phrasePlace(index)} ${open ? 'max-lg:col-span-full' : ''}`}>
-                      {editingItemId === item.id ? (
-                        <form onSubmit={(event) => { event.preventDefault(); saveNote(item.id) }}>
-                          <label htmlFor={`${starField}-${item.id}`} className="sr-only">Edit {item.body}</label>
-                          <input id={`${starField}-${item.id}`} value={itemDraft} maxLength={circleItemMaxLength} autoComplete="off" onChange={(event) => setItemDraft(event.target.value)} className={fieldClass} />
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button type="submit" className={coralButton} disabled={busy}>Save</button>
-                            <button type="button" className={quietButton} disabled={busy} onClick={() => setEditingItemId(null)}>Cancel</button>
+              <div className={`relative min-w-0 ${selected?.circle === circle.id ? 'lg:min-h-[24rem] lg:pr-80' : ''}`}>
+              {grouped[circle.id].length === 0 && !proposals.some((proposal) => proposal.kind === 'phrase' && proposal.circle === circle.id) ? <p className="mt-4 text-sm text-studio-muted">Nothing here yet.</p> : null}
+              {grouped[circle.id].length > 0 ? (
+                <TopicCarousel
+                  className="mt-4 lg:mt-1"
+                  label={circle.label}
+                  items={grouped[circle.id]}
+                  index={topicIndex(grouped[circle.id], focus[circle.id])}
+                  onIndex={(next) => {
+                    const item = grouped[circle.id][next]
+                    if (!item) return
+                    setFocus((current) => ({ ...current, [circle.id]: item.id }))
+                  }}
+                  renderItem={(item, interactive) => (
+                    <TopicFace item={item} interactive={interactive} open={selectedId === item.id} fill={grouped[circle.id].length > 1} onSelect={() => inspect(item)} />
+                  )}
+                />
+              ) : null}
+              {selected && selected.circle === circle.id ? (
+                <div data-topic-detail="" className="z-20 mt-3 w-full max-w-sm rounded-[1.4rem] border border-[#e6d7c6] bg-[#fffaf3] p-4 shadow-[0_18px_40px_rgb(66_51_34/0.1)] lg:absolute lg:right-0 lg:top-0 lg:mt-0 lg:w-72">
+                  {editingItemId === selected.id ? (
+                    <form onSubmit={(event) => { event.preventDefault(); saveNote(selected.id) }}>
+                      <label htmlFor={`${starField}-${selected.id}`} className="sr-only">Edit {selected.body}</label>
+                      <input id={`${starField}-${selected.id}`} value={itemDraft} maxLength={circleItemMaxLength} autoComplete="off" onChange={(event) => setItemDraft(event.target.value)} className={fieldClass} />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button type="submit" className={coralButton} disabled={busy}>Save</button>
+                        <button type="button" className={quietButton} disabled={busy} onClick={() => setEditingItemId(null)}>Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">Phrase</p>
+                      <p className="mt-2 font-serif text-xl leading-snug">{selected.body}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-studio-body"><span className="mr-2 inline-block rounded-full bg-[#f6e4da] px-2.5 py-0.5 text-studio-coral-text">{circle.label}</span>for now. {circle.hint}</p>
+                      {removingId === selected.id ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <p className="w-full text-sm">Remove this?</p>
+                          <button type="button" className={coralButton} disabled={busy} onClick={() => removeNote(selected.id)}>Remove</button>
+                          <button type="button" className={quietButton} disabled={busy} onClick={() => setRemovingId(null)}>Keep</button>
+                        </div>
+                      ) : pendingMove ? (
+                        <div className="mt-4 grid gap-2">
+                          <p className="text-sm">Move to {circleById(pendingMove).label}?</p>
+                          <p className="text-sm text-studio-body">{circleById(pendingMove).hint}</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" className={coralButton} disabled={busy} onClick={() => confirmMove(selected)}>Move</button>
+                            <button type="button" className={quietButton} disabled={busy} onClick={() => setPendingMove(null)}>Cancel</button>
                           </div>
-                        </form>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            data-phrase-id={item.id}
-                            aria-pressed={open}
-                            className={open ? thoughtOpen : thoughtRest}
-                            onClick={() => {
-                              setSelectedId(open ? null : item.id)
-                              setRemovingId(null)
-                              setPendingMove(null)
-                              setChoosingMove(false)
-                              setPendingPartnerId(null)
-                              setEditingItemId(null)
-                            }}
-                          >
-                            {item.body}
-                          </button>
-                          {open ? (
-                            <div className="z-20 mt-3 w-full max-w-sm rounded-[1.4rem] border border-[#e6d7c6] bg-[#fffaf3] p-4 shadow-[0_18px_40px_rgb(66_51_34/0.1)] lg:absolute lg:right-6 lg:top-2 lg:mt-0 lg:w-72">
-                              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">Phrase</p>
-                              <p className="mt-2 font-serif text-xl leading-snug">{item.body}</p>
-                              <p className="mt-3 text-sm leading-relaxed text-studio-body"><span className="mr-2 inline-block rounded-full bg-[#f6e4da] px-2.5 py-0.5 text-studio-coral-text">{circle.label}</span>for now. {circle.hint}</p>
-                              {removingId === item.id ? (
-                                <div className="flex flex-wrap gap-2">
-                                  <p className="w-full text-sm">Remove this?</p>
-                                  <button type="button" className={coralButton} disabled={busy} onClick={() => removeNote(item.id)}>Remove</button>
-                                  <button type="button" className={quietButton} disabled={busy} onClick={() => setRemovingId(null)}>Keep</button>
-                                </div>
-                              ) : pendingMove ? (
-                                <div className="grid gap-2">
-                                  <p className="text-sm">Move to {circleById(pendingMove).label}?</p>
-                                  <p className="text-sm text-studio-body">{circleById(pendingMove).hint}</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <button type="button" className={coralButton} disabled={busy} onClick={() => confirmMove(item)}>Move</button>
-                                    <button type="button" className={quietButton} disabled={busy} onClick={() => setPendingMove(null)}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : choosingMove ? (
-                                <div className="flex flex-wrap gap-2">
-                                  {circles.filter((choice) => choice.id !== item.circle).map((choice) => (
-                                    <button key={choice.id} type="button" className={quietButton} disabled={busy} onClick={() => { setPendingMove(choice.id); setChoosingMove(false) }}>{choice.label}</button>
-                                  ))}
-                                  <button type="button" className={quietButton} disabled={busy} onClick={() => setChoosingMove(false)}>Cancel</button>
-                                </div>
-                              ) : pendingPartnerId && pendingPartnerId !== 'choose' ? (
-                                <PartnerSentence item={item} partner={notes.find((note) => note.id === pendingPartnerId) ?? null} links={links} busy={busy} onKeep={keepLink} onLeave={() => setPendingPartnerId(null)} />
-                              ) : pendingPartnerId === 'choose' ? (
-                                <PartnerChoices item={item} notes={notes} links={links} onChoose={setPendingPartnerId} onCancel={() => setPendingPartnerId(null)} />
-                              ) : (
-                                <div className="mt-4 grid gap-2">
-                                  <button type="button" className={detailAction} disabled={busy} onClick={() => { setEditingItemId(item.id); setItemDraft(item.body) }}><Pencil className="size-4" aria-hidden="true" />Edit</button>
-                                  <button type="button" className={detailAction} disabled={busy} onClick={() => { setChoosingMove(true); setPendingPartnerId(null); setRemovingId(null) }}><ArrowLeftRight className="size-4" aria-hidden="true" />Move</button>
-                                  <button type="button" className={detailAction} disabled={busy} onClick={() => setRemovingId(item.id)}><Trash2 className="size-4" aria-hidden="true" />Remove</button>
-                                  <button type="button" className={detailAction} disabled={busy} onClick={() => { setPendingPartnerId('choose'); setChoosingMove(false) }}><Link2 className="size-4" aria-hidden="true" />Link</button>
-                                  <button type="button" className={textAction} onClick={() => setSelectedId(null)}>Close</button>
-                                </div>
-                              )}
-                            </div>
-                          ) : null}
-                          {proposals.filter((proposal) => (proposal.kind === 'shift' || proposal.kind === 'revision') && proposal.itemId === item.id).map((proposal) => (
-                            <SuggestionCard key={proposal.id} proposal={proposal} busy={busy} actions={actionsRef.current} />
+                        </div>
+                      ) : choosingMove ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {circles.filter((choice) => choice.id !== selected.circle).map((choice) => (
+                            <button key={choice.id} type="button" className={quietButton} disabled={busy} onClick={() => { setPendingMove(choice.id); setChoosingMove(false) }}>{choice.label}</button>
                           ))}
-                        </>
+                          <button type="button" className={quietButton} disabled={busy} onClick={() => setChoosingMove(false)}>Cancel</button>
+                        </div>
+                      ) : pendingPartnerId && pendingPartnerId !== 'choose' ? (
+                        <div className="mt-4">
+                          <PartnerSentence item={selected} partner={notes.find((note) => note.id === pendingPartnerId) ?? null} links={links} busy={busy} onKeep={keepLink} onLeave={() => setPendingPartnerId(null)} />
+                        </div>
+                      ) : pendingPartnerId === 'choose' ? (
+                        <div className="mt-4">
+                          <PartnerChoices item={selected} notes={notes} links={links} onChoose={setPendingPartnerId} onCancel={() => setPendingPartnerId(null)} />
+                        </div>
+                      ) : (
+                        <div className="mt-4 grid gap-2">
+                          <button type="button" className={detailAction} disabled={busy} onClick={() => { setEditingItemId(selected.id); setItemDraft(selected.body) }}><Pencil className="size-4" aria-hidden="true" />Edit</button>
+                          <button type="button" className={detailAction} disabled={busy} onClick={() => { setChoosingMove(true); setPendingPartnerId(null); setRemovingId(null) }}><ArrowLeftRight className="size-4" aria-hidden="true" />Move</button>
+                          <button type="button" className={detailAction} disabled={busy} onClick={() => setRemovingId(selected.id)}><Trash2 className="size-4" aria-hidden="true" />Remove</button>
+                          <button type="button" className={detailAction} disabled={busy} onClick={() => { setPendingPartnerId('choose'); setChoosingMove(false) }}><Link2 className="size-4" aria-hidden="true" />Link</button>
+                          <button type="button" className={textAction} onClick={() => setSelectedId(null)}>Close</button>
+                        </div>
                       )}
-                    </li>
-                  )
-                })}
-                {proposals.filter((proposal) => proposal.kind === 'phrase' && proposal.circle === circle.id).map((proposal) => (
-                  <li key={proposal.id} className="max-w-full">
-                    <SuggestionCard proposal={proposal} busy={busy} actions={actionsRef.current} />
-                  </li>
-                ))}
-              </ul>
+                    </>
+                  )}
+                </div>
+              ) : null}
+              {proposals.some((proposal) => (proposal.kind === 'phrase' && proposal.circle === circle.id) || ((proposal.kind === 'shift' || proposal.kind === 'revision') && grouped[circle.id].some((item) => item.id === proposal.itemId))) ? (
+                <div className="mt-3 grid max-w-xl gap-3">
+                  {grouped[circle.id].flatMap((item) => proposals.filter((proposal) => (proposal.kind === 'shift' || proposal.kind === 'revision') && proposal.itemId === item.id).map((proposal) => (
+                    <SuggestionCard key={proposal.id} proposal={proposal} busy={busy} actions={actionsRef.current} />
+                  )))}
+                  {proposals.filter((proposal) => proposal.kind === 'phrase' && proposal.circle === circle.id).map((proposal) => (
+                    <SuggestionCard key={proposal.id} proposal={proposal} busy={busy} actions={actionsRef.current} />
+                  ))}
+                </div>
+              ) : null}
               {adding === circle.id ? (
                 <form className="mt-4 max-w-xl" onSubmit={(event) => { event.preventDefault(); addNote(circle.id) }}>
                   <label htmlFor={`${starField}-add-${circle.id}`} className="sr-only">Add to {circle.label}</label>
@@ -554,6 +587,28 @@ export function ExperienceClearing({
       ) : null}
       </div>
     </div>
+  )
+}
+
+function TopicFace({
+  item,
+  interactive,
+  open,
+  fill,
+  onSelect,
+}: {
+  item: CircleItem
+  interactive: boolean
+  open: boolean
+  fill: boolean
+  onSelect: () => void
+}) {
+  const className = `${open ? topicFaceOpen : topicFaceRest} ${fill ? 'w-full' : 'w-fit'}`
+  if (!interactive) return <div className={className}>{item.body}</div>
+  return (
+    <button type="button" data-phrase-id={item.id} aria-pressed={open} className={className} onClick={onSelect}>
+      {item.body}
+    </button>
   )
 }
 
