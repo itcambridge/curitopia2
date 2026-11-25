@@ -9,6 +9,10 @@ export const imageCountKey = 'curitopia-image-count'
 
 export type ImageSlotStatus = 'waiting' | 'generating' | 'ready' | 'failed'
 
+export function imageProgressLabel(place: number, status: ImageSlotStatus) {
+  return `Image ${place}, ${status}.`
+}
+
 export type ImageSlot = {
   id: MetaphorId
   status: ImageSlotStatus

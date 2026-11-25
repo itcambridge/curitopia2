@@ -52,7 +52,7 @@ The Garden must not force a Keep/Park/Discard curation ceremony before Visualise
 
 ### Visualise
 
-Visualise is a contextual workspace opened from a question. It may include an optional question-refinement action, a prompt context display, image generation, and candidate selection.
+Visualise is a contextual workspace opened from a question. The same workspace can also open from an Experience topic in Concern, Influence, or Control. A topic stays a topic: the server loads its wording from the owned experience, and the saved concept records that wording and circle. The Experience page also shows those saved images in three collections, Concern, Influence, and Control, grouped by the circle recorded when Visualise opened. That gallery does not change the landscape or the facilitator. The Garden question path is unchanged. The workspace may include an optional question-refinement action, a prompt context display, image generation, and candidate selection.
 
 Responsibilities:
 - Show the original question and one editable creative direction.
@@ -128,6 +128,7 @@ This is a presentation contract, not a new raster format or table.
 - `concepts.image_path` supplies the original artwork.
 - `concepts.for_considered_text` supplies the bottom question overlay.
 - `concept_questions` supplies contributing-question provenance and snapshots.
+- `concept_experience_sources` supplies the topic wording and circle when the concept came from an Experience topic. The card then shows that wording, not a Garden question.
 
 Render overlays using application typography/DOM or an equivalent accessible presentation layer. Do not ask the image model to render the title or question. Do not modify the stored original image when showing it in the app. For a future download/share image, create a separate flattened export from the original plus overlays; do not replace the source file.
 
@@ -140,6 +141,8 @@ The supplied entity model describes the initial V2 account model. It identifies 
 - `questions`: owner, curiosity, original text, optional considered text, disposition, and legacy merge pointer.
 - `concepts`: owner, curiosity, title, `for_considered_text`, original image storage path, model, and prompt version.
 - `concept_questions`: many-to-many provenance from a concept to questions, including wording snapshots.
+- `experience_visualisation_sources`: the opening snapshot for one Visualise session. The database copies the topic wording and circle while the topic exists. Its live ids become null if that topic or experience is later removed. The wording and circle stay. One snapshot can be saved onto one concept. Authenticated users can read, insert, and delete their own row. They cannot update it. Closing Visualise deletes it. Rows older than seven days are removed the next time any signed-in user opens Visualise.
+- `concept_experience_sources`: the permanent copy of that opening snapshot, written in the same transaction as the concept. Only `save_experience_visualisation_provenance` writes it. Authenticated users can read it. They cannot insert, update, or delete it. `origin_source_id` keeps the opening id after the temporary row is deleted. `source_id` is only the live row and becomes null when that row is deleted. It is not a Garden question.
 - `themes` and `theme_questions`: optional question grouping.
 - `curiosities`: named user workspaces, subject to the migration-status caveat below.
 

@@ -14,6 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
+      concept_experience_sources: {
+        Row: {
+          circle: string
+          concept_id: string
+          created_at: string
+          curiosity_id: string
+          experience_id: string | null
+          id: string
+          item_id: string | null
+          original_text_snapshot: string
+          origin_source_id: string
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          circle: string
+          concept_id: string
+          created_at?: string
+          curiosity_id: string
+          experience_id?: string | null
+          id: string
+          item_id?: string | null
+          original_text_snapshot: string
+          origin_source_id: string
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          circle?: string
+          concept_id?: string
+          created_at?: string
+          curiosity_id?: string
+          experience_id?: string | null
+          id?: string
+          item_id?: string | null
+          original_text_snapshot?: string
+          origin_source_id?: string
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concept_experience_sources_concept_owner"
+            columns: ["concept_id", "user_id", "curiosity_id"]
+            isOneToOne: true
+            referencedRelation: "concepts"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
+          {
+            foreignKeyName: "concept_experience_sources_curiosity_owner"
+            columns: ["curiosity_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "curiosities"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "concept_experience_sources_experience_owner"
+            columns: ["experience_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "experiences"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
+          {
+            foreignKeyName: "concept_experience_sources_item_owner"
+            columns: ["item_id", "user_id", "experience_id"]
+            isOneToOne: false
+            referencedRelation: "experience_circle_items"
+            referencedColumns: ["id", "user_id", "experience_id"]
+          },
+          {
+            foreignKeyName: "concept_experience_sources_source_owner"
+            columns: ["source_id"]
+            isOneToOne: true
+            referencedRelation: "experience_visualisation_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      experience_visualisation_sources: {
+        Row: {
+          circle: string
+          created_at: string
+          curiosity_id: string
+          experience_id: string | null
+          id: string
+          item_id: string | null
+          original_text_snapshot: string
+          user_id: string
+        }
+        Insert: {
+          circle: string
+          created_at?: string
+          curiosity_id: string
+          experience_id?: string | null
+          id: string
+          item_id?: string | null
+          original_text_snapshot: string
+          user_id: string
+        }
+        Update: {
+          circle?: string
+          created_at?: string
+          curiosity_id?: string
+          experience_id?: string | null
+          id?: string
+          item_id?: string | null
+          original_text_snapshot?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experience_visualisation_sources_curiosity_owner"
+            columns: ["curiosity_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "curiosities"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "experience_visualisation_sources_experience_owner"
+            columns: ["experience_id", "user_id", "curiosity_id"]
+            isOneToOne: false
+            referencedRelation: "experiences"
+            referencedColumns: ["id", "user_id", "curiosity_id"]
+          },
+          {
+            foreignKeyName: "experience_visualisation_sources_item_owner"
+            columns: ["item_id", "user_id", "experience_id"]
+            isOneToOne: false
+            referencedRelation: "experience_circle_items"
+            referencedColumns: ["id", "user_id", "experience_id"]
+          },
+        ]
+      }
       concept_questions: {
         Row: {
           concept_id: string
@@ -413,6 +546,27 @@ export type Database = {
         Returns: {
           allowed: boolean
           retry_after_seconds: number
+        }[]
+      }
+      purge_abandoned_experience_visualisation_sources: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      save_experience_visualisation_provenance: {
+        Args: {
+          p_concept_id: string
+          p_considered_text: string
+          p_image_model: string
+          p_image_path: string
+          p_prompt_version: string
+          p_source_id: string
+          p_title: string
+        }
+        Returns: {
+          circle: string
+          experience_id: string | null
+          item_id: string | null
+          original_text_snapshot: string
         }[]
       }
     }

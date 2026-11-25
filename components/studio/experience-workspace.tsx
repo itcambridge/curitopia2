@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { ExperienceClearing } from '@/components/studio/experience-clearing'
 import { ExperienceConversation } from '@/components/studio/experience-conversation'
+import { ExperienceGallery } from '@/components/studio/experience-gallery'
 import type { CircleItem } from '@/lib/questions/experience-content'
+import type { ConceptRecord, Workspace } from '@/lib/questions/types'
 import type { FacilitationReading } from '@/lib/questions/experience-facilitator'
 import { mergeProposals, proposalsFromReading, withoutProposal, type HeldExperiment, type LandscapeProposal, type ProposalActions } from '@/lib/questions/experience-proposals'
 
@@ -13,12 +15,26 @@ export function ExperienceWorkspace({
   northStar,
   items,
   productionOpen,
+  onRecordConcept,
+  concepts,
+  conceptsLoaded,
+  workspace,
+  onChange,
+  saving,
+  savedConceptId,
 }: {
   curiosityId: string
   experienceId: string
   northStar: string | null
   items: CircleItem[]
   productionOpen: boolean
+  onRecordConcept: (concept: ConceptRecord) => Promise<void>
+  concepts: readonly ConceptRecord[]
+  conceptsLoaded: boolean
+  workspace: Workspace
+  onChange: (workspace: Workspace) => void
+  saving: boolean
+  savedConceptId: string | null
 }) {
   const [proposals, setProposals] = useState<LandscapeProposal[]>([])
   const [heldExperiments, setHeldExperiments] = useState<HeldExperiment[]>([])
@@ -39,6 +55,7 @@ export function ExperienceWorkspace({
   }
 
   return (
+    <div className="grid min-w-0 gap-10">
     <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)] lg:gap-6">
       <ExperienceConversation
         curiosityId={curiosityId}
@@ -48,6 +65,7 @@ export function ExperienceWorkspace({
         onReading={onReading}
       />
       <ExperienceClearing
+        curiosityId={curiosityId}
         experienceId={experienceId}
         northStar={northStar}
         items={items}
@@ -57,7 +75,18 @@ export function ExperienceWorkspace({
         onBind={setActions}
         onSettled={(id) => setProposals((current) => withoutProposal(current, id))}
         onHold={onHold}
+        onRecordConcept={onRecordConcept}
       />
+    </div>
+    <ExperienceGallery
+      experienceId={experienceId}
+      concepts={concepts}
+      conceptsLoaded={conceptsLoaded}
+      workspace={workspace}
+      onChange={onChange}
+      saving={saving}
+      savedConceptId={savedConceptId}
+    />
     </div>
   )
 }

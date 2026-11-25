@@ -40,6 +40,7 @@ export function titleSuggestionPrompt(input: {
   metaphor: string | null
   questions: { originalText: string; consideredText: string | null }[]
   sawImage: boolean
+  sourceLabel?: string
 }) {
   const questions = input.questions.slice(0, 8).map((question, index) => {
     const considered = question.consideredText?.trim()
@@ -52,14 +53,16 @@ export function titleSuggestionPrompt(input: {
     'Use ordinary words. Do not invent a compound, concatenate words, use camel case, or compress a phrase into one token.',
     'Make each title evocative and memorable.',
     'Avoid a leading "The" unless the title is weaker without it.',
-    'Stay faithful to the selected image and the source questions. Do not invent a meaning they do not support.',
+    input.sourceLabel === 'Source topic:'
+      ? 'Stay faithful to the selected image and the source topic. Do not invent a meaning they do not support.'
+      : 'Stay faithful to the selected image and the source questions. Do not invent a meaning they do not support.',
     'These show the style only. Do not copy them unless the material itself asks for those words: "Kindness", "Gentle Guidance", "Clear Paths", "Quiet Confidence", "Clarity", "New Beginnings".',
     'Reply with JSON only, in this shape: {"titles":["First Title","Second","Third Title"]}',
     '',
     `Considered wording the image was made for: ${input.consideredText.trim()}`,
     input.metaphor?.trim() ? `Visual metaphor: ${input.metaphor.trim()}` : 'No separate metaphor instruction was stored.',
     input.sawImage ? 'The selected image is attached. Name what it communicates with the question, not a literal inventory of objects.' : 'No image is attached. Use only the wording and metaphor above, and do not pretend you have seen a picture.',
-    'Source questions:',
+    input.sourceLabel ?? 'Source questions:',
     questions.join('\n') || 'None supplied.',
   ].join('\n')
 }

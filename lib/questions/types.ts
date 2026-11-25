@@ -52,6 +52,16 @@ export type ConceptSource = {
   consideredText: string | null
 }
 
+export type ExperienceConceptSource = {
+  linkId: string
+  experienceId: string | null
+  itemId: string | null
+  curiosityId: string
+  circle: 'concern' | 'influence' | 'control'
+  originalText: string
+  snapshotToken?: string
+}
+
 export type ConceptRecord = {
   id: string
   title: string
@@ -65,6 +75,7 @@ export type ConceptRecord = {
   anchorQuestionId: string | null
   questionIds: string[]
   sources: ConceptSource[]
+  experienceSource?: ExperienceConceptSource | null
   createdAt: string
   updatedAt: string
 }

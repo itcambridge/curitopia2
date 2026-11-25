@@ -5,6 +5,7 @@ import { Check, X } from 'lucide-react'
 import { useScreenDraft } from '@/components/studio/leave-guard'
 import { IconAction } from '@/components/studio/studio-ui'
 import { conceptCardQuestion } from '@/lib/questions/library-carousel'
+import { conceptOriginLabel } from '@/lib/questions/visualisation-source'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
 import { foldedQuestions, updateConcept } from '@/lib/questions/workspace'
 import type { ConceptRecord, Workspace } from '@/lib/questions/types'
@@ -16,6 +17,7 @@ export function ConceptEditor({
   onClose,
   saving,
   savedConceptId,
+  closeLabel = 'Back to the library',
 }: {
   concept: ConceptRecord
   workspace: Workspace
@@ -23,6 +25,7 @@ export function ConceptEditor({
   onClose: () => void
   saving: boolean
   savedConceptId: string | null
+  closeLabel?: string
 }) {
   const anchorId = concept.anchorQuestionId
   const [title, setTitle] = useState(concept.title)
@@ -33,6 +36,7 @@ export function ConceptEditor({
   const titleMatches = concept.title === cleanTitle(title)
   useScreenDraft(!titleMatches || !linksMatch)
   const question = conceptCardQuestion(concept, workspace.questions)
+  const experienceLabel = concept.experienceSource ? conceptOriginLabel(concept.experienceSource.circle) : null
   const choices = anchorId
     ? workspace.questions.filter((item) => item.id !== anchorId && !item.mergedIntoId && item.disposition !== 'discarded')
     : []
@@ -58,19 +62,21 @@ export function ConceptEditor({
     <section className="min-w-0">
       <div className="flex items-start justify-between gap-3">
         <h2 className="min-w-0 font-serif text-3xl tracking-tight sm:text-4xl">Edit concept</h2>
-        <button type="button" className="shrink-0 text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" onClick={onClose}>Back to the library</button>
+        <button type="button" className="shrink-0 text-sm font-semibold text-studio-ink underline decoration-studio-line underline-offset-4 hover:decoration-studio-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" onClick={onClose}>{closeLabel}</button>
       </div>
       <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(280px,1.1fr)]">
         <img src={concept.imageSrc} alt="" className="max-h-[min(78vw,28rem)] w-full rounded-3xl bg-studio-ink object-contain" />
         <form className="flex min-w-0 flex-col gap-4" onSubmit={(event) => { event.preventDefault(); save() }}>
           <div>
-            <p className="text-sm font-semibold">Original question</p>
+            <p className="text-sm font-semibold">{experienceLabel ? 'Original topic' : 'Original question'}</p>
+            {experienceLabel ? <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-studio-eyebrow">{experienceLabel}</p> : null}
             <p className="mt-1 font-serif text-xl leading-snug">{question}</p>
           </div>
           <div>
             <p className="text-sm font-semibold">Creative direction</p>
             <p className="mt-1 text-sm leading-relaxed text-studio-body">{concept.forConsideredText}</p>
           </div>
+          {experienceLabel ? null : (
           <div>
             <p className="text-sm font-semibold">Originating question</p>
             {anchor ? (
@@ -82,6 +88,7 @@ export function ConceptEditor({
               <p key={source.id} className="mt-1 text-sm text-studio-muted">Merged wording kept: {source.originalText}</p>
             )) : null}
           </div>
+          )}
           {detached.length > 0 && (
             <div>
               <p className="text-sm font-semibold">Earlier wording kept</p>

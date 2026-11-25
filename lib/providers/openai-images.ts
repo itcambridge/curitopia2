@@ -7,7 +7,7 @@ import type { ImageCandidate, ImageSetResult, MetaphorId, ReportedUsage } from '
 const imageModel = 'gpt-image-2.5-flare'
 const imageTimeoutMs = 55_000
 
-function demoImages(considered: string, notice: string, question = ''): ImageSetResult {
+function demoImages(considered: string, notice: string, question = '', sourceNoun: 'question' | 'topic' = 'question'): ImageSetResult {
   return {
     source: 'demo',
     notice,
@@ -19,7 +19,7 @@ function demoImages(considered: string, notice: string, question = ''): ImageSet
       id: direction.id,
       label: direction.label,
       metaphor: direction.instruction,
-      prompt: imagePrompt(question, considered, direction.instruction),
+      prompt: imagePrompt(question, considered, direction.instruction, sourceNoun),
       src: demoFixtureSrc(direction.id),
       source: 'demo' as const,
       usage: null,
@@ -71,11 +71,11 @@ async function requestOneImage(prompt: string, apiKey: string, signal: AbortSign
   }
 }
 
-export async function interpretQuestion(considered: string, parentSignal?: AbortSignal, direction?: MetaphorId, question = ''): Promise<ImageSetResult> {
+export async function interpretQuestion(considered: string, parentSignal?: AbortSignal, direction?: MetaphorId, question = '', sourceNoun: 'question' | 'topic' = 'question'): Promise<ImageSetResult> {
   const apiKey = process.env.OPENAI_API_KEY?.trim()
   const directions = direction ? metaphorDirections.filter((item) => item.id === direction) : metaphorDirections
   if (!apiKey) {
-    const demo = demoImages(considered, 'Demo fixtures. No image provider is connected. These drawings were not generated, and the prompts were not sent.', question)
+    const demo = demoImages(considered, 'Demo fixtures. No image provider is connected. These drawings were not generated, and the prompts were not sent.', question, sourceNoun)
     return { ...demo, candidates: demo.candidates.filter((candidate) => directions.some((item) => item.id === candidate.id)) }
   }
 
@@ -88,7 +88,7 @@ export async function interpretQuestion(considered: string, parentSignal?: Abort
     const signal = parentSignal ? AbortSignal.any([parentSignal, AbortSignal.timeout(imageTimeoutMs)]) : AbortSignal.timeout(imageTimeoutMs)
     let result: { ok: true; src: string; usage: ReportedUsage } | { ok: false; reason: string }
     try {
-      result = await requestOneImage(imagePrompt(question, considered, item.instruction), apiKey, signal)
+      result = await requestOneImage(imagePrompt(question, considered, item.instruction, sourceNoun), apiKey, signal)
     } catch {
       result = { ok: false, reason: 'The image request did not finish. Nothing was retried.' }
     }
@@ -108,7 +108,7 @@ export async function interpretQuestion(considered: string, parentSignal?: Abort
       id: item.id,
       label: item.label,
       metaphor: item.instruction,
-      prompt: imagePrompt(question, considered, item.instruction),
+      prompt: imagePrompt(question, considered, item.instruction, sourceNoun),
       src: result.src,
       source: 'openai',
       usage: result.usage,

@@ -23,7 +23,7 @@ The garden is the emotional centre of Curitopia. It represents a person's evolvi
 - **Seeds:** freshly captured questions, preserved in their original wording.
 - **Shoots:** questions receiving attention. This is a visual metaphor, not a mandatory retained state or a curation gate.
 - **Branches:** relationships the person notices or deliberately creates between questions or ideas. A branch is not the same as merging two questions.
-- **Blossoms:** saved visual concepts. Each blossom brings together the original artwork, a title of no more than two words, the exact question the artwork represents, and provenance to any other questions that informed it. A blossom remains open to reinterpretation.
+- **Blossoms:** saved visual concepts. Each blossom brings together the original artwork, a title of no more than two words, the exact question or Experience topic the artwork represents, and provenance to any other questions that informed a Garden concept. A blossom remains open to reinterpretation.
 - **Field notes:** the person's own observations and discoveries. Notes should support the experience without becoming mandatory record-keeping.
 - **Open the Lab:** a possible future, optional space for deeper investigation and testing a hunch. It is not a required route to an image or a connection.
 
@@ -60,7 +60,7 @@ Experience principles:
 
 **Microcopy direction:** “See what unfolds.” / “What might this question look like?”
 
-Visualise opens from a question. It helps the person explore a question through imagery and select a representation that changes how the idea feels or can be understood.
+Visualise opens from a question. The same workspace also opens from an Experience topic in Concern, Influence, or Control. The topic is not rewritten as a question. It helps the person explore the source through imagery and select a representation that changes how the idea feels or can be understood.
 
 Experience principles:
 - The user chooses when to visualise a question; opening a question does not generate an image.

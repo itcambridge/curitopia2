@@ -13,6 +13,7 @@ import { studioPath } from '@/lib/paths'
 import { carouselOffset, conceptCardQuestion, conceptQuestionCopy, conceptRemainsVisible, orderedConcepts, questionDispositionMap, selectedConceptIndex, stepConceptIndex } from '@/lib/questions/library-carousel'
 import { reconcileComparisonScope, type ComparisonPair } from '@/lib/questions/comparison'
 import { allCuriositiesFocus, emptyLibraryMessage, hiddenLibraryMessage, libraryConceptsForFocus, libraryCuriosityName, libraryFocusChoices, libraryOriginLabel, workspaceFocusForLibraryConcept } from '@/lib/questions/library-focus'
+import { conceptOriginLabel } from '@/lib/questions/visualisation-source'
 import { listAccountConcepts } from '@/lib/questions/supabase-concepts'
 import { listCuriosityNames } from '@/lib/questions/supabase-curiosities'
 import { listQuestionDispositions } from '@/lib/questions/supabase-questions'
@@ -328,6 +329,7 @@ export function LibraryView({
                 <ConceptSlide
                   key={concept.id}
                   concept={concept}
+                  origin={concept.experienceSource ? conceptOriginLabel(concept.experienceSource.circle) : null}
                   question={conceptCardQuestion(concept, workspace.questions)}
                   current={current}
                   offset={offset}
@@ -368,6 +370,7 @@ export function LibraryView({
 function ConceptSlide({
   concept,
   question,
+  origin = null,
   current,
   offset,
   spread,
@@ -376,6 +379,7 @@ function ConceptSlide({
 }: {
   concept: ConceptRecord
   question: string
+  origin?: string | null
   current: boolean
   offset: number
   spread: number
@@ -393,7 +397,7 @@ function ConceptSlide({
   }
   return (
     <div className={className} style={style} aria-current={current ? 'true' : undefined}>
-      <ConceptCard src={concept.imageSrc} title={concept.title} question={question} heading={current} />
+      <ConceptCard src={concept.imageSrc} title={concept.title} question={question} origin={origin} heading={current} />
       {!current && (
         <button
           type="button"
@@ -407,7 +411,7 @@ function ConceptSlide({
   )
 }
 
-function ConceptCard({ src, title, question, heading }: { src: string; title: string; question: string; heading: boolean }) {
+function ConceptCard({ src, title, question, origin = null, heading }: { src: string; title: string; question: string; origin?: string | null; heading: boolean }) {
   const imageRef = useRef<HTMLImageElement>(null)
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   useEffect(() => {
@@ -437,6 +441,7 @@ function ConceptCard({ src, title, question, heading }: { src: string; title: st
         <Title className="text-balance font-serif text-3xl leading-none tracking-[-0.03em] text-studio-ivory sm:text-4xl">{title}</Title>
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-studio-ink via-studio-ink/80 to-transparent px-4 pb-4 pt-16 text-center sm:px-6 sm:pb-5">
+        {origin ? <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-studio-ivory/80">{origin}</p> : null}
         <p className={`${heading ? 'pointer-events-auto max-h-32 overflow-y-auto text-base sm:text-lg' : 'line-clamp-3 text-sm'} text-balance font-serif leading-snug text-studio-ivory`}>{question}</p>
       </div>
     </div>
@@ -466,7 +471,8 @@ function ConceptDetail({
   const linked = conceptQuestionCopy(concept, workspace.questions).questions
   const others = linked.filter((text) => text !== question)
   const linkedCount = linked.length
-  const countLabel = linkedCount === 1 ? 'One question' : linkedCount === 0 ? 'No linked questions' : `${linkedCount} questions`
+  const experienceLabel = concept.experienceSource ? conceptOriginLabel(concept.experienceSource.circle) : null
+  const countLabel = experienceLabel ?? (linkedCount === 1 ? 'One question' : linkedCount === 0 ? 'No linked questions' : `${linkedCount} questions`)
   return (
     <div className="mx-auto mt-5 max-w-2xl text-center">
       <p aria-live="polite" className="sr-only">{concept.title}. {question}</p>

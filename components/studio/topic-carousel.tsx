@@ -52,6 +52,8 @@ export function TopicCarousel<T extends { id: string }>({
   onIndex,
   renderItem,
   className = '',
+  itemNoun = 'topic',
+  cardWidth = 'topic',
 }: {
   label: string
   items: readonly T[]
@@ -59,6 +61,8 @@ export function TopicCarousel<T extends { id: string }>({
   onIndex: (index: number) => void
   renderItem: (item: T, interactive: boolean) => ReactNode
   className?: string
+  itemNoun?: string
+  cardWidth?: 'topic' | 'collection'
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const indexRef = useRef(index)
@@ -176,16 +180,19 @@ export function TopicCarousel<T extends { id: string }>({
   }
 
   if (count === 0) return null
-  const slideClass = count === 1 ? 'w-fit max-w-full shrink-0' : 'w-[82%] shrink-0 snap-start'
+  const collectionSlide = 'w-[82%] max-w-[30rem] shrink-0 snap-start @min-[52rem]:w-[min(42%,30rem)]'
+  const slideClass = cardWidth === 'collection'
+    ? collectionSlide
+    : count === 1 ? 'w-fit max-w-full shrink-0' : 'w-[82%] shrink-0 snap-start'
 
   return (
     <div
       role="region"
       aria-roledescription="carousel"
-      aria-label={`${label} topics`}
+      aria-label={`${label} ${itemNoun === 'topic' ? 'topics' : `${itemNoun}s`}`}
       tabIndex={count > 1 ? 0 : undefined}
       onKeyDown={onKeyDown}
-      className={`min-w-0 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral ${className}`}
+      className={`@container min-w-0 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-coral ${className}`}
     >
       <div
         ref={scrollerRef}
@@ -222,10 +229,10 @@ export function TopicCarousel<T extends { id: string }>({
       <p className="sr-only" aria-live="polite">{label}, {index + 1} of {count}</p>
       {count > 1 ? (
         <div className="mt-1 flex items-center gap-2">
-          <IconAction label={`Previous ${label} topic`} treatment="quiet" tipAlign="start" onClick={() => go(-1)}>
+          <IconAction label={`Previous ${label} ${itemNoun}`} treatment="quiet" tipAlign="start" onClick={() => go(-1)}>
             <ChevronLeft aria-hidden="true" />
           </IconAction>
-          <IconAction label={`Next ${label} topic`} treatment="quiet" tipAlign="end" onClick={() => go(1)}>
+          <IconAction label={`Next ${label} ${itemNoun}`} treatment="quiet" tipAlign="end" onClick={() => go(1)}>
             <ChevronRight aria-hidden="true" />
           </IconAction>
         </div>

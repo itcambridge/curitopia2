@@ -33,7 +33,7 @@ export function useAccountWorkspace(curiosityId: string, reviseConceptId: string
   const remoteReady = useRef(false)
   const accountId = useRef<string | null>(null)
   const keptLocalConcepts = useRef<ConceptRecord[]>([])
-  const chain = useRef(Promise.resolve())
+  const chain = useRef<Promise<string | null>>(Promise.resolve(null))
   current.current = workspace
 
   function publish(next: Workspace) {
@@ -166,7 +166,7 @@ export function useAccountWorkspace(curiosityId: string, reviseConceptId: string
         confirmed.current = base
         if (current.current === resolved) show(base)
         setStoreError('The account is not loaded, so this change was not saved.')
-        return
+        return 'The account is not loaded, so this change was not saved.'
       }
       try {
         let questions = base.questions
@@ -202,6 +202,7 @@ export function useAccountWorkspace(curiosityId: string, reviseConceptId: string
           })
           setSavedConceptId(saved?.id ?? null)
         }
+        return null
       } catch (error) {
         let questions = confirmed.current.questions
         let concepts = confirmed.current.concepts
@@ -225,12 +226,16 @@ export function useAccountWorkspace(curiosityId: string, reviseConceptId: string
         confirmed.current = reverted
         if (current.current === resolved) show(reverted)
         setSavedConceptId(null)
-        setStoreError(error instanceof Error ? error.message : 'The change could not be saved to the account.')
+        const problem = error instanceof Error ? error.message : 'The change could not be saved to the account.'
+        setStoreError(problem)
+        return problem
       }
     }).catch((error: unknown) => {
       if (current.current === resolved) show(confirmed.current)
       setSavedConceptId(null)
-      setStoreError(error instanceof Error ? error.message : 'The change could not be saved to the account.')
+      const problem = error instanceof Error ? error.message : 'The change could not be saved to the account.'
+      setStoreError(problem)
+      return problem
     })
     chain.current = job
     void job.finally(() => {

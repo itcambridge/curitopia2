@@ -95,9 +95,11 @@ export function conceptRemainsVisible(
 // with the concept. A later edit to the live question stays off the card.
 // The creative direction in considered text is not the question.
 export function conceptCardQuestion(
-  concept: Pick<ConceptRecord, 'anchorQuestionId' | 'sources' | 'questionIds'> & { forConsideredText?: string },
+  concept: Pick<ConceptRecord, 'anchorQuestionId' | 'sources' | 'questionIds'> & { forConsideredText?: string; experienceSource?: { originalText: string } | null },
   questions: Pick<QuestionRecord, 'id' | 'originalText'>[],
 ): string {
+  const topic = concept.experienceSource?.originalText.trim()
+  if (topic) return topic
   const origin = originatingQuestionId(concept)
   const anchorSource = origin
     ? concept.sources.find((source) => source.questionId === origin)

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { imagesHttp } from '../ai/http.ts'
 import { authenticateAiUser, type AiSession } from '../ai/policy.ts'
 import { shouldApplyReturnedImage, shouldStartNextImage } from './image-run.ts'
-import { directionsForCount, imageCountdownCopy, imageCountKey, imageCountdownShowsNumber, initialSlots, markSlot, millisecondsUntilNextImageSecond, nextImageCountdown, parseImageCount, readImageCount, remainingImageSeconds, writeImageCount } from './image-count.ts'
+import { directionsForCount, imageCountdownCopy, imageCountKey, imageCountdownShowsNumber, imageProgressLabel, initialSlots, markSlot, millisecondsUntilNextImageSecond, nextImageCountdown, parseImageCount, readImageCount, remainingImageSeconds, writeImageCount } from './image-count.ts'
 import { interpretQuestion } from './openai-images.ts'
 import { imagePrompt, metaphorDirections } from './prompts.ts'
 
@@ -43,6 +43,24 @@ const retried = markSlot(secondFailed, 'trace', 'ready')
 assert.equal(retried[1].status, 'ready')
 assert.equal(retried[1].error, null)
 assert.equal(retried[0].status, 'ready')
+
+function progressLabels(slots: ReturnType<typeof initialSlots>) {
+  return slots.map((slot, index) => imageProgressLabel(index + 1, slot.status))
+}
+const waiting = initialSlots(4).map((slot) => ({ ...slot, status: 'waiting' as const, error: null }))
+assert.deepEqual(progressLabels(waiting), ['Image 1, waiting.', 'Image 2, waiting.', 'Image 3, waiting.', 'Image 4, waiting.'])
+assert.deepEqual(progressLabels(initialSlots(1)), ['Image 1, generating.'])
+assert.deepEqual(progressLabels(initialSlots(2)), ['Image 1, generating.', 'Image 2, waiting.'])
+const imageOneReady = markSlot(waiting, 'tension', 'ready')
+const imageTwoGenerating = markSlot(imageOneReady, 'trace', 'generating')
+assert.deepEqual(progressLabels(imageTwoGenerating), ['Image 1, ready.', 'Image 2, generating.', 'Image 3, waiting.', 'Image 4, waiting.'])
+const imageTwoReady = markSlot(imageTwoGenerating, 'trace', 'ready')
+const imageThreeFailed = markSlot(markSlot(imageTwoReady, 'scale', 'generating'), 'scale', 'failed', 'This image did not come back.')
+assert.equal(imageThreeFailed[2].status, 'failed')
+assert.notEqual(imageProgressLabel(3, imageThreeFailed[2].status), imageProgressLabel(3, 'ready'))
+const imageThreeRetried = markSlot(imageThreeFailed, 'scale', 'ready')
+const imageFourReady = markSlot(markSlot(imageThreeRetried, 'relation', 'generating'), 'relation', 'ready')
+assert.deepEqual(progressLabels(imageFourReady), ['Image 1, ready.', 'Image 2, ready.', 'Image 3, ready.', 'Image 4, ready.'])
 
 const startedAt = 1_700_000_000_000
 assert.equal(nextImageCountdown(startedAt, startedAt).remaining, 30)
@@ -226,6 +244,12 @@ assert.equal(requestBody.includes('nextImageCountdown'), false)
 assert.equal(view.includes('setSlots(null)'), true)
 assert.equal(view.includes('imageAbort.current?.abort()'), true)
 assert.equal(view.includes('Try this image again'), true)
+assert.equal(view.includes('imageProgressLabel'), true)
+assert.equal(view.includes('data-image-progress={slot.status}'), true)
+assert.equal(view.includes('motion-safe:animate-pulse'), true)
+assert.equal(view.includes('Image {index + 1} of {slots.length}'), false)
+assert.equal(view.includes('Creating this image…'), false)
+assert.equal(view.includes("role=\"img\""), true)
 assert.equal(view.includes('addImageCandidate'), true)
 assert.equal(view.includes('beginImageSet'), true)
 assert.equal(view.includes('direction'), true)

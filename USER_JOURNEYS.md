@@ -113,6 +113,36 @@ A question in the Garden, or an existing question opened from another part of th
 
 ---
 
+## Journey 2a — Visualise an Experience topic
+
+### Intent
+
+The person wants a visual interpretation of one topic in Concern, Influence, or Control, using the same creative direction, images, titles, and Library as a Garden question. The topic is not turned into a question.
+
+### Steps
+
+1. The person selects a topic and chooses **Visualise**.
+2. Curitopia opens the shared Visualise workspace on the topic wording. The Garden question selector is not shown.
+3. The person asks for a creative direction, edits it, and accepts it. The topic wording stays the source.
+4. The person generates one, two, or four images. The interpretations remain Tension, Trace, Scale, and Relation, in that order.
+5. The person selects an image, may ask for metaphor titles, and saves the concept.
+6. The concept appears in the existing Library with the saved topic wording and an origin such as “Experience · Influence”.
+7. The same concept also appears in the Visualisations gallery on this Experience, in the circle recorded when Visualise opened.
+8. The person returns to the same topic, in the same circle, with the carousel where they left it. Opening a gallery image shows that saved concept and returns here when closed.
+
+### Acceptance criteria
+
+- Visualise is available from Concern, Influence, and Control.
+- The server records the topic wording and circle when Visualise opens, after checking that the experience, curiosity, and topic belong to the signed-in person. A topic from another experience or curiosity is rejected, and no model is called.
+- Creative direction, images, titles, and the saved concept all use that opening snapshot. The browser cannot swap in different wording.
+- Saving does not create a Garden question and does not write the topic into `concept_questions`.
+- The saved circle and wording stay as they were when Visualise opened if the live topic is later edited, moved, or removed. The Experience gallery uses that same record, so a later move does not change which collection holds the image.
+- The gallery does not add images, titles, or creative directions to the facilitator.
+- Deleting the concept removes its Experience provenance.
+- Unfinished image generation for a topic stays on the screen. It is not a new stored draft.
+
+---
+
 ## Journey 3 — Compare concepts and discover a connection
 
 ### Intent

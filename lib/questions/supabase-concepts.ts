@@ -1,7 +1,9 @@
 import { readConceptImage } from '@/lib/questions/concept-image'
 import { linkChanges } from '@/lib/questions/concept-links'
 import { originatingQuestionId } from '@/lib/questions/library-carousel'
-import type { ConceptRecord, ConceptSource, LibraryConcept, QuestionRecord } from '@/lib/questions/types'
+import type { ConceptRecord, ConceptSource, ExperienceConceptSource, LibraryConcept, QuestionRecord } from '@/lib/questions/types'
+import { circleName } from '@/lib/questions/experience-content'
+import { withBasePath } from '@/lib/paths'
 import { createClient } from '@/lib/supabase/client'
 
 const bucket = 'concept-images'
@@ -24,6 +26,16 @@ type LinkRow = {
   question_id: string | null
   original_text_snapshot: string
   considered_text_snapshot: string | null
+}
+
+type ExperienceSourceRow = {
+  id: string
+  concept_id: string
+  experience_id: string | null
+  item_id: string | null
+  curiosity_id: string
+  circle: string
+  original_text_snapshot: string
 }
 
 function conceptMessage(error: { code?: string; message?: string }, fallback: string) {
@@ -64,7 +76,36 @@ async function signedImageUrls(paths: string[]) {
   return signed
 }
 
-function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string): ConceptRecord {
+function toExperienceSource(row: ExperienceSourceRow): ExperienceConceptSource | null {
+  const circle = circleName(row.circle)
+  const originalText = row.original_text_snapshot.trim()
+  if (!circle || !originalText) return null
+  return {
+    linkId: row.id,
+    experienceId: row.experience_id,
+    itemId: row.item_id,
+    curiosityId: row.curiosity_id,
+    circle,
+    originalText,
+  }
+}
+
+function experienceSourceFor(conceptId: string, rows: ExperienceSourceRow[]) {
+  const row = rows.find((item) => item.concept_id === conceptId)
+  return row ? toExperienceSource(row) : null
+}
+
+async function loadExperienceSources(supabase: Awaited<ReturnType<typeof signedIn>>['supabase'], column: 'curiosity_id' | 'user_id', value: string) {
+  const result = await supabase
+    .from('concept_experience_sources')
+    .select('id, concept_id, experience_id, item_id, curiosity_id, circle, original_text_snapshot')
+    .eq(column, value)
+  if (!result.error) return result.data ?? []
+  if (result.error.code === '42P01' || result.error.code === 'PGRST205') return []
+  throw new Error(conceptMessage(result.error, 'The library could not be loaded.'))
+}
+
+function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string, experienceSource: ExperienceConceptSource | null = null): ConceptRecord {
   const live = sources.flatMap((source) => source.questionId ? [source.questionId] : [])
   const anchorQuestionId = originatingQuestionId({
     anchorQuestionId: null,
@@ -84,6 +125,7 @@ function toConcept(row: ConceptRow, sources: ConceptSource[], imageSrc: string):
     anchorQuestionId,
     questionIds: anchorQuestionId ? [anchorQuestionId, ...live.filter((id) => id !== anchorQuestionId)] : live,
     sources,
+    experienceSource,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -97,6 +139,7 @@ export async function listConcepts(curiosityId: string) {
   ])
   if (conceptError) throw new Error(conceptMessage(conceptError, 'The library could not be loaded.'))
   if (linkError) throw new Error(conceptMessage(linkError, 'The library could not be loaded.'))
+  const experienceSources = await loadExperienceSources(supabase, 'curiosity_id', curiosityId)
   const rows = conceptRows ?? []
   const links = linkRows ?? []
   const signed = await signedImageUrls(rows.map((row) => row.image_path))
@@ -104,7 +147,7 @@ export async function listConcepts(curiosityId: string) {
     const sources = links.filter((link) => link.concept_id === row.id).map(toSource)
     const imageSrc = signed.get(row.image_path)
     if (!imageSrc) throw new Error('A saved image could not be opened. The library was left unchanged.')
-    return toConcept(row, sources, imageSrc)
+    return toConcept(row, sources, imageSrc, experienceSourceFor(row.id, experienceSources))
   })
 }
 
@@ -119,6 +162,7 @@ export async function listAccountConcepts(): Promise<LibraryConcept[]> {
   ])
   if (conceptError) throw new Error(conceptMessage(conceptError, 'The library could not be loaded.'))
   if (linkError) throw new Error(conceptMessage(linkError, 'The library could not be loaded.'))
+  const experienceSources = await loadExperienceSources(supabase, 'user_id', userId)
   const rows = conceptRows ?? []
   const links = linkRows ?? []
   const signed = await signedImageUrls(rows.map((row) => row.image_path))
@@ -126,7 +170,7 @@ export async function listAccountConcepts(): Promise<LibraryConcept[]> {
     const sources = links.filter((link) => link.concept_id === row.id).map(toSource)
     const imageSrc = signed.get(row.image_path)
     if (!imageSrc) throw new Error('A saved image could not be opened. The library was left unchanged.')
-    return { ...toConcept(row, sources, imageSrc), curiosityId: row.curiosity_id }
+    return { ...toConcept(row, sources, imageSrc, experienceSourceFor(row.id, experienceSources)), curiosityId: row.curiosity_id }
   })
 }
 
@@ -163,6 +207,10 @@ export async function createStoredConcept(concept: ConceptRecord, questions: Que
   }
   const image = readConceptImage(concept.imageSrc)
   if ('error' in image) throw new Error(image.error)
+  const snapshotToken = concept.experienceSource?.snapshotToken?.trim() ?? ''
+  if (concept.experienceSource && !snapshotToken) {
+    throw new Error('This visualisation has no source snapshot, so the concept was not kept.')
+  }
   const { supabase, userId } = await signedIn()
   const path = `${userId}/${concept.id}/kept.${image.file.extension}`
   const uploaded = await supabase.storage.from(bucket).upload(path, new Blob([image.file.bytes], { type: image.file.mime }), {
@@ -170,6 +218,56 @@ export async function createStoredConcept(concept: ConceptRecord, questions: Que
     upsert: false,
   })
   if (uploaded.error) throw new Error(conceptMessage(uploaded.error, 'The selected image could not be uploaded. The concept was not kept.'))
+
+  if (concept.experienceSource) {
+    const payload = {
+      conceptId: concept.id,
+      curiosityId,
+      token: snapshotToken,
+      title: concept.title.trim(),
+      consideredText: concept.forConsideredText.trim(),
+      imagePath: path,
+      imageModel: concept.model.trim(),
+      promptVersion: concept.promptVersion.trim(),
+    }
+    const postProvenance = async () => {
+      const response = await fetch(withBasePath('/api/visualise/provenance'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const recorded = await response.json() as { error?: unknown }
+      if (!response.ok) {
+        const failure = new Error(typeof recorded.error === 'string' ? recorded.error : 'The Experience source could not be saved.')
+        ;(failure as Error & { definite: boolean }).definite = true
+        throw failure
+      }
+    }
+    let definite: Error | null = null
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await postProvenance()
+        return
+      } catch (error) {
+        const reason = error instanceof Error ? error : new Error('The Experience source could not be saved.')
+        if ('definite' in reason && reason.definite === true) {
+          definite = reason
+          break
+        }
+      }
+    }
+    if (definite) {
+      const fileProblem = await removeUploaded(path)
+      throw new Error(cleanupMessage(definite.message, fileProblem ? [fileProblem] : []))
+    }
+    const existing = await supabase.from('concepts').select('id').eq('id', concept.id).eq('user_id', userId).maybeSingle()
+    if (!existing.error && existing.data) return
+    if (!existing.error) {
+      const fileProblem = await removeUploaded(path)
+      throw new Error(cleanupMessage('The concept was not saved.', fileProblem ? [fileProblem] : []))
+    }
+    throw new Error('The save could not be confirmed. Open the library before trying again. Nothing was shown as saved.')
+  }
 
   const inserted = await supabase.from('concepts').insert({
     id: concept.id,

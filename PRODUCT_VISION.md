@@ -50,13 +50,13 @@ A signed-in person can keep multiple curiosities. Each curiosity is a persistent
 - Enter adds a question and clears the input.
 - Original wording is preserved.
 - No AI refinement, theme, investigation, status selection, or image is required to capture a question.
-- A person can open Visualise directly from any question.
+- A person can open Visualise directly from any question, and from a topic in Concern, Influence, or Control.
 - Lightweight actions such as edit, park, restore, or remove may remain when useful, but they are not a curation workflow and do not determine whether a question can be explored.
 - Questions are not discarded automatically because no image is saved.
 
 ### Visualise — contextual image exploration
 
-Visualise opens from a question or an existing concept. It is an explicit creative action, not a mandatory stage.
+Visualise opens from a question, an Experience topic, or an existing concept. It is an explicit creative action, not a mandatory stage. An Experience topic is not rewritten as a Garden question.
 
 - The question can be used as captured. Optional refinement may help make the prompt more specific, but should not become another required step.
 - The original capture remains intact.
@@ -261,7 +261,7 @@ The source architecture snapshot records a historical status for the curiosities
 ### Existing model decisions to preserve unless separately changed
 
 - V2 uses its own Supabase project and accounts; V1 remains separate.
-- Concepts are independent saved records linked to source questions through `concept_questions`.
+- Concepts are independent saved records. A Garden concept is linked to source questions through `concept_questions`. A concept saved from an Experience topic keeps that topic and circle in `concept_experience_sources` instead.
 - One question may inform many concepts; one concept may be informed by many questions.
 - Source-question wording snapshots preserve provenance if a live question changes or is removed.
 - Titles use the existing one- or two-word rule (maximum 40 characters, with two words separated by one ordinary space).

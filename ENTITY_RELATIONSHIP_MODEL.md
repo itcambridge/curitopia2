@@ -185,6 +185,21 @@ Snapshots preserve the historical wording. Deleting a live question clears only 
 
 This relationship is provenance. It must not be repurposed to connect two concepts.
 
+### 3.6 Experience-topic provenance
+
+A concept saved from an Experience topic is still one `concepts` row in the same Library. It does not create a Garden question, and it does not insert a row in `concept_questions`.
+
+`concept_experience_sources` stores one snapshot for that concept:
+
+- the topic wording when Visualise opened;
+- the circle when Visualise opened: concern, influence, or control;
+- the curiosity;
+- live references to the experience and the topic item.
+
+Opening Visualise writes one `experience_visualisation_sources` row while the topic still exists. The database copies the topic wording, circle, and capture time from that topic and the database clock. The browser cannot choose them. Saving creates the concept and copies that row in one transaction. `origin_source_id` stores the opening id and stays after the temporary row is deleted. One opening id can be copied onto only one concept. The same concept and source can be retried after the temporary row is gone. A different concept is rejected. The copy may already have null live ids when the topic or experience was removed before saving. When they are present, the experience reference is `(experience_id, user_id, curiosity_id)` and the topic reference is `(item_id, user_id, experience_id)`. Closing Visualise deletes the opening row. The copied provenance remains. Opening rows older than seven days are removed the next time Visualise is opened.
+
+The server records that opening row when Visualise opens and uses it for the creative direction, the images, the titles, and the saved provenance. It does not replace it with the topic's later wording or circle. Deleting the topic or the experience clears only the listed live id on the opening row and on any concept row already copied from it. The wording and circle remain. Deleting the concept removes the copied provenance. It does not remove the opening row. Authenticated users can read the copied provenance. They cannot insert, update, or delete it. The card shows the saved topic wording and an origin such as “Experience · Influence”. `for_considered_text` stays the accepted creative direction. It does not replace the topic.
+
 ## 4. Proposed addition — concept-to-concept connection
 
 ### 4.1 Why it is separate

@@ -128,7 +128,14 @@ export function ExperienceScreen({
                 {error ? <p role="alert" className="mt-4 text-sm">{error}</p> : null}
               </header>
               {writeTarget === 'allowed' && experienceId ? (
-                <ExperienceWorkspace key={experienceId} curiosityId={curiosityId} experienceId={experienceId} northStar={northStar} items={items} productionOpen={productionDecision === 'open'} />
+                <ExperienceWorkspace key={experienceId} curiosityId={curiosityId} experienceId={experienceId} northStar={northStar} items={items} productionOpen={productionDecision === 'open'} concepts={account.workspace.concepts} conceptsLoaded={account.conceptsLoaded} workspace={account.workspace} onChange={(next) => { void account.write(next) }} saving={account.saving} savedConceptId={account.savedConceptId} onRecordConcept={async (concept) => {
+                  const problem = await account.write((current) => ({
+                    ...current,
+                    concepts: [concept, ...current.concepts.filter((item) => item.id !== concept.id)],
+                    focusConceptId: concept.id,
+                  }))
+                  if (problem) throw new Error(problem)
+                }} />
               ) : null}
             </>
           )}

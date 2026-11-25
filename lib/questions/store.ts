@@ -54,10 +54,22 @@ function isDraft(value: unknown): value is CandidateDraft {
     && draft.candidates.every(isCandidate)
 }
 
+function isExperienceSource(value: unknown) {
+  if (!value || typeof value !== 'object') return false
+  const source = value as Partial<ConceptRecord['experienceSource']>
+  if (!source) return false
+  return (source.experienceId === null || typeof source.experienceId === 'string')
+    && (source.itemId === null || typeof source.itemId === 'string')
+    && typeof source.curiosityId === 'string'
+    && (source.circle === 'concern' || source.circle === 'influence' || source.circle === 'control')
+    && typeof source.originalText === 'string'
+    && source.originalText.trim().length > 0
+}
+
 function isConcept(value: unknown): value is ConceptRecord {
   if (!value || typeof value !== 'object') return false
   const concept = value as Partial<ConceptRecord>
-  return typeof concept.id === 'string'
+  const shared = typeof concept.id === 'string'
     && typeof concept.title === 'string'
     && typeof concept.imageSrc === 'string'
     && typeof concept.imageLabel === 'string'
@@ -65,12 +77,14 @@ function isConcept(value: unknown): value is ConceptRecord {
     && (concept.model === null || typeof concept.model === 'string')
     && (concept.promptVersion === null || typeof concept.promptVersion === 'string')
     && typeof concept.forConsideredText === 'string'
-    && typeof concept.anchorQuestionId === 'string'
     && typeof concept.createdAt === 'string'
     && typeof concept.updatedAt === 'string'
     && Array.isArray(concept.questionIds)
     && concept.questionIds.every((id) => typeof id === 'string')
-    && concept.questionIds.includes(concept.anchorQuestionId)
+  if (!shared) return false
+  if (concept.anchorQuestionId === null && concept.questionIds?.length === 0 && isExperienceSource(concept.experienceSource)) return true
+  return typeof concept.anchorQuestionId === 'string'
+    && concept.questionIds?.includes(concept.anchorQuestionId) === true
 }
 
 function readWorkspace(value: unknown): Workspace | null {
@@ -83,7 +97,7 @@ function readWorkspace(value: unknown): Workspace | null {
     ? record.branches.filter(isBranch).filter((branch) => known.has(branch.questionLowId) && known.has(branch.questionHighId))
     : []
   const drafts = record.drafts.filter(isDraft).filter((draft) => known.has(draft.questionId))
-  const concepts = record.concepts.filter(isConcept).filter((concept) => concept.anchorQuestionId !== null && known.has(concept.anchorQuestionId))
+  const concepts = record.concepts.filter(isConcept).filter((concept) => concept.experienceSource ? true : concept.anchorQuestionId !== null && known.has(concept.anchorQuestionId))
   return {
     stage: isStageId(record.stage) ? record.stage : 'gather',
     focusQuestionId: typeof record.focusQuestionId === 'string' && known.has(record.focusQuestionId) ? record.focusQuestionId : null,

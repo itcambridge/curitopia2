@@ -1,8 +1,9 @@
 'use client'
 
-import { ArrowLeftRight, Link2, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, ImagePlus, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { coralButton, Eyebrow, quietButton } from '@/components/studio/studio-ui'
+import { ExperienceVisualise } from '@/components/studio/experience-visualise'
 import { SuggestionCard, HeldInvitation } from '@/components/studio/experience-suggestions'
 import { TopicCarousel } from '@/components/studio/topic-carousel'
 import {
@@ -26,6 +27,7 @@ import {
 } from '@/lib/questions/experience-content'
 import { addCircleItem, deleteCircleItem, editCircleItem, moveCircleItem, saveNorthStar } from '@/lib/questions/supabase-experience-content'
 import type { HeldExperiment, LandscapeProposal, ProposalActions } from '@/lib/questions/experience-proposals'
+import type { ConceptRecord } from '@/lib/questions/types'
 import { holdExperiment } from '@/lib/questions/experience-proposals'
 import { experimentVisitNote } from '@/lib/questions/experience-facilitator'
 import { focusAddedTopic, focusAfterRemoval, focusMovedTopic, initialTopicFocus, topicIndex } from '@/lib/questions/topic-carousel'
@@ -148,6 +150,7 @@ function anchorPoint(element: HTMLElement, box: DOMRect) {
 }
 
 export function ExperienceClearing({
+  curiosityId,
   experienceId,
   northStar,
   items,
@@ -156,8 +159,10 @@ export function ExperienceClearing({
   onBind,
   onSettled,
   onHold,
+  onRecordConcept,
   productionOpen,
 }: {
+  curiosityId: string
   experienceId: string
   northStar: string | null
   items: CircleItem[]
@@ -167,6 +172,7 @@ export function ExperienceClearing({
   onBind: (actions: ProposalActions) => void
   onSettled: (id: string) => void
   onHold: (experiment: HeldExperiment) => void
+  onRecordConcept: (concept: ConceptRecord) => Promise<void>
 }) {
   const [star, setStar] = useState(northStar)
   const [notes, setNotes] = useState(items)
@@ -176,6 +182,7 @@ export function ExperienceClearing({
   const [confirmingClear, setConfirmingClear] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focus, setFocus] = useState(initialTopicFocus)
+  const [visualisingId, setVisualisingId] = useState<string | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [itemDraft, setItemDraft] = useState('')
   const [removingId, setRemovingId] = useState<string | null>(null)
@@ -197,6 +204,7 @@ export function ExperienceClearing({
   }, [])
   const grouped = itemsByCircle(notes)
   const selected = notes.find((item) => item.id === selectedId) ?? null
+  const visualising = notes.find((item) => item.id === visualisingId) ?? null
   const partnerKey = selected
     ? relationshipsForPhrase(links, selected.id).map((link) => link.fromId === selected.id ? link.toId : link.fromId).join(',')
     : ''
@@ -523,6 +531,7 @@ export function ExperienceClearing({
                           <button type="button" className={detailAction} disabled={busy} onClick={() => { setChoosingMove(true); setPendingPartnerId(null); setRemovingId(null) }}><ArrowLeftRight className="size-4" aria-hidden="true" />Move</button>
                           <button type="button" className={detailAction} disabled={busy} onClick={() => setRemovingId(selected.id)}><Trash2 className="size-4" aria-hidden="true" />Remove</button>
                           <button type="button" className={detailAction} disabled={busy} onClick={() => { setPendingPartnerId('choose'); setChoosingMove(false) }}><Link2 className="size-4" aria-hidden="true" />Link</button>
+                          <button type="button" className={detailAction} disabled={busy} onClick={() => setVisualisingId(selected.id)}><ImagePlus className="size-4" aria-hidden="true" />Visualise</button>
                           <button type="button" className={textAction} onClick={() => setSelectedId(null)}>Close</button>
                         </div>
                       )}
@@ -586,6 +595,19 @@ export function ExperienceClearing({
         </section>
       ) : null}
       </div>
+      {visualising && experienceId ? (
+        <ExperienceVisualise
+          topic={{
+            curiosityId,
+            experienceId,
+            itemId: visualising.id,
+            circle: visualising.circle,
+            originalText: visualising.body,
+          }}
+          onClose={() => setVisualisingId(null)}
+          onSaved={onRecordConcept}
+        />
+      ) : null}
     </div>
   )
 }

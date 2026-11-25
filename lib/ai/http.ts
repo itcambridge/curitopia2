@@ -4,12 +4,37 @@ import { isMetaphorId } from '../providers/prompts.ts'
 import type { ImageSetResult, MetaphorId } from '../providers/types.ts'
 import { inspectTitleSuggestions, resolveTitleSuggestions } from '../questions/suggested-titles.ts'
 import { titleImageUrl, titleSuggestionPrompt } from '../questions/title.ts'
+import { readSignedVisualisationSnapshot, type VisualisationSnapshot } from '../questions/visualisation-snapshot.ts'
 
 const questionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type Gate = {
   session: AiSession
   authenticate: (endpoint: AiEndpoint, session: AiSession) => Promise<Response | { userId: string }>
+}
+
+type SnapshotReader = (token: string, userId: string) => VisualisationSnapshot | null
+type SourceConfirm = (snapshot: VisualisationSnapshot) => Promise<boolean>
+
+async function confirmStoredSource(snapshot: VisualisationSnapshot) {
+  const { storedVisualisationMatches } = await import('@/lib/questions/experience-visualisation-source')
+  return storedVisualisationMatches(snapshot)
+}
+
+async function topicSnapshot(
+  source: unknown,
+  userId: string,
+  readSnapshot: SnapshotReader,
+  confirmSource: SourceConfirm,
+): Promise<VisualisationSnapshot | { error: string }> {
+  if (!source || typeof source !== 'object') return { error: 'Choose a saved topic before asking for a creative direction.' }
+  const record = source as { kind?: unknown; token?: unknown }
+  if (record.kind !== 'experience-topic') return { error: 'That source is not an Experience topic. Nothing was sent.' }
+  const token = typeof record.token === 'string' ? record.token : ''
+  if (!token) return { error: 'Open the topic again before asking for a creative direction.' }
+  const snapshot = readSnapshot(token, userId)
+  if (!snapshot || !await confirmSource(snapshot)) return { error: 'That visualisation source could not be verified. Nothing was sent.' }
+  return snapshot
 }
 
 function startTurn(userId: string, endpoint: AiEndpoint, callsProvider: boolean) {
@@ -21,27 +46,36 @@ export async function considerHttp(
   gate: Gate,
   consider: (original: string) => Promise<{ proposal: string } | { error: string }>,
   loadQuestion: (questionId: string, curiosityId: string) => Promise<string | null>,
+  readSnapshot: SnapshotReader = readSignedVisualisationSnapshot,
+  confirmSource: SourceConfirm = confirmStoredSource,
 ) {
   const auth = await gate.authenticate('consider', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { questionId?: unknown; curiosityId?: unknown }
+  let body: { questionId?: unknown; curiosityId?: unknown; source?: unknown }
   try {
     body = await request.json()
   } catch {
     return Response.json({ error: 'The request could not be read.' }, { status: 400 })
   }
-  const questionId = typeof body.questionId === 'string' ? body.questionId : ''
-  const curiosityId = typeof body.curiosityId === 'string' ? body.curiosityId : ''
-  if (!questionIdPattern.test(questionId) || !questionIdPattern.test(curiosityId)) {
-    return Response.json({ error: 'Choose a saved question before asking for a creative direction.' }, { status: 400 })
-  }
-  const originalText = (await loadQuestion(questionId, curiosityId))?.trim() ?? ''
-  if (!originalText) {
-    return Response.json({ error: 'That question is not in this curiosity. Nothing was sent.' }, { status: 404 })
-  }
-  if (originalText.length > 2000) {
-    return Response.json({ error: 'That question is too long to turn into a creative direction.' }, { status: 400 })
+  let originalText = ''
+  if (body.source !== undefined) {
+    const topic = await topicSnapshot(body.source, auth.userId, readSnapshot, confirmSource)
+    if ('error' in topic) return Response.json({ error: topic.error }, { status: 400 })
+    originalText = topic.originalText
+  } else {
+    const questionId = typeof body.questionId === 'string' ? body.questionId : ''
+    const curiosityId = typeof body.curiosityId === 'string' ? body.curiosityId : ''
+    if (!questionIdPattern.test(questionId) || !questionIdPattern.test(curiosityId)) {
+      return Response.json({ error: 'Choose a saved question before asking for a creative direction.' }, { status: 400 })
+    }
+    originalText = (await loadQuestion(questionId, curiosityId))?.trim() ?? ''
+    if (!originalText) {
+      return Response.json({ error: 'That question is not in this curiosity. Nothing was sent.' }, { status: 404 })
+    }
+    if (originalText.length > 2000) {
+      return Response.json({ error: 'That question is too long to turn into a creative direction.' }, { status: 400 })
+    }
   }
   const turn = startTurn(auth.userId, 'consider', considerWouldCallProvider())
   if (turn instanceof Response) return turn
@@ -60,12 +94,14 @@ export async function considerHttp(
 export async function imagesHttp(
   request: Request,
   gate: Gate,
-  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId, question?: string) => Promise<ImageSetResult>,
+  interpret: (considered: string, signal?: AbortSignal, direction?: MetaphorId, question?: string, sourceNoun?: 'question' | 'topic') => Promise<ImageSetResult>,
+  readSnapshot: SnapshotReader = readSignedVisualisationSnapshot,
+  confirmSource: SourceConfirm = confirmStoredSource,
 ) {
   const auth = await gate.authenticate('images', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { consideredText?: unknown; originalText?: unknown; direction?: unknown; runId?: unknown }
+  let body: { consideredText?: unknown; originalText?: unknown; direction?: unknown; runId?: unknown; source?: unknown }
   try {
     body = await request.json()
   } catch {
@@ -79,7 +115,14 @@ export async function imagesHttp(
     return Response.json({ error: 'Choose one of the available visual directions.' }, { status: 400 })
   }
   const direction = isMetaphorId(body.direction) ? body.direction : undefined
-  const originalText = typeof body.originalText === 'string' ? body.originalText.trim() : ''
+  let originalText = typeof body.originalText === 'string' ? body.originalText.trim() : ''
+  let sourceNoun: 'question' | 'topic' = 'question'
+  if (body.source !== undefined) {
+    const topic = await topicSnapshot(body.source, auth.userId, readSnapshot, confirmSource)
+    if ('error' in topic) return Response.json({ error: topic.error }, { status: 400 })
+    originalText = topic.originalText
+    sourceNoun = 'topic'
+  }
   if (originalText.length > 2000) {
     return Response.json({ error: 'That question is too long to send with the images.' }, { status: 400 })
   }
@@ -89,7 +132,7 @@ export async function imagesHttp(
   const turn = startTurn(auth.userId, 'images', imagesWouldCallProvider())
   if (turn instanceof Response) return turn
   try {
-    return Response.json(await interpret(consideredText, request.signal, direction, originalText))
+    return Response.json(await interpret(consideredText, request.signal, direction, originalText, sourceNoun))
   } finally {
     turn?.()
   }
@@ -106,11 +149,16 @@ function questionInput(value: unknown) {
   return { originalText, consideredText: considered || null }
 }
 
-export async function titlesHttp(request: Request, gate: Gate) {
+export async function titlesHttp(
+  request: Request,
+  gate: Gate,
+  readSnapshot: SnapshotReader = readSignedVisualisationSnapshot,
+  confirmSource: SourceConfirm = confirmStoredSource,
+) {
   const auth = await gate.authenticate('titles', gate.session)
   if (auth instanceof Response) return auth
 
-  let body: { consideredText?: unknown; metaphor?: unknown; imageSrc?: unknown; questions?: unknown }
+  let body: { consideredText?: unknown; metaphor?: unknown; imageSrc?: unknown; questions?: unknown; source?: unknown }
   try {
     body = await request.json()
   } catch {
@@ -120,10 +168,17 @@ export async function titlesHttp(request: Request, gate: Gate) {
   const consideredText = typeof body.consideredText === 'string' ? body.consideredText.trim() : ''
   const metaphor = typeof body.metaphor === 'string' ? body.metaphor.trim() : ''
   const imageSrc = typeof body.imageSrc === 'string' ? body.imageSrc : null
-  const questions = Array.isArray(body.questions) ? body.questions.flatMap((item) => {
+  let sourceLabel: string | undefined
+  let questions = Array.isArray(body.questions) ? body.questions.flatMap((item) => {
     const question = questionInput(item)
     return question ? [question] : []
   }).slice(0, 8) : []
+  if (body.source !== undefined) {
+    const topic = await topicSnapshot(body.source, auth.userId, readSnapshot, confirmSource)
+    if ('error' in topic) return Response.json({ error: topic.error }, { status: 400 })
+    questions = [{ originalText: topic.originalText, consideredText: null }]
+    sourceLabel = 'Source topic:'
+  }
   if (!consideredText || consideredText.length > 2000 || metaphor.length > 2000) {
     return Response.json({ error: 'A considered question is needed before titles can be suggested. You can still type a title.' }, { status: 400 })
   }
@@ -145,6 +200,7 @@ export async function titlesHttp(request: Request, gate: Gate) {
       metaphor: metaphor || null,
       questions,
       sawImage: image.reason === 'seen',
+      sourceLabel,
     })
     const apiKey = process.env.OPENAI_API_KEY?.trim() ?? ''
     const accepted = await resolveTitleSuggestions(async (text) => {
@@ -170,8 +226,9 @@ export async function titlesHttp(request: Request, gate: Gate) {
     }, prompt)
     if ('error' in accepted) return Response.json({ error: accepted.error })
 
+    const sourceNotice = sourceLabel === 'Source topic:' ? 'source topic' : 'source questions'
     const notice = image.reason === 'seen'
-      ? 'These suggestions used the selected image and the source questions. Choosing one only fills the title. Nothing is saved until you save the concept.'
+      ? `These suggestions used the selected image and the ${sourceNotice}. Choosing one only fills the title. Nothing is saved until you save the concept.`
       : image.reason === 'model'
         ? 'These suggestions used the wording only. This text model was not given the image, because that capability is not confirmed for it. Nothing is saved until you save the concept.'
         : 'These suggestions used the wording and metaphor only. This image was not shown to the text model. Nothing is saved until you save the concept.'
