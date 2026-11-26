@@ -41,6 +41,9 @@ function listenPort() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    agentUpgrade: 'security',
+  },
   ...(basePath ? { basePath } : {}),
   serverExternalPackages: ['word-list', 'dictionary-en'],
   images: {
