@@ -56,6 +56,15 @@ export function ExperienceWorkspace({
 
   return (
     <div className="grid min-w-0 gap-10">
+    <ExperienceGallery
+      experienceId={experienceId}
+      concepts={concepts}
+      conceptsLoaded={conceptsLoaded}
+      workspace={workspace}
+      onChange={onChange}
+      saving={saving}
+      savedConceptId={savedConceptId}
+    />
     <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)] lg:gap-6">
       <ExperienceConversation
         curiosityId={curiosityId}
@@ -78,15 +87,6 @@ export function ExperienceWorkspace({
         onRecordConcept={onRecordConcept}
       />
     </div>
-    <ExperienceGallery
-      experienceId={experienceId}
-      concepts={concepts}
-      conceptsLoaded={conceptsLoaded}
-      workspace={workspace}
-      onChange={onChange}
-      saving={saving}
-      savedConceptId={savedConceptId}
-    />
     </div>
   )
 }

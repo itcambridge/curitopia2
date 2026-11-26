@@ -127,7 +127,7 @@ The person wants a visual interpretation of one topic in Concern, Influence, or 
 4. The person generates one, two, or four images. The interpretations remain Tension, Trace, Scale, and Relation, in that order.
 5. The person selects an image, may ask for metaphor titles, and saves the concept.
 6. The concept appears in the existing Library with the saved topic wording and an origin such as “Experience · Influence”.
-7. The same concept also appears in the Visualisations gallery on this Experience, in the circle recorded when Visualise opened.
+7. The same concept appears in the Visualisations gallery at the top of this Experience, in the circle recorded when Visualise opened. An Experience with no saved images shows a short invitation there instead.
 8. The person returns to the same topic, in the same circle, with the carousel where they left it. Opening a gallery image shows that saved concept and returns here when closed.
 
 ### Acceptance criteria

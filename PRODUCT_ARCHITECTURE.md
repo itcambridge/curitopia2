@@ -52,7 +52,7 @@ The Garden must not force a Keep/Park/Discard curation ceremony before Visualise
 
 ### Visualise
 
-Visualise is a contextual workspace opened from a question. The same workspace can also open from an Experience topic in Concern, Influence, or Control. A topic stays a topic: the server loads its wording from the owned experience, and the saved concept records that wording and circle. The Experience page also shows those saved images in three collections, Concern, Influence, and Control, grouped by the circle recorded when Visualise opened. That gallery does not change the landscape or the facilitator. The Garden question path is unchanged. The workspace may include an optional question-refinement action, a prompt context display, image generation, and candidate selection.
+Visualise is a contextual workspace opened from a question. The same workspace can also open from an Experience topic in Concern, Influence, or Control. A topic stays a topic: the server loads its wording from the owned experience, and the saved concept records that wording and circle. The Experience page also shows those saved images in three collections, Concern, Influence, and Control, grouped by the circle recorded when Visualise opened. When images exist, that gallery sits above the conversation. An experience with no images shows a short invitation in that place. That gallery does not change the landscape or the facilitator. The Garden question path is unchanged. The workspace may include an optional question-refinement action, a prompt context display, image generation, and candidate selection.
 
 Responsibilities:
 - Show the original question and one editable creative direction.

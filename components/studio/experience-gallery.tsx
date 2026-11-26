@@ -104,15 +104,25 @@ export function ExperienceGallery({
   const [openId, setOpenId] = useState<string | null>(null)
   const open = openId ? concepts.find((concept) => concept.id === openId) ?? null : null
 
+  if (!populated) {
+    return (
+      <section aria-labelledby="experience-visualisations" className="min-w-0 px-4 sm:px-10 lg:px-12">
+        {!conceptsLoaded && concepts.length === 0 ? <p className="text-sm text-studio-muted">Opening visualisations…</p> : (
+          <>
+            <h3 id="experience-visualisations" className="font-serif text-xl leading-tight">Your ideas, brought to life.</h3>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-studio-body">Create a visualisation from any topic in your circles of Concern, Influence or Control. Your images will appear here.</p>
+          </>
+        )}
+      </section>
+    )
+  }
+
   return (
-    <section aria-labelledby="experience-visualisations" className="min-w-0 px-4 pb-10 sm:px-10 lg:px-12">
+    <section aria-labelledby="experience-visualisations" className="min-w-0 px-4 sm:px-10 lg:px-12">
       <Eyebrow>Visualisations</Eyebrow>
       <h3 id="experience-visualisations" className="mt-2 font-serif text-3xl leading-tight tracking-tight">Images from this experience</h3>
       <p className="mt-2 max-w-xl text-sm leading-relaxed text-studio-body">Each image stays with the circle it began in. Concern, Influence, and Control are kept apart, with equal room.</p>
-      {!conceptsLoaded && concepts.length === 0 ? <p className="mt-4 text-sm text-studio-muted">Opening visualisations…</p> : null}
-      {conceptsLoaded && !populated ? <p className="mt-4 text-sm text-studio-muted">No visualisations here yet.</p> : null}
-      {populated ? (
-        <div className="mt-6 grid gap-8">
+      <div className="mt-6 grid gap-8">
           {circles.map((circle) => {
             const items = gallery[circle.id]
             return (
@@ -141,8 +151,7 @@ export function ExperienceGallery({
               </section>
             )
           })}
-        </div>
-      ) : null}
+      </div>
       {open ? (
         <div className="fixed inset-0 z-30 overflow-y-auto bg-studio-cream px-4 py-6 sm:px-8 sm:py-10">
           <div className="mx-auto max-w-5xl">
