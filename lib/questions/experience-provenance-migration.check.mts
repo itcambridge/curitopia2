@@ -13,6 +13,7 @@ const migrationNames = [
   '20261113200000_experiences.sql',
   '20261113220000_experience_north_star_and_circles.sql',
   '20261124190000_concept_experience_sources.sql',
+  '20261126200000_concept_origin_question.sql',
 ]
 
 const sqlFiles = new Map(migrationNames.map((name) => [
@@ -476,6 +477,7 @@ assert.equal(uniqueKeys.some((key) => key.name === 'experience_circle_items_owne
 assert.equal(hasUnique('experiences', ['id', 'user_id']), true)
 assert.equal(hasUnique('experience_circle_items', ['id', 'user_id']), true)
 assert.equal(hasUnique('concepts', ['id', 'user_id', 'curiosity_id']), true)
+assert.equal(hasUnique('concepts', ['origin_question_id']), true)
 assert.equal(hasUnique('curiosities', ['id', 'user_id']), true)
 assert.equal(functions.has('prevent_user_id_change'), true)
 assert.equal(functions.has('prevent_curiosity_id_change'), true)
@@ -515,6 +517,13 @@ assert.deepEqual(itemKey.columns, ['item_id', 'user_id', 'experience_id'])
 assert.deepEqual(itemKey.referencedColumns, ['id', 'user_id', 'experience_id'])
 assert.deepEqual(itemKey.onDelete, { kind: 'set null', columns: ['item_id'] })
 assert.equal(userKey.onDelete.kind, 'cascade')
+const originQuestionKey = foreignKeys.find((key) => key.name === 'concepts_origin_question')
+assert.ok(originQuestionKey)
+assert.equal(originQuestionKey?.table, 'concepts')
+assert.deepEqual(originQuestionKey?.columns, ['origin_question_id', 'user_id', 'curiosity_id'])
+assert.equal(originQuestionKey?.referencedTable, 'questions')
+assert.deepEqual(originQuestionKey?.referencedColumns, ['id', 'user_id', 'curiosity_id'])
+assert.deepEqual(originQuestionKey?.onDelete, { kind: 'set null', columns: ['origin_question_id'] })
 for (const key of [conceptKey, curiosityKey, experienceKey, itemKey]) {
   assert.equal(hasUnique(key.referencedTable, key.referencedColumns), true, key.name)
 }
@@ -806,6 +815,26 @@ function applyUpdateTriggers(table: string, before: Row, after: Row) {
       continue
     }
     if (flat.includes('new.updated_at = now()')) continue
+    if (flat.includes("raise exception 'the originating question cannot be replaced'")) {
+      if (!flat.includes('public.concepts_origin_question_live')) throw new Error('origin clear must see through row level security')
+      if (!flat.includes("raise exception 'the originating question cannot be cleared'")) throw new Error('a live origin must not be cleared by hand')
+      const live = functions.get('concepts_origin_question_live')
+      if (!live || live.security !== 'definer' || live.searchPath !== "''") throw new Error('origin existence check must be security definer')
+      const originMigration = sqlFiles.get('20261126200000_concept_origin_question.sql') ?? ''
+      const liveDeclaration = originMigration.slice(originMigration.indexOf('function public.concepts_origin_question_live'), originMigration.indexOf('revoke all on function public.concepts_origin_question_live'))
+      if (!/language sql\s+volatile/i.test(liveDeclaration)) throw new Error('origin existence check must be volatile')
+      if (/language sql\s+stable/i.test(liveDeclaration)) throw new Error('origin existence check must not be stable')
+      if (!live.body.toLowerCase().includes('from public.questions')) throw new Error('origin existence check must read questions')
+      if (functionExec.get('concepts_origin_question_live')?.has('authenticated')) throw new Error('origin existence check must not be executable by authenticated')
+      const previous = cell(before, 'origin_question_id')
+      const next = cell(after, 'origin_question_id')
+      if (previous !== null && next !== null && previous !== next) throw new Error('the originating question cannot be replaced')
+      if (previous !== null && next === null) {
+        const deletingQuestion = referentialDeletes.some((item) => item.table === 'questions' && item.id === String(previous))
+        if (!deletingQuestion) throw new Error('the originating question cannot be cleared')
+      }
+      continue
+    }
     throw new Error(`Unhandled trigger ${trigger.function}`)
   }
   if (table === 'concept_experience_sources' || table === 'experience_visualisation_sources') {
@@ -857,12 +886,69 @@ function clearExperienceLinks(db: Database, experienceId: string) {
   }
 }
 
-function removeReferential(db: Database, table: string, row: Row, pending: Pending[], experienceOrder: 'creation' | 'reverse') {
+let originPromotions = 0
+const referentialDeletes: { table: string, id: string }[] = []
+
+function conceptResolvesTo(db: Database, concept: Row, questionId: string) {
+  const links = (db.rows.concept_questions ?? []).filter((link) => link.concept_id === concept.id && link.question_id)
+  const prompt = String(concept.for_considered_text ?? '')
+  const matched = [...new Set(links.flatMap((link) => String(link.considered_text_snapshot ?? '') === prompt ? [String(link.question_id)] : []))]
+  if (matched.length === 1) return matched[0] === questionId
+  if (matched.length > 1) return false
+  if (links.length === 1) return String(links[0].question_id) === questionId
+  return false
+}
+
+// Mirrors concepts_promote_origin. A direct delete is depth 1. Any deeper
+// trigger delete, including a foreign-key cascade, is suppressed.
+function promoteGardenOrigin(db: Database, deleted: Row, depth: number) {
+  const fn = functions.get('concepts_promote_origin')
+  if (!fn) throw new Error('origin promotion trigger is missing')
+  if (fn.security !== 'definer') throw new Error('origin promotion must be security definer')
+  if (fn.searchPath !== "''") throw new Error('origin promotion must use an empty search_path')
+  const flat = fn.body.replace(/\s+/g, ' ').toLowerCase()
+  if (!flat.includes('pg_catalog.pg_trigger_depth() > 1')) throw new Error('cascade deletes must not promote')
+  if (!flat.includes('from public.curiosities')) throw new Error('promotion must confirm the curiosity')
+  if (!flat.includes('from public.questions')) throw new Error('promotion must confirm the question')
+  const questionAt = flat.indexOf('from public.questions')
+  if (flat.slice(questionAt, questionAt + 240).includes('for update')) throw new Error('promotion must not lock the question row')
+  if (!flat.includes('for update of candidate')) throw new Error('promotion must lock the successor')
+  if (!flat.includes('order by candidate.created_at, candidate.id')) throw new Error('promotion order')
+  if (!flat.includes('from public.concept_experience_sources')) throw new Error('promotion must exclude experience concepts')
+  if (!flat.includes('candidate.origin_question_id is null')) throw new Error('promotion must leave stored origins unchanged')
+  if (!flat.includes('when unique_violation then')) throw new Error('unique conflicts must abort the delete')
+  if (flat.includes('delete from')) throw new Error('promotion must not delete concepts')
+  if (functionExec.get('concepts_promote_origin')?.has('authenticated')) throw new Error('promotion must not be executable by authenticated')
+  if (cell(deleted, 'origin_question_id') === null) return
+  if (depth > 1) return
+  const curiosity = (db.rows.curiosities ?? []).find((item) => item.id === deleted.curiosity_id && item.user_id === deleted.user_id)
+  if (!curiosity) return
+  const question = (db.rows.questions ?? []).find((item) => item.id === deleted.origin_question_id && item.user_id === deleted.user_id && item.curiosity_id === deleted.curiosity_id)
+  if (!question) return
+  const successors = (db.rows.concepts ?? []).filter((concept) => (
+    concept.id !== deleted.id
+    && concept.user_id === deleted.user_id
+    && concept.curiosity_id === deleted.curiosity_id
+    && (concept.origin_question_id ?? null) === null
+    && !(db.rows.concept_experience_sources ?? []).some((source) => source.concept_id === concept.id)
+    && conceptResolvesTo(db, concept, String(deleted.origin_question_id))
+  )).sort((left, right) => String(left.created_at ?? '').localeCompare(String(right.created_at ?? '')) || String(left.id).localeCompare(String(right.id)))
+  const successor = successors[0]
+  if (!successor) return
+  const next = { ...successor, origin_question_id: deleted.origin_question_id }
+  applyUpdateTriggers('concepts', successor, next)
+  replaceRow(db, 'concepts', String(successor.id), next)
+  originPromotions += 1
+}
+
+function removeReferential(db: Database, table: string, row: Row, pending: Pending[], experienceOrder: 'creation' | 'reverse', depth = 1) {
+  referentialDeletes.push({ table, id: String(row.id) })
+  try {
   if (table === 'experiences') clearExperienceLinks(db, String(row.id))
   for (const key of referencing(table, experienceOrder)) {
     const children = [...(db.rows[key.table] ?? [])].filter((child) => refers(key, child, row))
     if (key.onDelete.kind === 'cascade') {
-      for (const child of children) removeReferential(db, key.table, child, pending, experienceOrder)
+      for (const child of children) removeReferential(db, key.table, child, pending, experienceOrder, depth + 1)
       continue
     }
     if (key.onDelete.kind === 'restrict') {
@@ -881,7 +967,11 @@ function removeReferential(db: Database, table: string, row: Row, pending: Pendi
       replaceRow(db, key.table, String(child.id), next)
     }
   }
+  if (table === 'concepts') promoteGardenOrigin(db, row, depth)
   removeRow(db, table, String(row.id))
+  } finally {
+    referentialDeletes.pop()
+  }
 }
 
 function stillReferenced(db: Database, pending: Pending) {
@@ -1424,9 +1514,225 @@ const agedConcept = '37373737-3737-4373-8373-373737373737'
 assert.equal(copyProvenance(aged, agedConcept, staleId, userA).error, 'that visualisation has expired')
 assert.equal(aged.rows.concepts.some((row) => row.id === agedConcept), false)
 
+const firstBloom = '45454545-4545-4454-8454-454545454545'
+const secondBloom = '46464646-4646-4464-8464-464646464646'
+const experienceBloom = '47474747-4747-4474-8474-474747474747'
+const bloomFields = {
+  user_id: userA,
+  curiosity_id: curiosityA,
+  title: 'First Bloom',
+  for_considered_text: 'A held tension between expectation and evidence.',
+  image_model: 'gpt-image-2.5-flare',
+  prompt_version: 'image-eval-1',
+}
+const firstSaved = insert(ready, 'concepts', {
+  ...bloomFields,
+  id: firstBloom,
+  image_path: `${userA}/${firstBloom}/kept.webp`,
+  origin_question_id: questionGarden,
+}, userA)
+assert.equal(firstSaved.error, null)
+const duplicateSaved = insert(firstSaved.db, 'concepts', {
+  ...bloomFields,
+  id: secondBloom,
+  image_path: `${userA}/${secondBloom}/kept.webp`,
+  origin_question_id: questionGarden,
+}, userA)
+assert.equal(duplicateSaved.error, 'unique concepts_one_origin_question')
+assert.equal(duplicateSaved.db.rows.concepts.some((row) => row.id === secondBloom), false)
+const experienceSaved = insert(firstSaved.db, 'concepts', {
+  ...bloomFields,
+  id: experienceBloom,
+  title: 'Topic Form',
+  image_path: `${userA}/${experienceBloom}/kept.webp`,
+  origin_question_id: null,
+}, userA)
+assert.equal(experienceSaved.error, null)
+const replaced = update(firstSaved.db, 'concepts', firstBloom, { origin_question_id: '48484848-4848-4484-8484-484848484848' }, userA)
+assert.equal(replaced.error, 'the originating question cannot be replaced')
+const questionDeleted = remove(firstSaved.db, 'questions', questionGarden, userA, 'creation')
+assert.equal(questionDeleted.error, null)
+const keptConcept = questionDeleted.db.rows.concepts.find((row) => row.id === firstBloom)
+assert.equal(keptConcept?.origin_question_id ?? null, null)
+assert.equal(questionDeleted.db.rows.concepts.some((row) => row.id === conceptGarden), true)
+
+const promotionTrigger = triggers.find((trigger) => trigger.function === 'concepts_promote_origin')
+assert.equal(promotionTrigger?.timing, 'after')
+assert.equal(promotionTrigger?.event, 'delete')
+assert.equal(promotionTrigger?.table, 'concepts')
+assert.equal(functionExec.get('concepts_promote_origin')?.has('authenticated') ?? false, false)
+
+const blossomPrompt = 'One question, one blossom.'
+const sharedQuestion = '51515151-5151-4151-8151-515151515151'
+const otherQuestion = '52525252-5252-4252-8252-525252525252'
+const representative = '61616161-6161-4161-8161-616161616161'
+const februaryEarly = '62626262-6262-4262-8262-626262626262'
+const februaryLate = '63636363-6363-4363-8363-636363636363'
+const aprilSmallerId = '60606060-6060-4060-8060-606060606060'
+const experienceHistorical = '64646464-6464-4464-8464-646464646464'
+const otherOriginConcept = '65656565-6565-4565-8565-656565656565'
+const ambiguousConcept = '66666666-6666-4666-8666-666666666666'
+const soleConcept = '67676767-6767-4676-8676-676767676767'
+const soleQuestion = '53535353-5353-4353-8353-535353535353'
+const cleanupConcept = '68686868-6868-4686-8686-686868686868'
+const cleanupQuestion = '54545454-5454-4454-8454-545454545454'
+const cleanupHistorical = '69696969-6969-4696-8696-696969696969'
+const severalSources = '6d6d6d6d-6d6d-46d6-86d6-6d6d6d6d6d6d'
+function blossomRow(id: string, createdAt: string, title: string, origin: string | null) {
+  return {
+    ...conceptRow(id, curiosityA, userA),
+    title,
+    for_considered_text: blossomPrompt,
+    created_at: createdAt,
+    origin_question_id: origin,
+  }
+}
+function blossomLink(id: string, conceptId: string, questionId: string, considered: string | null) {
+  return {
+    id,
+    concept_id: conceptId,
+    question_id: questionId,
+    user_id: userA,
+    curiosity_id: curiosityA,
+    original_text_snapshot: 'When should the garden stay a question?',
+    considered_text_snapshot: considered,
+  }
+}
+let garden = structuredClone(ready)
+const beforePromotions = originPromotions
+for (const row of [
+  { id: sharedQuestion, user_id: userA, curiosity_id: curiosityA, original_text: 'When should the garden stay a question?' },
+  { id: otherQuestion, user_id: userA, curiosity_id: curiosityA, original_text: 'What else remains open?' },
+  { id: soleQuestion, user_id: userA, curiosity_id: curiosityA, original_text: 'Is this question still open?' },
+  { id: cleanupQuestion, user_id: userA, curiosity_id: curiosityA, original_text: 'Did the cleanup keep the question?' },
+]) {
+  const saved = insert(garden, 'questions', row, userA)
+  assert.equal(saved.error, null)
+  garden = saved.db
+}
+for (const row of [
+  blossomRow(representative, '2026-01-01T00:00:00.000Z', 'First Bloom', sharedQuestion),
+  blossomRow(severalSources, '2026-01-15T00:00:00.000Z', 'Many Sources', null),
+  blossomRow(februaryEarly, '2026-02-01T00:00:00.000Z', 'Next Bloom', null),
+  blossomRow(februaryLate, '2026-02-01T00:00:00.000Z', 'Same Day', null),
+  blossomRow(aprilSmallerId, '2026-04-01T00:00:00.000Z', 'Later Bloom', null),
+  blossomRow(experienceHistorical, '2020-01-01T00:00:00.000Z', 'Topic Form', null),
+  blossomRow(otherOriginConcept, '2020-02-01T00:00:00.000Z', 'Other Bloom', otherQuestion),
+  blossomRow(ambiguousConcept, '2020-03-01T00:00:00.000Z', 'Open Reading', null),
+  blossomRow(soleConcept, '2026-05-01T00:00:00.000Z', 'Only Bloom', soleQuestion),
+  blossomRow(cleanupHistorical, '2026-01-02T00:00:00.000Z', 'Kept Bloom', null),
+  blossomRow(cleanupConcept, '2026-08-01T00:00:00.000Z', 'Failed Bloom', cleanupQuestion),
+]) {
+  const saved = insert(garden, 'concepts', row, userA)
+  assert.equal(saved.error, null)
+  garden = saved.db
+}
+const linkRows = [
+  blossomLink('71717171-7171-4171-8171-717171717171', representative, sharedQuestion, blossomPrompt),
+  blossomLink('7e7e7e7e-7e7e-47e7-87e7-7e7e7e7e7e7e', severalSources, sharedQuestion, blossomPrompt),
+  blossomLink('7f7f7f7f-7f7f-47f7-87f7-7f7f7f7f7f7f', severalSources, otherQuestion, 'A contributing prompt'),
+  blossomLink('72727272-7272-4272-8272-727272727272', februaryEarly, sharedQuestion, blossomPrompt),
+  blossomLink('73737373-7373-4373-8373-737373737373', februaryLate, sharedQuestion, blossomPrompt),
+  blossomLink('74747474-7474-4474-8474-747474747474', aprilSmallerId, sharedQuestion, blossomPrompt),
+  blossomLink('75757575-7575-4575-8575-757575757575', experienceHistorical, sharedQuestion, blossomPrompt),
+  blossomLink('76767676-7676-4676-8676-767676767676', otherOriginConcept, sharedQuestion, blossomPrompt),
+  blossomLink('77777777-7777-4777-8777-777777777777', ambiguousConcept, sharedQuestion, 'One reading'),
+  blossomLink('78787878-7878-4787-8787-787878787878', ambiguousConcept, otherQuestion, 'Another reading'),
+  blossomLink('79797979-7979-4797-8797-797979797979', soleConcept, soleQuestion, blossomPrompt),
+  blossomLink('7a7a7a7a-7a7a-47a7-87a7-7a7a7a7a7a7a', cleanupHistorical, cleanupQuestion, blossomPrompt),
+  blossomLink('7b7b7b7b-7b7b-47b7-87b7-7b7b7b7b7b7b', cleanupConcept, cleanupQuestion, blossomPrompt),
+]
+for (const row of linkRows) {
+  const saved = insert(garden, 'concept_questions', row, userA)
+  assert.equal(saved.error, null)
+  garden = saved.db
+}
+garden.rows.concept_experience_sources = [...(garden.rows.concept_experience_sources ?? []), {
+  id: '7c7c7c7c-7c7c-47c7-87c7-7c7c7c7c7c7c',
+  concept_id: experienceHistorical,
+  user_id: userA,
+  curiosity_id: curiosityA,
+  circle: 'concern',
+  original_text_snapshot: 'A topic in concern',
+  origin_source_id: '7d7d7d7d-7d7d-47d7-87d7-7d7d7d7d7d7d',
+}]
+const unchangedIds = [februaryEarly, februaryLate, aprilSmallerId, experienceHistorical, otherOriginConcept, ambiguousConcept, cleanupHistorical]
+const beforeRows = new Map(unchangedIds.map((id) => {
+  const concept = garden.rows.concepts.find((item) => item.id === id)
+  const links = garden.rows.concept_questions.filter((item) => item.concept_id === id)
+  return [id, { title: concept?.title, image_path: concept?.image_path, for_considered_text: concept?.for_considered_text, origin_question_id: concept?.origin_question_id ?? null, links: JSON.stringify(links) }]
+}))
+const manualClear = update(garden, 'concepts', representative, { origin_question_id: null }, userA)
+assert.equal(manualClear.error, 'the originating question cannot be cleared')
+assert.equal(manualClear.db.rows.concepts.find((item) => item.id === representative)?.origin_question_id, sharedQuestion)
+const promoted = remove(garden, 'concepts', representative, userA, 'creation')
+assert.equal(promoted.error, null)
+assert.equal(promoted.db.rows.concepts.some((item) => item.id === representative), false)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === severalSources)?.origin_question_id, sharedQuestion)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === severalSources)?.title, 'Many Sources')
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === experienceHistorical)?.origin_question_id ?? null, null)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === februaryEarly)?.origin_question_id ?? null, null)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === februaryLate)?.origin_question_id ?? null, null)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === aprilSmallerId)?.origin_question_id ?? null, null)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === ambiguousConcept)?.origin_question_id ?? null, null)
+assert.equal(promoted.db.rows.concepts.find((item) => item.id === otherOriginConcept)?.origin_question_id, otherQuestion)
+const experienceDeleted = remove(promoted.db, 'concepts', experienceHistorical, userA, 'creation')
+assert.equal(experienceDeleted.error, null)
+assert.equal(experienceDeleted.db.rows.concepts.some((item) => item.id === experienceHistorical), false)
+assert.equal(experienceDeleted.db.rows.concepts.find((item) => item.id === severalSources)?.origin_question_id, sharedQuestion)
+assert.equal(originPromotions, beforePromotions + 1)
+for (const id of [februaryEarly, februaryLate, aprilSmallerId, ambiguousConcept, otherOriginConcept, cleanupHistorical]) {
+  const concept = promoted.db.rows.concepts.find((item) => item.id === id)
+  const previous = beforeRows.get(id)
+  assert.equal(concept?.title, previous?.title)
+  assert.equal(concept?.image_path, previous?.image_path)
+  assert.equal(concept?.for_considered_text, previous?.for_considered_text)
+  assert.equal(JSON.stringify(promoted.db.rows.concept_questions.filter((item) => item.concept_id === id)), previous?.links)
+}
+const duplicateOrigin = insert(promoted.db, 'concepts', blossomRow('6a6a6a6a-6a6a-46a6-86a6-6a6a6a6a6a6a', '2026-09-01T00:00:00.000Z', 'Second Origin', sharedQuestion), userA)
+assert.equal(duplicateOrigin.error, 'unique concepts_one_origin_question')
+assert.equal(duplicateOrigin.db.rows.concepts.some((item) => item.id === '6a6a6a6a-6a6a-46a6-86a6-6a6a6a6a6a6a'), false)
+assert.equal(originPromotions, beforePromotions + 1)
+const released = remove(promoted.db, 'concepts', soleConcept, userA, 'creation')
+assert.equal(released.error, null)
+assert.equal(released.db.rows.concepts.some((item) => item.origin_question_id === soleQuestion), false)
+const reopened = insert(released.db, 'concepts', blossomRow('6b6b6b6b-6b6b-46b6-86b6-6b6b6b6b6b6b', '2026-10-01T00:00:00.000Z', 'Fresh Bloom', soleQuestion), userA)
+assert.equal(reopened.error, null)
+const questionCleared = remove(promoted.db, 'questions', sharedQuestion, userA, 'creation')
+assert.equal(questionCleared.error, null)
+assert.equal(questionCleared.db.rows.concepts.find((item) => item.id === severalSources)?.origin_question_id ?? null, null)
+assert.equal(questionCleared.db.rows.concepts.find((item) => item.id === februaryEarly)?.origin_question_id ?? null, null)
+assert.equal(questionCleared.db.rows.concepts.find((item) => item.id === februaryLate)?.origin_question_id ?? null, null)
+assert.equal(questionCleared.db.rows.concepts.some((item) => item.origin_question_id === sharedQuestion), false)
+assert.equal(originPromotions, beforePromotions + 1)
+const cleaned = remove(promoted.db, 'concepts', cleanupConcept, userA, 'creation')
+assert.equal(cleaned.error, null)
+assert.equal(cleaned.db.rows.concepts.some((item) => item.id === cleanupConcept), false)
+assert.equal(cleaned.db.rows.concepts.find((item) => item.id === cleanupHistorical)?.origin_question_id, cleanupQuestion)
+assert.equal(cleaned.db.rows.concepts.find((item) => item.id === cleanupHistorical)?.title, 'Kept Bloom')
+const cascadePromotions = originPromotions
+const curiosityCascade = remove(promoted.db, 'curiosities', curiosityA, userA, 'creation')
+assert.equal(curiosityCascade.error, null)
+assert.equal(curiosityCascade.db.rows.concepts.some((item) => item.curiosity_id === curiosityA), false)
+assert.equal(curiosityCascade.db.rows.concepts.some((item) => item.id === conceptOtherCuriosity), true)
+assert.equal(originPromotions, cascadePromotions)
+const accountSeed = insert(structuredClone(promoted.db), 'concepts', {
+  ...conceptRow('6c6c6c6c-6c6c-46c6-86c6-6c6c6c6c6c6c', curiosityOther, userB),
+  title: 'Other Garden',
+}, userB)
+assert.equal(accountSeed.error, null)
+const accountDb = accountSeed.db
+const accountPending: Pending[] = []
+removeReferential(accountDb, 'auth.users', { id: userA }, accountPending, 'creation')
+assert.equal(accountPending.some((item) => stillReferenced(accountDb, item)), false)
+assert.equal(accountDb.rows.concepts.some((item) => item.user_id === userA), false)
+assert.equal(accountDb.rows.concepts.some((item) => item.id === '6c6c6c6c-6c6c-46c6-86c6-6c6c6c6c6c6c'), true)
+assert.equal(originPromotions, cascadePromotions)
+
 console.log('experience provenance migration checks passed')
 console.log('static SQL simulation only; no PostgreSQL database was contacted')
 console.log('experience deletion is simulated through the before-delete trigger; PostgreSQL referential-action order was not executed')
 console.log('concurrent duplicate saves are an in-memory interleaving; PostgreSQL lock concurrency was not executed')
 console.log('parent lock order is read from the SQL text; a PostgreSQL deadlock test was not executed')
 console.log('a missing temporary source is rechecked in memory; PostgreSQL did not interleave that wait')
+console.log('origin promotion follows the trigger text in memory; PostgreSQL cascade order and lock waiting were not executed')

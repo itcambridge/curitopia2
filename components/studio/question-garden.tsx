@@ -1,6 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
+import { gardenOrbit, type GardenOrbitNode } from '@/lib/questions/workspace'
 import type { ConceptRecord, QuestionBranch, QuestionRecord } from '@/lib/questions/types'
 
 const shownInOrbit = 6
@@ -11,12 +12,6 @@ function slot(index: number, count: number) {
     x: 50 + Math.cos(angle) * 38,
     y: 50 + Math.sin(angle) * 38,
   }
-}
-
-function kindOf(question: QuestionRecord) {
-  if (question.disposition === 'retained') return 'shoot'
-  if (question.disposition === 'parked') return 'parked'
-  return 'seed'
 }
 
 const kindLabel = {
@@ -47,10 +42,6 @@ function NodeFace({
   )
 }
 
-type OrbitNode =
-  | { key: string; kind: 'blossom'; title: string; conceptId: string }
-  | { key: string; kind: 'seed' | 'shoot' | 'branch' | 'parked'; question: QuestionRecord }
-
 export function QuestionGarden({
   questions,
   concepts,
@@ -68,12 +59,7 @@ export function QuestionGarden({
   onFocus: (id: string) => void
   onOpenConcept: (id: string) => void
 }) {
-  const living = questions.filter((item) => item.disposition !== 'discarded')
-  const blossoms = concepts.slice(0, 3).map((concept): OrbitNode => ({ key: concept.id, kind: 'blossom', title: concept.title, conceptId: concept.id }))
-  const questionNodes = living.slice(0, shownInOrbit - blossoms.length).map((question): OrbitNode => ({ key: question.id, kind: kindOf(question), question }))
-  const orbit = [...blossoms, ...questionNodes]
-  const hidden = living.length - questionNodes.length
-  const hiddenConcepts = concepts.length - blossoms.length
+  const { orbit, hiddenQuestions: hidden } = gardenOrbit(questions, concepts, shownInOrbit)
 
   if (orbit.length === 0) {
     return (
@@ -145,11 +131,9 @@ export function QuestionGarden({
           )
         })}
       </div>
-      {(hidden > 0 || hiddenConcepts > 0) && (
+      {hidden > 0 && (
         <p className="mt-4 text-center text-xs text-studio-muted">
-          {hidden === 1 ? 'One more question is in the list below.' : hidden > 1 ? `${hidden} more questions are in the list below.` : ''}
-          {hidden > 0 && hiddenConcepts > 0 ? ' ' : ''}
-          {hiddenConcepts === 1 ? 'One more concept is in the library.' : hiddenConcepts > 1 ? `${hiddenConcepts} more concepts are in the library.` : ''}
+          {hidden === 1 ? 'One more question is in the list below.' : `${hidden} more questions are in the list below.`}
         </p>
       )}
     </div>
@@ -164,7 +148,7 @@ function OrbitButton({
   className,
   style,
 }: {
-  node: OrbitNode
+  node: GardenOrbitNode
   linked: Set<string>
   onFocus: (id: string) => void
   onOpenConcept: (id: string) => void
@@ -176,6 +160,7 @@ function OrbitButton({
       <button type="button" style={style} onClick={() => onOpenConcept(node.conceptId)} className={`${className ?? ''} ${chipClass('blossom')}`}>
         <span className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-studio-coral-text">Blossom</span>
         <span className="line-clamp-3 text-left text-sm font-semibold leading-snug">{node.title}</span>
+        {linked.has(node.questionId) ? <span className="mt-1 block font-mono text-[10px] uppercase tracking-widest text-studio-grove">Branch</span> : null}
       </button>
     )
   }

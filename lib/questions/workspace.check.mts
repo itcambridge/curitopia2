@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { shouldApplyReturnedImage } from '../providers/image-run.ts'
-import { conceptRemainsVisible, questionDispositionMap } from './library-carousel.ts'
-import { addQuestion, addImageCandidate, beginImageSet, branchPartners, duplicateGroups, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, removeBranch, restoreQuestion, saveConcept, selectCandidate, setDisposition, applyImageResult, updateConcept, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
+import { conceptRemainsVisible, originatingQuestionId, questionDispositionMap } from './library-carousel.ts'
+import { addQuestion, addImageCandidate, beginImageSet, branchPartners, duplicateGroups, gardenAfterSavedConcept, gardenConceptForQuestion, gardenOrbit, linkQuestions, mergeQuestions, migrateLegacyQuestions, openVisualise, plantedQuestion, questionPlace, removeBranch, restoreQuestion, saveConcept, selectCandidate, setDisposition, applyImageResult, updateConcept, visualiseFocusQuestion, visualiseQuestions, visualiseTarget, workspaceCounts } from './workspace.ts'
 import { emptyWorkspace } from './workspace.ts'
 import { titleProblem } from './title.ts'
 import assert from 'node:assert/strict'
@@ -202,6 +202,75 @@ assert.equal(kept.focusConceptId, kept.concepts[0].id)
 
 const anchorId = considered.questions[2].id
 const contributorId = considered.questions[1].id
+const secondDraft = { ...kept, drafts: chosen.drafts }
+assert.equal(saveConcept(secondDraft, anchorId, 'Second bloom', [contributorId]), secondDraft)
+assert.equal(kept.concepts.length, 1)
+assert.equal(kept.questions.find((item) => item.id === anchorId)?.disposition, 'retained')
+assert.equal(visualiseQuestions(kept).some((item) => item.id === anchorId), false)
+assert.equal(visualiseQuestions(kept).some((item) => item.id === contributorId), true)
+assert.equal(questionPlace(kept, kept.questions.find((item) => item.id === anchorId)!), 'Blossom')
+assert.equal(questionPlace(kept, kept.questions.find((item) => item.id === contributorId)!), 'In a concept')
+assert.equal(openVisualise(kept, anchorId), kept)
+assert.equal(openVisualise(kept, contributorId).stage, 'visualise')
+const visualising = { ...kept, stage: 'visualise' as const, focusQuestionId: anchorId }
+assert.equal(visualiseFocusQuestion(visualising)?.id, anchorId)
+assert.equal(visualiseQuestions(visualising).some((item) => item.id === anchorId), false)
+const returned = gardenAfterSavedConcept(visualising, anchorId, kept.concepts[0].id)
+assert.equal(returned.stage, 'gather')
+assert.equal(returned.focusQuestionId, anchorId)
+assert.equal(returned.focusConceptId, kept.concepts[0].id)
+assert.equal(gardenOrbit(returned.questions, returned.concepts).orbit.find((node) => node.key === anchorId)?.kind, 'blossom')
+assert.equal(gardenAfterSavedConcept(visualising, anchorId, 'missing-concept'), visualising)
+assert.equal(gardenAfterSavedConcept({ ...visualising, stage: 'library' }, anchorId, kept.concepts[0].id).stage, 'library')
+const beforeSave = openVisualise(chosen, anchorId)
+assert.equal(visualiseFocusQuestion(beforeSave)?.id, anchorId)
+assert.equal(visualiseFocusQuestion({ ...beforeSave, focusQuestionId: null }), null)
+const blossomed = gardenOrbit(kept.questions, kept.concepts)
+const blossom = blossomed.orbit.find((node) => node.key === anchorId)
+assert.equal(blossom?.kind, 'blossom')
+assert.equal(blossomed.orbit.filter((node) => node.key === anchorId).length, 1)
+if (blossom?.kind === 'blossom') {
+  assert.equal(blossom.title, 'After answer')
+  assert.equal(blossom.conceptId, kept.concepts[0].id)
+  assert.equal(blossom.questionId, anchorId)
+}
+assert.equal(blossomed.orbit.find((node) => node.key === contributorId)?.kind, 'seed')
+const reloadedAnchor = originatingQuestionId({
+  anchorQuestionId: null,
+  forConsideredText: kept.concepts[0].forConsideredText,
+  sources: [
+    { questionId: contributorId, consideredText: 'A later contributor prompt' },
+    { questionId: anchorId, consideredText: kept.concepts[0].forConsideredText },
+  ],
+})
+assert.equal(reloadedAnchor, anchorId)
+const reloaded = { ...kept, concepts: [{ ...kept.concepts[0], anchorQuestionId: reloadedAnchor }] }
+assert.equal(gardenConceptForQuestion(reloaded.concepts, anchorId)?.id, kept.concepts[0].id)
+assert.equal(gardenConceptForQuestion(reloaded.concepts, contributorId), null)
+assert.equal(gardenOrbit(reloaded.questions, reloaded.concepts).orbit.find((node) => node.key === anchorId)?.kind, 'blossom')
+const earlierConcept = { ...kept.concepts[0], id: 'earlier-concept', title: 'First bloom', createdAt: '2026-01-01T00:00:00.000Z' }
+const laterConcept = { ...kept.concepts[0], id: 'later-concept', title: 'Later bloom', createdAt: '2026-03-01T00:00:00.000Z' }
+const historical = { ...kept, concepts: [laterConcept, earlierConcept] }
+assert.equal(gardenConceptForQuestion(historical.concepts, anchorId)?.id, earlierConcept.id)
+const historicalNode = gardenOrbit(historical.questions, historical.concepts).orbit.find((node) => node.key === anchorId)
+assert.equal(historicalNode?.kind, 'blossom')
+if (historicalNode?.kind === 'blossom') assert.equal(historicalNode.conceptId, earlierConcept.id)
+assert.equal(visualiseQuestions(historical).some((item) => item.id === anchorId), false)
+const experienceClaim = {
+  ...kept.concepts[0],
+  id: 'experience-concept',
+  anchorQuestionId: anchorId,
+  experienceSource: {
+    linkId: 'experience-link',
+    experienceId: 'experience-1',
+    itemId: 'topic-1',
+    curiosityId: 'curiosity-1',
+    circle: 'concern' as const,
+    originalText: 'A topic in concern',
+  },
+}
+assert.equal(gardenConceptForQuestion([experienceClaim], anchorId), null)
+assert.equal(visualiseQuestions({ ...kept, concepts: [experienceClaim] }).some((item) => item.id === anchorId), true)
 const discardedSource = setDisposition(kept, anchorId, 'discarded')
 assert.equal(discardedSource.questions.find((item) => item.id === anchorId)?.disposition, 'discarded')
 assert.equal(discardedSource.questions.length, kept.questions.length)
@@ -211,8 +280,9 @@ assert.equal(discardedSource.concepts[0].title, 'After answer')
 assert.equal(discardedSource.concepts[0].imageSrc, kept.concepts[0].imageSrc)
 assert.equal(discardedSource.concepts[0].forConsideredText, kept.concepts[0].forConsideredText)
 assert.equal(discardedSource.concepts.length, 1)
-assert.equal(conceptRemainsVisible(discardedSource.concepts[0], questionDispositionMap(discardedSource.questions)), false)
-assert.equal(workspaceCounts(discardedSource).concepts, 0)
+assert.equal(conceptRemainsVisible(discardedSource.concepts[0], questionDispositionMap(discardedSource.questions)), true)
+assert.equal(workspaceCounts(discardedSource).concepts, 1)
+assert.equal(gardenOrbit(discardedSource.questions, discardedSource.concepts).orbit.some((node) => node.key === anchorId), false)
 const onlyContributor = setDisposition(kept, contributorId, 'discarded')
 assert.equal(onlyContributor.concepts, kept.concepts)
 assert.equal(conceptRemainsVisible(onlyContributor.concepts[0], questionDispositionMap(onlyContributor.questions)), true)
@@ -232,6 +302,11 @@ assert.equal(restoredConcept.concepts[0].imageSrc, kept.concepts[0].imageSrc)
 assert.equal(restoredConcept.concepts[0].forConsideredText, kept.concepts[0].forConsideredText)
 assert.equal(conceptRemainsVisible(restoredConcept.concepts[0], questionDispositionMap(restoredConcept.questions)), true)
 assert.equal(workspaceCounts(restoredConcept).concepts, 1)
+const restoredOrbit = gardenOrbit(restoredConcept.questions, restoredConcept.concepts)
+assert.equal(restoredOrbit.orbit.filter((node) => node.key === anchorId).length, 1)
+const restoredBlossom = restoredOrbit.orbit.find((node) => node.key === anchorId)
+assert.equal(restoredBlossom?.kind, 'blossom')
+if (restoredBlossom?.kind === 'blossom') assert.equal(restoredBlossom.conceptId, kept.concepts[0].id)
 
 const legacy = migrateLegacyQuestions([{
   id: 'legacy-1',
@@ -254,8 +329,26 @@ const gatherView = readFileSync(new URL('../../components/studio/gather-stage.ts
 assert.equal(gatherView.includes('Visualise: ${item.originalText}'), true)
 assert.equal(gatherView.includes('Open Curate'), false)
 assert.equal(gatherView.includes('openVisualise'), true)
+assert.equal(gatherView.includes('Open {concept.title}'), true)
+const gardenView = readFileSync(new URL('../../components/studio/question-garden.tsx', import.meta.url), 'utf8')
+assert.equal(gardenView.includes('gardenOrbit'), true)
+assert.equal(gardenView.includes('onOpenConcept(node.conceptId)'), true)
+assert.equal(gardenView.includes('concepts.slice(0, 3)'), false)
+const conceptStore = readFileSync(new URL('./supabase-concepts.ts', import.meta.url), 'utf8')
+const createStart = conceptStore.indexOf('export async function createStoredConcept')
+const storedInsert = conceptStore.indexOf("const inserted = await supabase.from('concepts').insert", createStart)
+const storedGuard = conceptStore.indexOf('await primaryConceptStored', createStart)
+assert.equal(createStart >= 0 && storedGuard > createStart && storedInsert > storedGuard, true)
+assert.equal(conceptStore.includes('origin_question_id'), false)
 const visualiseView = readFileSync(new URL('../../components/studio/visualise-stage.tsx', import.meta.url), 'utf8')
 assert.equal(visualiseView.includes('visualiseQuestions'), true)
+assert.equal(visualiseView.includes('visualiseFocusQuestion'), true)
+assert.equal(visualiseView.includes('choices.length === 0 && !selected'), true)
+const saveHandler = visualiseView.slice(visualiseView.indexOf('function saveSelected'))
+const gardenNav = saveHandler.indexOf('gardenAfterSavedConcept')
+assert.equal(saveHandler.indexOf('problem !== null') < gardenNav, true)
+assert.equal(saveHandler.indexOf('if (!topic)') < gardenNav, true)
+assert.equal(gardenNav < saveHandler.indexOf('const direction = savedDirection'), true)
 assert.equal(visualiseView.includes("disposition === 'retained' || item.disposition === 'gathered'"), false)
 assert.equal(visualiseView.includes('/api/images'), true)
 assert.equal(visualiseView.includes('/api/titles'), true)

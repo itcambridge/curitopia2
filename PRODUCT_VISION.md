@@ -32,7 +32,7 @@ The garden represents the person's evolving curiosity. It is not a streak, level
 | Seed | A question just captured, preserved in its original wording |
 | Shoot | A question receiving attention; not a required selection state |
 | Branch | A relationship the person recognises between questions or ideas; not a merge |
-| Blossom | A saved visual concept: artwork, a one- or two-word title, its represented question, and source provenance |
+| Blossom | The Garden representation of a question once its primary concept is saved. The node shows that concept's title and opens the concept. The question's disposition is unchanged. |
 | Field notes | Optional personal observations and discoveries |
 
 Growth follows real activity. A pause does not wither anything. A question that never becomes an image remains welcome. The garden should never imply that a person has failed to progress.
@@ -50,7 +50,7 @@ A signed-in person can keep multiple curiosities. Each curiosity is a persistent
 - Enter adds a question and clears the input.
 - Original wording is preserved.
 - No AI refinement, theme, investigation, status selection, or image is required to capture a question.
-- A person can open Visualise directly from any question, and from a topic in Concern, Influence, or Control.
+- A person can open Visualise directly from a Garden question that does not yet have a primary saved concept, and from a topic in Concern, Influence, or Control.
 - Lightweight actions such as edit, park, restore, or remove may remain when useful, but they are not a curation workflow and do not determine whether a question can be explored.
 - Questions are not discarded automatically because no image is saved.
 
@@ -213,8 +213,8 @@ Change one of prompt, model, or comparison layout at a time. If the product late
 - The person can ask for 1, 2, or 4 images. A first visit starts with one image, and the last choice is remembered in the browser. One image is a complete way to see an idea; four images remain available for a wider range of interpretations. While an image is being created, a countdown from 30 seconds shows the usual wait. A finished image appears at once, even if the countdown has time left. Past zero, the screen says it is taking a little longer than usual and keeps waiting. Each later image starts its own countdown.
 - The first finished image appears as soon as it is ready. Later images arrive one at a time. One failed image does not discard the others.
 - The Library shows a recognisable concept and supports side-by-side comparison with other concepts.
-- Editing, parking, or removing a source question does not delete the concept or change the wording the image represents.
-- Discarding the originating question hides its saved concepts from the Library until that question is restored. The concept, image, title, and question snapshot remain stored. Discarding an additional contributing question does not hide the concept.
+- Editing, parking, discarding, or removing a source question does not hide or delete the concept, its artwork, or the wording the image represents.
+- The Garden stops showing a discarded question. Restoring it shows the same Blossom and does not create another concept.
 - Saving another selected image creates another concept unless an explicit replacement interaction is later approved. Existing concepts are not silently replaced.
 
 ## 10. Behaviour around AI
@@ -262,7 +262,7 @@ The source architecture snapshot records a historical status for the curiosities
 
 - V2 uses its own Supabase project and accounts; V1 remains separate.
 - Concepts are independent saved records. A Garden concept is linked to source questions through `concept_questions`. A concept saved from an Experience topic keeps that topic and circle in `concept_experience_sources` instead.
-- One question may inform many concepts; one concept may be informed by many questions.
+- Provenance stays many-to-many. A Garden question has at most one saved concept as its primary representation. Other questions may contribute to that concept, and a contributing question can later be the primary question of its own concept. Experience topics keep their own provenance and are not Garden questions.
 - Source-question wording snapshots preserve provenance if a live question changes or is removed.
 - Titles use the existing one- or two-word rule (maximum 40 characters, with two words separated by one ordinary space).
 - Optional themes remain optional.

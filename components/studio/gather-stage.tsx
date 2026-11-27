@@ -5,7 +5,7 @@ import { ArrowUpRight, Check, ChevronRight, GitBranch, Image, Pause, Play, Rotat
 import { QuestionGarden } from '@/components/studio/question-garden'
 import { conceptRemainsVisible, questionDispositionMap } from '@/lib/questions/library-carousel'
 import { useScreenDraft } from '@/components/studio/leave-guard'
-import { addQuestion, branchPartners, correctOriginal, foldedQuestions, linkQuestions, openVisualise, plantedQuestion, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition, visualiseQuestions, visualiseTarget } from '@/lib/questions/workspace'
+import { addQuestion, blossomedQuestionNotice, branchPartners, correctOriginal, foldedQuestions, gardenConceptForQuestion, linkQuestions, openVisualise, plantedQuestion, questionPlace, removeBranch, restoreQuestion, reviewQuestions, setDisposition, visualiseQuestions, visualiseTarget } from '@/lib/questions/workspace'
 import type { ConceptRecord, QuestionRecord, StageId, Workspace } from '@/lib/questions/types'
 import { StageMark } from '@/components/studio/stage-mark'
 import { Eyebrow, IconAction, questionListClass, questionListItemClass } from '@/components/studio/studio-ui'
@@ -62,7 +62,12 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
 
   function visualise(questionId: string) {
     const next = openVisualise(workspace, questionId)
-    if (next !== workspace) onChange(next)
+    if (next !== workspace) {
+      setError(null)
+      onChange(next)
+      return
+    }
+    if (gardenConceptForQuestion(workspace.concepts, questionId)) setError(blossomedQuestionNotice)
   }
 
   return (
@@ -137,7 +142,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
           {activeQuestions.length > 0 && (
             <ul id="captured-questions" aria-label="Captured questions" className={`order-4 mt-8 border-t border-studio-line pt-6 ${questionListClass}`}>
               {activeQuestions.map((item) => (
-                <QuestionCard key={item.id} item={item} workspace={workspace} onChange={onChange} branchNotice={branchNotice} editingId={editingId} setEditingId={setEditingId} setCorrection={setCorrection} correction={correction} visualisable={visualisable} onVisualise={visualise} setError={setError} />
+                <QuestionCard key={item.id} item={item} workspace={workspace} onChange={onChange} branchNotice={branchNotice} editingId={editingId} setEditingId={setEditingId} setCorrection={setCorrection} correction={correction} visualisable={visualisable} onVisualise={visualise} onOpenConcept={onOpenConcept} setError={setError} />
               ))}
             </ul>
           )}
@@ -146,7 +151,7 @@ export function GatherStage({ workspace, onChange, saveIssue, branchNotice = nul
               <summary className="cursor-pointer text-sm font-semibold">Set aside ({discardedQuestions.length})</summary>
               <ul aria-label="Discarded questions" className={`mt-4 ${questionListClass}`}>
                 {discardedQuestions.map((item) => (
-                  <QuestionCard key={item.id} item={item} workspace={workspace} onChange={onChange} branchNotice={branchNotice} editingId={editingId} setEditingId={setEditingId} setCorrection={setCorrection} correction={correction} visualisable={visualisable} onVisualise={visualise} setError={setError} />
+                  <QuestionCard key={item.id} item={item} workspace={workspace} onChange={onChange} branchNotice={branchNotice} editingId={editingId} setEditingId={setEditingId} setCorrection={setCorrection} correction={correction} visualisable={visualisable} onVisualise={visualise} onOpenConcept={onOpenConcept} setError={setError} />
                 ))}
               </ul>
             </details>
@@ -223,6 +228,7 @@ function QuestionCard({
   setCorrection,
   visualisable,
   onVisualise,
+  onOpenConcept,
   setError,
 }: {
   item: QuestionRecord
@@ -235,6 +241,7 @@ function QuestionCard({
   setCorrection: (value: string) => void
   visualisable: Set<string>
   onVisualise: (id: string) => void
+  onOpenConcept: (concept: ConceptRecord) => void
   setError: (value: string | null) => void
 }) {
   const [target, setTarget] = useState('')
@@ -242,6 +249,7 @@ function QuestionCard({
   const partnerIds = new Set(partners.map((partner) => partner.id))
   const others = reviewQuestions(workspace).filter((candidate) => candidate.id !== item.id && !partnerIds.has(candidate.id))
   const folded = foldedQuestions(workspace, item.id)
+  const concept = gardenConceptForQuestion(workspace.concepts, item.id)
   const parked = item.disposition === 'parked'
   const discarded = item.disposition === 'discarded'
   const editing = editingId === item.id
@@ -286,6 +294,11 @@ function QuestionCard({
           <>
             <p className="mt-2 break-words font-serif text-2xl leading-snug">{item.originalText}</p>
             <div className="mt-4 flex items-center gap-2">
+              {concept ? (
+                <button type="button" className="text-sm font-semibold text-studio-coral-text underline decoration-studio-coral/40 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-coral" onClick={() => onOpenConcept(concept)}>
+                  Open {concept.title}
+                </button>
+              ) : null}
               {visualisable.has(item.id) && (
                 <IconAction label={`Visualise: ${item.originalText}`} treatment="quiet" tipAlign="start" onClick={() => onVisualise(item.id)}>
                   <Image aria-hidden="true" />

@@ -298,8 +298,18 @@ export function selectedCandidate(workspace: Workspace, questionId: string) {
   return draft.candidates.find((candidate) => candidate.id === draft.selectedId) ?? null
 }
 
+export { blossomedQuestionNotice } from './library-carousel.ts'
+
+// The primary represented question is the concept anchor. Experience concepts
+// are not Garden blossoms. When several concepts already name one question,
+// the earliest created concept is the Blossom.
+export function gardenConceptForQuestion(concepts: readonly ConceptRecord[], questionId: string) {
+  const matches = concepts.filter((concept) => !concept.experienceSource && concept.anchorQuestionId === questionId)
+  return [...matches].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id))[0] ?? null
+}
+
 export function conceptForAnchor(workspace: Workspace, anchorQuestionId: string) {
-  return workspace.concepts.find((concept) => concept.anchorQuestionId === anchorQuestionId) ?? null
+  return gardenConceptForQuestion(workspace.concepts, anchorQuestionId)
 }
 
 function relatedIds(workspace: Workspace, anchorId: string, extraIds: string[], retainedIds: string[] = []) {
@@ -310,6 +320,7 @@ function relatedIds(workspace: Workspace, anchorId: string, extraIds: string[], 
 }
 
 export function saveConcept(workspace: Workspace, anchorId: string, title: string, extraIds: string[]): Workspace {
+  if (gardenConceptForQuestion(workspace.concepts, anchorId)) return workspace
   if (titleProblem(title)) return workspace
   const item = question(workspace, anchorId)
   const chosen = selectedCandidate(workspace, anchorId)
@@ -372,15 +383,35 @@ export function reviewQuestions(workspace: Workspace) {
 }
 
 // Gathered, retained, and parked questions can open Visualise.
-// Discarded questions and merge sources stay out. A branch does not affect this.
+// Discarded questions, merge sources, and a question that already has a primary
+// concept stay out. A contributing question stays eligible. A branch does not affect this.
 export function visualiseQuestions(workspace: Workspace) {
-  return workspace.questions.filter((item) => !item.mergedIntoId && item.disposition !== 'discarded')
+  return workspace.questions.filter((item) => !item.mergedIntoId && item.disposition !== 'discarded' && !gardenConceptForQuestion(workspace.concepts, item.id))
 }
 
 export function visualiseTarget(workspace: Workspace) {
   const eligible = visualiseQuestions(workspace)
   if (eligible.length === 0) return null
   return eligible.find((item) => item.id === workspace.focusQuestionId) ?? eligible[0]
+}
+
+// The question open in Visualise stays on screen after its concept is saved.
+// It has left the choosable list, and the save confirmation still belongs to it.
+export function visualiseFocusQuestion(workspace: Workspace) {
+  const listed = visualiseQuestions(workspace).find((item) => item.id === workspace.focusQuestionId)
+  if (listed) return listed
+  const focused = workspace.questions.find((item) => item.id === workspace.focusQuestionId)
+  if (!focused || focused.mergedIntoId || focused.disposition === 'discarded') return null
+  return gardenConceptForQuestion(workspace.concepts, focused.id) ? focused : null
+}
+
+// A confirmed Garden save leaves Visualise. A missing concept, or a workspace
+// that has already moved on, stays where it is.
+export function gardenAfterSavedConcept(workspace: Workspace, questionId: string, conceptId: string): Workspace {
+  if (workspace.stage !== 'visualise') return workspace
+  const concept = workspace.concepts.find((item) => item.id === conceptId)
+  if (!concept || concept.anchorQuestionId !== questionId) return workspace
+  return { ...workspace, stage: 'gather', focusQuestionId: questionId, focusConceptId: conceptId }
 }
 
 export function openVisualise(workspace: Workspace, questionId: string): Workspace {
@@ -407,10 +438,28 @@ export function workspaceCounts(workspace: Workspace) {
   }
 }
 
+export type GardenOrbitNode =
+  | { key: string; kind: 'blossom'; title: string; conceptId: string; questionId: string }
+  | { key: string; kind: 'seed' | 'shoot' | 'parked'; question: QuestionRecord }
+
+// One living question is one node. Its primary saved concept replaces the
+// Seed, Shoot, or Parked face. Contributing questions keep their own nodes.
+export function gardenOrbit(questions: readonly QuestionRecord[], concepts: readonly ConceptRecord[], limit = 6) {
+  const living = questions.filter((item) => !item.mergedIntoId && item.disposition !== 'discarded')
+  const orbit = living.slice(0, limit).map((question): GardenOrbitNode => {
+    const concept = gardenConceptForQuestion(concepts, question.id)
+    if (concept) return { key: question.id, kind: 'blossom', title: concept.title, conceptId: concept.id, questionId: question.id }
+    const kind = question.disposition === 'retained' ? 'shoot' as const : question.disposition === 'parked' ? 'parked' as const : 'seed' as const
+    return { key: question.id, kind, question }
+  })
+  return { orbit, hiddenQuestions: Math.max(0, living.length - orbit.length) }
+}
+
 export function questionPlace(workspace: Workspace, item: QuestionRecord) {
   if (item.mergedIntoId) return 'Merged'
-  if (item.disposition === 'parked') return 'Parked'
   if (item.disposition === 'discarded') return 'Discarded'
+  if (gardenConceptForQuestion(workspace.concepts, item.id)) return 'Blossom'
+  if (item.disposition === 'parked') return 'Parked'
   if (workspace.concepts.some((concept) => concept.questionIds.includes(item.id))) return 'In a concept'
   const draft = draftFor(workspace, item.id)
   if (draft && draftIsCurrent(item, draft) && draft.selectedId && !draft.rejectedIds.includes(draft.selectedId)) return 'Image chosen'

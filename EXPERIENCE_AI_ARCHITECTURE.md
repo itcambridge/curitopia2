@@ -136,7 +136,7 @@ A concept with no `concept_questions` rows is still included, using its title an
 
 Images are not sent.
 
-The Library hides a concept while the question it treats as originating has `disposition = discarded`. The concept row remains. This version includes every concept row for the curiosity. It does not apply that Library filter. Whether Experience should follow the Library is undecided.
+The Library keeps a concept visible when its source question is discarded or removed. This version includes every concept row for the curiosity.
 
 ### 3.4 What stays out
 

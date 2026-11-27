@@ -1,6 +1,6 @@
 import { readConceptImage } from '@/lib/questions/concept-image'
 import { linkChanges } from '@/lib/questions/concept-links'
-import { originatingQuestionId } from '@/lib/questions/library-carousel'
+import { blossomedQuestionNotice, originatingQuestionId } from '@/lib/questions/library-carousel'
 import type { ConceptRecord, ConceptSource, ExperienceConceptSource, LibraryConcept, QuestionRecord } from '@/lib/questions/types'
 import { circleName } from '@/lib/questions/experience-content'
 import { withBasePath } from '@/lib/paths'
@@ -201,9 +201,46 @@ function cleanupMessage(action: string, problems: string[]) {
   return `${action} Cleanup also failed: ${problems.join('; ')}.`
 }
 
+async function primaryConceptStored(supabase: Awaited<ReturnType<typeof signedIn>>['supabase'], curiosityId: string, questionId: string) {
+  const linked = await supabase.from('concept_questions').select('concept_id').eq('curiosity_id', curiosityId).eq('question_id', questionId)
+  if (linked.error) throw new Error(conceptMessage(linked.error, blossomedQuestionNotice))
+  const ids = [...new Set((linked.data ?? []).flatMap((row) => typeof row.concept_id === 'string' ? [row.concept_id] : []))]
+  if (ids.length === 0) return false
+  const [conceptRows, linkRows, experienceRows] = await Promise.all([
+    supabase.from('concepts').select('id, for_considered_text').in('id', ids).eq('curiosity_id', curiosityId),
+    supabase.from('concept_questions').select('concept_id, question_id, considered_text_snapshot').in('concept_id', ids).eq('curiosity_id', curiosityId),
+    supabase.from('concept_experience_sources').select('concept_id').in('concept_id', ids),
+  ])
+  if (conceptRows.error) throw new Error(conceptMessage(conceptRows.error, blossomedQuestionNotice))
+  if (linkRows.error) throw new Error(conceptMessage(linkRows.error, blossomedQuestionNotice))
+  const experienceIds = new Set<string>()
+  if (!experienceRows.error) {
+    for (const row of experienceRows.data ?? []) {
+      if (typeof row.concept_id === 'string') experienceIds.add(row.concept_id)
+    }
+  } else if (experienceRows.error.code !== '42P01' && experienceRows.error.code !== 'PGRST205') {
+    throw new Error(conceptMessage(experienceRows.error, blossomedQuestionNotice))
+  }
+  return (conceptRows.data ?? []).some((row) => {
+    if (experienceIds.has(row.id)) return false
+    return originatingQuestionId({
+      anchorQuestionId: null,
+      forConsideredText: row.for_considered_text,
+      sources: (linkRows.data ?? []).filter((link) => link.concept_id === row.id).map((link) => ({
+        questionId: link.question_id,
+        consideredText: link.considered_text_snapshot,
+      })),
+    }) === questionId
+  })
+}
+
 export async function createStoredConcept(concept: ConceptRecord, questions: QuestionRecord[], curiosityId: string) {
   if (!concept.model?.trim() || !concept.promptVersion?.trim()) {
     throw new Error('This drawing has no image model on record, so it was not kept in the account.')
+  }
+  if (!concept.experienceSource && concept.anchorQuestionId) {
+    const { supabase } = await signedIn()
+    if (await primaryConceptStored(supabase, curiosityId, concept.anchorQuestionId)) throw new Error(blossomedQuestionNotice)
   }
   const image = readConceptImage(concept.imageSrc)
   if ('error' in image) throw new Error(image.error)

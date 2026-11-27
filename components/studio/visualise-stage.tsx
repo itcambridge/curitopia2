@@ -11,7 +11,7 @@ import type { ImageSetResult, MetaphorId } from '@/lib/providers/types'
 import { withBasePath } from '@/lib/paths'
 import type { CircleName } from '@/lib/questions/experience-content'
 import { cleanTitle, titleProblem } from '@/lib/questions/title'
-import { acceptConsidered, addImageCandidate, beginImageSet, draftFor, draftIsCurrent, foldedQuestions, questionPlace, rejectCandidate, restoreCandidate, saveConcept, selectCandidate, visualiseQuestions } from '@/lib/questions/workspace'
+import { acceptConsidered, addImageCandidate, beginImageSet, blossomedQuestionNotice, draftFor, draftIsCurrent, foldedQuestions, gardenAfterSavedConcept, gardenConceptForQuestion, questionPlace, rejectCandidate, restoreCandidate, reviewQuestions, saveConcept, selectCandidate, visualiseFocusQuestion, visualiseQuestions } from '@/lib/questions/workspace'
 import type { CandidateDraft, ConceptRecord, QuestionRecord, StoredCandidate, Workspace } from '@/lib/questions/types'
 
 export type ExperienceVisualTopic = {
@@ -51,9 +51,9 @@ function topicWorkspace(topic: ExperienceVisualTopic, consideredText: string | n
   }
 }
 
-export function VisualiseStage({ workspace, curiosityId, saving, savedConceptId, onChange }: { workspace: Workspace; curiosityId: string; saving: boolean; savedConceptId: string | null; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void }) {
+export function VisualiseStage({ workspace, curiosityId, saving, savedConceptId, onChange }: { workspace: Workspace; curiosityId: string; saving: boolean; savedConceptId: string | null; onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void | Promise<string | null> }) {
   const choices = visualiseQuestions(workspace)
-  const selected = choices.find((item) => item.id === workspace.focusQuestionId) ?? null
+  const selected = visualiseFocusQuestion(workspace)
   const listRef = useRef<HTMLUListElement>(null)
   const selectedId = selected?.id ?? null
 
@@ -85,7 +85,7 @@ export function VisualiseStage({ workspace, curiosityId, saving, savedConceptId,
           aria-label="Questions to visualise"
           className={`${questionListClass} xl:sticky xl:top-10`}
         >
-          {choices.length === 0 && <li className={`${panelClass} w-full shrink-0 text-sm text-studio-body`}>Plant a question before asking for an image.</li>}
+          {choices.length === 0 && !selected && <li className={`${panelClass} w-full shrink-0 text-sm text-studio-body`}>Plant a question before asking for an image.</li>}
           {choices.map((item) => {
             const current = item.id === selected?.id
             return (
@@ -126,7 +126,7 @@ function QuestionImages({
   saving: boolean
   savedConceptId: string | null
   workspace: Workspace
-  onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void
+  onChange: (next: Workspace | ((current: Workspace) => Workspace)) => void | Promise<string | null>
   topic?: ExperienceVisualTopic | null
   onTopicSaved?: (concept: ConceptRecord) => Promise<void>
   onTopicClose?: () => void
@@ -170,7 +170,7 @@ function QuestionImages({
   const titleIssue = title.trim() ? titleProblem(title) : null
   const canSave = Boolean(current && selected && !titleProblem(title) && selected.source !== 'demo' && !saving && !topicSaving)
   const justSaved = topic ? topicSaved : (workspace.concepts.find((item) => item.id === justSavedId) ?? null)
-  const relatedChoices = topic ? [] : visualiseQuestions(workspace).filter((item) => item.id !== question.id)
+  const relatedChoices = topic ? [] : reviewQuestions(workspace).filter((item) => item.id !== question.id)
   const folded = topic ? [] : foldedQuestions(workspace, question.id)
   useScreenDraft(!wordingSaved || busy !== null || (!justSaved && (title.trim() !== '' || related.length > 0)))
 
@@ -372,17 +372,29 @@ function QuestionImages({
   function saveSelected() {
     if (!canSave || !selected) return
     if (!topic) {
+      if (gardenConceptForQuestion(workspace.concepts, question.id)) {
+        setError(blossomedQuestionNotice)
+        return
+      }
       let savedId: string | null = null
-      onChange((currentWorkspace) => {
+      const pending = onChange((currentWorkspace) => {
         const next = saveConcept(currentWorkspace, question.id, title, related)
         if (next === currentWorkspace) return currentWorkspace
         savedId = next.focusConceptId
         return next
       })
       if (!savedId) return
+      const conceptId = savedId
       closeImageRun()
       setSlots(null)
-      setJustSavedId(savedId)
+      setJustSavedId(conceptId)
+      void Promise.resolve(pending).then((problem) => {
+        if (problem !== null) {
+          if (typeof problem === 'string') setError(problem)
+          return
+        }
+        onChange((current) => gardenAfterSavedConcept(current, question.id, conceptId))
+      })
       return
     }
     const direction = savedDirection?.trim() ?? ''
@@ -768,14 +780,14 @@ function ImageCountdownFrame({ activeKey, children }: { activeKey: string; child
     <>
       <div className="mt-4 flex items-center gap-4">
         <CountdownRing remaining={remaining} showNumber={showNumber} />
-        <div className="min-w-0">
-          <p className="text-balance text-sm">We're giving your question a visual form…</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-balance text-sm">Visualising your idea</p>
           <p role="status" className="mt-1 text-balance text-sm text-studio-note-on">{copy}</p>
+          {showNumber ? null : <p className="mt-1 text-balance text-sm text-studio-mint">Still creating…</p>}
         </div>
       </div>
-      <div className="mt-4 flex flex-nowrap items-center justify-between gap-3 border-t border-white/15 pt-3">
+      <div className="mt-4 flex flex-nowrap items-center gap-3 border-t border-white/15 pt-3">
         {children}
-        <p className="shrink-0 text-sm text-studio-mint">{showNumber ? 'Coming along nicely' : 'Still creating…'}</p>
       </div>
     </>
   )
@@ -842,10 +854,10 @@ function ImageProgress({ slots, attempt, busy, onRetry }: { slots: ImageSlot[]; 
   const marks = <ImageProgressMarks slots={slots} busy={busy} onRetry={onRetry} />
   return (
     <div className="mt-4">
-      <section aria-busy={active >= 0} aria-label="Creating your image" className="rounded-[24px] border border-studio-line bg-studio-ink px-4 py-4 text-studio-cream sm:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h4 className="font-serif text-xl leading-none">Creating your image</h4>
-          {active >= 0 ? <span className="rounded-full border border-studio-mint/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-studio-mint">Generating</span> : null}
+      <section aria-busy={active >= 0} aria-label="Coming along nicely" className="rounded-[24px] border border-studio-line bg-studio-ink px-4 py-4 text-studio-cream sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <h4 className="font-serif text-xl leading-tight">Coming along nicely</h4>
+          {active >= 0 ? <span className="shrink-0 rounded-full border border-studio-mint/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-studio-mint">Generating</span> : null}
         </div>
         {active >= 0 ? (
           <ImageCountdownFrame activeKey={`${slots[active].id}:${attempt}`}>

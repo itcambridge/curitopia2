@@ -66,7 +66,7 @@ export function millisecondsUntilNextImageSecond(startedAt: number, now: number)
 }
 
 export function imageCountdownCopy(remaining: number): string {
-  return remaining > 0 ? 'Usually around 30 seconds. Sometimes quicker!' : 'Taking a little longer than usual…'
+  return remaining > 0 ? 'About 30 seconds' : 'Taking a little longer than usual…'
 }
 
 export function imageCountdownShowsNumber(remaining: number): boolean {

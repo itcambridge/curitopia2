@@ -147,7 +147,7 @@ const originDiscarded = questionDispositionMap([], [
   { id: 'origin', disposition: 'discarded' },
   { id: 'extra', disposition: 'gathered' },
 ])
-assert.equal(conceptRemainsVisible(saved, originDiscarded), false)
+assert.equal(conceptRemainsVisible(saved, originDiscarded), true)
 const restored = questionDispositionMap([{ id: 'origin', disposition: 'discarded' }], [{ id: 'origin', disposition: 'gathered' }])
 assert.equal(conceptRemainsVisible(saved, restored), true)
 
@@ -158,6 +158,22 @@ const detachedConcept = {
 }
 assert.equal(originatingQuestionId(detachedConcept), null)
 assert.equal(conceptRemainsVisible(detachedConcept, originDiscarded), true)
+const clearedOrigin = {
+  anchorQuestionId: null,
+  forConsideredText: prompt,
+  sources: [
+    { questionId: null, consideredText: prompt },
+    { questionId: 'contributor', consideredText: 'A later contributor prompt' },
+  ],
+}
+assert.equal(originatingQuestionId(clearedOrigin), null)
+assert.equal(conceptRemainsVisible(clearedOrigin, questionDispositionMap([], [{ id: 'contributor', disposition: 'discarded' }])), true)
+const storedDespiteClearedSnapshot = {
+  anchorQuestionId: 'origin',
+  forConsideredText: prompt,
+  sources: clearedOrigin.sources,
+}
+assert.equal(originatingQuestionId(storedDespiteClearedSnapshot), null)
 
 const ambiguous = {
   anchorQuestionId: null,
@@ -179,5 +195,5 @@ const remembered = {
   sources: [],
 }
 assert.equal(originatingQuestionId(remembered), 'origin')
-assert.equal(conceptRemainsVisible(remembered, originDiscarded), false)
+assert.equal(conceptRemainsVisible(remembered, originDiscarded), true)
 assert.equal(conceptRemainsVisible(remembered, restored), true)

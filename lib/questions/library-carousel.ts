@@ -45,9 +45,13 @@ export function conceptQuestionCopy(
 
 export const questionNotRecorded = 'Question not recorded'
 
+export const blossomedQuestionNotice = 'This question already has a saved concept.'
+
 // The originating question is the one whose saved image-prompt snapshot matches
 // the concept. A single live link, or the anchor recorded at save time, is used
 // when that match is absent. Several live links and no unique match stay unresolved.
+// A snapshot whose question was removed keeps the prompt but has no question id.
+// That missing question is not replaced by another question that is still linked.
 export function originatingQuestionId(concept: {
   anchorQuestionId: string | null
   forConsideredText?: string
@@ -55,6 +59,11 @@ export function originatingQuestionId(concept: {
 }): string | null {
   const prompt = concept.forConsideredText?.trim() ?? ''
   const live = concept.sources.filter((source) => source.questionId)
+  const detachedOrigin = concept.sources.some((source) => !source.questionId && prompt && (source.consideredText?.trim() ?? '') === prompt)
+  if (detachedOrigin) {
+    if (concept.anchorQuestionId && live.some((source) => source.questionId === concept.anchorQuestionId)) return concept.anchorQuestionId
+    return null
+  }
   const matched = [...new Set(live.flatMap((source) => {
     if (!source.questionId || !prompt || (source.consideredText?.trim() ?? '') !== prompt) return []
     return [source.questionId]
@@ -76,19 +85,18 @@ export function questionDispositionMap(
   return dispositions
 }
 
-// A concept leaves the Library only while its originating question is discarded.
-// A missing live question, or an unresolved origin, stays visible. Other contributors do not hide it.
+// A saved concept stays in the Library when a source question is edited, parked,
+// discarded, or removed. The Garden still hides discarded questions. That rule
+// does not hide the concept or its artwork.
 export function conceptRemainsVisible(
-  concept: {
+  _concept: {
     anchorQuestionId: string | null
     forConsideredText?: string
     sources: Pick<ConceptSource, 'questionId' | 'consideredText'>[]
   },
-  dispositions: ReadonlyMap<string, string>,
+  _dispositions: ReadonlyMap<string, string>,
 ) {
-  const origin = originatingQuestionId(concept)
-  if (!origin) return true
-  return dispositions.get(origin) !== 'discarded'
+  return true
 }
 
 // The card shows the person's original question, preferring the wording saved

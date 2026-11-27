@@ -77,13 +77,14 @@ A question in the Garden, or an existing question opened from another part of th
 2. Curitopia shows the original question. The person may ask for one creative direction, or write one. The direction describes the idea, feeling, tension, or relationship to explore. It does not choose a subject, setting, or metaphor. The original capture remains intact.
 3. The person can edit that one direction and accepts it before any image is made. Curitopia does not ask them to review a separate prompt for each image.
 4. The person chooses 1, 2, or 4 images and explicitly requests them. A first visit starts at 1 image. The last choice is remembered in this browser. One image uses Tension. Two use Tension and Trace. Four use Tension, Trace, Scale, and Relation. Each image interprets the original question and the accepted direction from its own starting point.
-5. Curitopia shows that the image is being created. Each image request, including one tried again, starts its own countdown at 30 seconds and decreases it once per second. The supporting line reads “Usually around 30 seconds. Sometimes quicker!” A finished image is shown immediately, even when time remains on the countdown. If the request is still running at zero, the number stops, it does not go negative, and the line changes to “Taking a little longer than usual…” while generation continues. One image is the quickest look. Two images offer a couple of interpretations. Four images explore a wider range, and they can differ in concept or metaphor.
+5. Curitopia shows that the image is being created. Each image request, including one tried again, starts its own countdown at 30 seconds and decreases it once per second. The supporting line reads “About 30 seconds”. A finished image is shown immediately, even when time remains on the countdown. If the request is still running at zero, the number stops, it does not go negative, and the line changes to “Taking a little longer than usual…” while generation continues. One image is the quickest look. Two images offer a couple of interpretations. Four images explore a wider range, and they can differ in concept or metaphor.
 6. The person can select a finished image while later images are still being created. They can hide an image, try a failed image again without losing the others, request another set, or leave without saving.
 7. If one image is worth keeping, the person selects it and chooses **Save concept**.
 8. The save interaction presents a title field. The person writes a title of one or two words, or explicitly asks for optional title suggestions and adopts/edits one. The person's final wording is authoritative.
 9. Curitopia validates the title and saves the original selected artwork, the title, the exact generation wording, model/prompt metadata, and links to the source questions.
 10. The saved concept appears in the Library with its title rendered at the top, original artwork in the centre, and the original question at the bottom. The accepted creative direction stays with the concept.
-11. The person may continue exploring, return to the Garden, compare the new concept with another, or leave.
+11. In the Garden, that question is shown as a Blossom. The Blossom shows the concept title and opens the concept. The question is no longer shown as a separate Seed, Shoot, or Parked face, and it is no longer offered for another Visualise. Its disposition is unchanged. A question recorded only as a contributing source stays available on its own.
+12. After the account has stored the concept, Curitopia returns to the Garden. The new Blossom is already shown in place of that question. A failed save stays on Visualise.
 
 ### Guardrails
 
@@ -99,8 +100,8 @@ A question in the Garden, or an existing question opened from another part of th
 - The model must not render title/question text into the source image. The application creates text overlays.
 - The source image file remains unchanged. A future flattened export is a separate derivative.
 - Rejected candidates are not Library concepts and are not uploaded to the concept storage bucket.
-- Saving another selected image creates another concept unless a separately approved replace interaction is implemented.
-- Editing, parking, or removing a source question does not rewrite or delete an existing concept. Discarding the originating question hides its saved concepts from the Library until that question is restored. Discarding an additional contributing question leaves the concept visible. Neither action deletes the concept, its image, or its provenance.
+- Saving another selected image for the same primary Garden question does not create a second concept. To explore another idea, the person plants a new question. A contributing question can still be visualised on its own. Choosing 1, 2, or 4 candidate images before the first save is unchanged.
+- Editing, parking, discarding, or removing a source question does not rewrite, hide, or delete an existing concept or its artwork. The Garden stops showing a discarded question. Restoring that question shows the same Blossom and does not create another concept.
 
 ### What good looks like
 
@@ -243,12 +244,12 @@ The person wants to revisit an idea after time has passed, perhaps with new cont
 3. They open details to see its source questions and wording snapshots.
 4. They may retitle the concept, compare it with another, open a source question, or leave it unchanged.
 5. If they retitle it, the same concept is updated. The image and provenance are retained.
-6. If they want a different image, they explicitly create another concept or use a replacement interaction only if one is separately approved.
+6. If they want a different image, they plant a new question and visualise that, or use a replacement interaction only if one is separately approved.
 
 ### Guardrails
 
 - The Library is account-wide; concepts from multiple curiosities can be discovered and compared.
-- A concept remains available if a source question is edited, parked, or removed. It leaves the Library only while its originating question is discarded, and it returns when that question is restored.
+- A concept remains in the Library if a source question is edited, parked, discarded, or removed. Restoring a question does not save the concept again.
 - The exact generation question is not rewritten from the current live question.
 - No concept is marked complete, archived as a reward, or scored.
 - A later AI model must not retitle a saved concept without the person's action.
